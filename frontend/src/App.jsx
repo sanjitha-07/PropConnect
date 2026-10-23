@@ -30,6 +30,14 @@ import ProfilePage from "./pages/shared/ProfilePage.jsx";
 import SettingsPage from "./pages/shared/SettingsPage.jsx";
 import AnalyticsPage from "./pages/shared/AnalyticsPage.jsx";
 import ServicesPage from "./pages/shared/ServicesPage.jsx";
+import HomeServicesPortal from "./pages/shared/HomeServicesPortal.jsx";
+import ServiceBookingsPage from "./pages/shared/ServiceBookingsPage.jsx";
+import ServiceCategoriesPage from "./pages/admin/ServiceCategoriesPage.jsx";
+import ServiceProvidersPage from "./pages/admin/ServiceProvidersPage.jsx";
+import AvailabilityManagementPage from "./pages/admin/AvailabilityManagementPage.jsx";
+import TenantEbBillsPage from "./pages/tenant/TenantEbBillsPage.jsx";
+import LandlordEbBillsPage from "./pages/landlord/LandlordEbBillsPage.jsx";
+
 export default function App() {
   return (
     <AuthProvider>
@@ -60,8 +68,14 @@ export default function App() {
                   <Route path="leases" element={<LeasesPage />} />
                   <Route path="payments" element={<PaymentsPage />} />
                   <Route path="maintenance" element={<MaintenancePage />} />
+                  <Route path="home-services" element={<HomeServicesPortal />} />
+                  <Route path="service-categories" element={<ServiceCategoriesPage />} />
+                  <Route path="service-providers" element={<ServiceProvidersPage />} />
+                  <Route path="service-bookings" element={<ServiceBookingsPage />} />
+                  <Route path="availability-management" element={<AvailabilityManagementPage />} />
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="deposits" element={<DepositsPage />} />
+                  <Route path="eb-bills" element={<LandlordEbBillsPage />} />
                   <Route path="utility-bills" element={<UtilityBillsPage />} />
                   <Route path="expenses" element={<ExpensesPage />} />
                   <Route path="documents" element={<DocumentsPage />} />
@@ -86,7 +100,10 @@ export default function App() {
                   <Route path="properties/:id" element={<PropertyDetailsPage />} />
                   <Route path="leases" element={<LeasesPage />} />
                   <Route path="payments" element={<PaymentsPage />} />
+                  <Route path="eb-bills" element={<LandlordEbBillsPage />} />
                   <Route path="maintenance" element={<MaintenancePage />} />
+                  <Route path="home-services" element={<HomeServicesPortal />} />
+                  <Route path="bookings" element={<ServiceBookingsPage />} />
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="deposits" element={<DepositsPage />} />
                   <Route path="utility-bills" element={<UtilityBillsPage />} />
@@ -112,7 +129,10 @@ export default function App() {
                   <Route path="properties/:id" element={<PropertyDetailsPage />} />
                   <Route path="lease" element={<MyLeasePage />} />
                   <Route path="payments" element={<MyPaymentsPage />} />
+                  <Route path="eb-bills" element={<TenantEbBillsPage />} />
                   <Route path="maintenance" element={<MyMaintenancePage />} />
+                  <Route path="home-services" element={<HomeServicesPortal />} />
+                  <Route path="my-bookings" element={<ServiceBookingsPage />} />
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="documents" element={<MyDocumentsPage />} />
                   <Route path="complaints" element={<MyComplaintsPage />} />

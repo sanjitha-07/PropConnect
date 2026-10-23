@@ -85,6 +85,7 @@ export default function UtilityBillsPage() {
       ...formData,
       id: newId,
       amount: Number(formData.amount),
+      billingMonth: formData.billingMonth || "October 2026",
       propertyName: selectedProp.name || "Apartment Unit",
     };
 
@@ -282,6 +283,22 @@ export default function UtilityBillsPage() {
         badge="Utilities &amp; Statutory Bills"
         title={t("utilityBillsTable") || "Utility Bills &amp; EB Tracking"}
         subtitle="Tamil Nadu Electricity Board (TANGEDCO), CMWSSB Water Supply, Piped Gas, and building maintenance bills"
+        actions={
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button className="btn-primary" onClick={() => setIsAddOpen(true)}>
+              + Record Utility Bill
+            </button>
+            <button
+              className="btn-outline"
+              onClick={() => {
+                const target = user?.role === "tenant" ? "/tenant/eb-bills" : "/landlord/eb-bills";
+                window.location.href = target;
+              }}
+            >
+              ⚡ EB Bills Dashboard
+            </button>
+          </div>
+        }
       />
 
       {/* KPI Banner */}

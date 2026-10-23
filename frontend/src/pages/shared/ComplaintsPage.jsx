@@ -266,6 +266,15 @@ export default function ComplaintsPage() {
               <span className="pill active" style={{ fontSize: "11px" }}>Resolved</span>
             )}
 
+            <a
+              href={`/${user?.role === "admin" ? "admin" : "landlord"}/home-services?propertyId=${r.propertyId || ""}&unit=${encodeURIComponent(r.unit || "")}`}
+              className="btn-outline"
+              style={{ padding: "4px 8px", fontSize: "11px", color: "#0284c7", borderColor: "#38bdf8", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
+              title="Book Home Service directly for this property"
+            >
+              🛠️ Book Service
+            </a>
+
             <button
               className="btn-outline"
               style={{ padding: "4px 8px", fontSize: "11px", color: "var(--danger)" }}

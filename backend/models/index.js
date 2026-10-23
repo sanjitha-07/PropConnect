@@ -132,8 +132,10 @@ const leaseSchema = new mongoose.Schema(
     end_date: { type: String, default: "" },
     monthlyRent: { type: Number, default: 0 },
     monthly_rent: { type: Number, default: 0 },
+    rent: { type: Number, default: 0 },
     depositAmount: { type: Number, default: 0 },
     deposit_amount: { type: Number, default: 0 },
+    deposit: { type: Number, default: 0 },
     status: { type: String, default: "Active" },
     paymentCycle: { type: String, default: "Monthly" },
     payment_cycle: { type: String, default: "Monthly" },
@@ -141,6 +143,24 @@ const leaseSchema = new mongoose.Schema(
     term_months: { type: Number, default: 11 },
     agreementDoc: { type: String, default: "" },
     agreement_doc: { type: String, default: "" },
+    utilityResponsibility: {
+      type: {
+        electricity: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
+        water: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
+        gas: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
+        internet: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
+        maintenance: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Landlord" },
+        other: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
+      },
+      default: () => ({
+        electricity: "Tenant",
+        water: "Tenant",
+        gas: "Tenant",
+        internet: "Tenant",
+        maintenance: "Landlord",
+        other: "Tenant",
+      }),
+    },
   },
   defaultOptions
 );
@@ -165,7 +185,11 @@ const paymentSchema = new mongoose.Schema(
     due_date: { type: String, default: "" },
     paidDate: { type: String, default: "" },
     paid_date: { type: String, default: "" },
-    method: { type: String, default: "UPI" },
+    leaseId: { type: String, default: null },
+    lease_id: { type: String, default: null },
+    periodStart: { type: String, default: "" },
+    periodEnd: { type: String, default: "" },
+    cycleNumber: { type: Number, default: 1 },
     invoiceNo: { type: String, default: "" },
     invoice_no: { type: String, default: "" },
     receiptUrl: { type: String, default: "" },
@@ -237,21 +261,80 @@ const depositSchema = new mongoose.Schema(
   defaultOptions
 );
 
-// 10. Utility Bill Model
+// 10. Utility Bill Model (EB Bills and Tenant Expense Management)
 const utilityBillSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
     propertyId: { type: String, default: null },
     property_id: { type: String, default: null },
+    propertyName: { type: String, default: "" },
+    property_name: { type: String, default: "" },
     tenantId: { type: String, default: null },
     tenant_id: { type: String, default: null },
-    type: { type: String, default: "Electricity" },
-    amount: { type: Number, default: 0 },
-    billDate: { type: String, default: "" },
+    tenantName: { type: String, default: "" },
+    tenant_name: { type: String, default: "" },
+    landlordId: { type: String, default: "LDL001" },
+    landlord_id: { type: String, default: "LDL001" },
+    type: { type: String, default: "Electricity" }, // Electricity (EB), Water, Gas, Internet, Maintenance, Other
+    billingMonth: { type: String, default: "" }, // e.g. "October 2026", "2026-10"
+    billing_month: { type: String, default: "" },
+    consumerNo: { type: String, default: "" }, // TNEB Consumer Number or Utility Account ID
+    billReference: { type: String, default: "" },
+    bill_reference: { type: String, default: "" },
+    previousReading: { type: Number, default: null }, // Optional meter readings
+    previous_reading: { type: Number, default: null },
+    currentReading: { type: Number, default: null },
+    current_reading: { type: Number, default: null },
+    unitsConsumed: { type: Number, default: null }, // kWh / Units
+    units_consumed: { type: Number, default: null },
+    ratePerUnit: { type: Number, default: 0 },
+    amount: { type: Number, required: true, default: 0 }, // Total bill amount
+    billDate: { type: String, default: "" }, // Issue Date
     bill_date: { type: String, default: "" },
-    dueDate: { type: String, default: "" },
+    dueDate: { type: String, default: "" }, // Payment Due Date
     due_date: { type: String, default: "" },
-    status: { type: String, default: "Paid" },
+    responsibility: {
+      type: String,
+      enum: ["Tenant", "Landlord", "Shared"],
+      default: "Tenant",
+    },
+    tenantAmount: { type: Number, default: 0 }, // Assigned to tenant
+    tenant_amount: { type: Number, default: 0 },
+    landlordAmount: { type: Number, default: 0 }, // Assigned to landlord
+    landlord_amount: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["Unpaid", "Due Soon", "Overdue", "Payment Pending", "Paid", "Failed"],
+      default: "Unpaid",
+    },
+    documentUrl: { type: String, default: "" }, // Bill document / meter photo URL
+    document_url: { type: String, default: "" },
+    documentName: { type: String, default: "" },
+    document_name: { type: String, default: "" },
+    paidDate: { type: String, default: "" },
+    paid_date: { type: String, default: "" },
+    paidAmount: { type: Number, default: 0 },
+    paymentMethod: { type: String, default: "" }, // "UPI", "Razorpay", "Card", "NetBanking"
+    payment_method: { type: String, default: "" },
+    transactionId: { type: String, default: "" },
+    transaction_id: { type: String, default: "" },
+    paymentGatewayOrderId: { type: String, default: "" },
+    paymentGatewaySignature: { type: String, default: "" },
+    gatewayStatus: { type: String, default: "" },
+    lastReminderDate: { type: String, default: "" },
+    reminderCount: { type: Number, default: 0 },
+    reminderHistory: {
+      type: [
+        {
+          sentAt: { type: String, default: "" },
+          type: { type: String, default: "reminder" },
+          recipient: { type: String, default: "" },
+          message: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
+    notes: { type: String, default: "" },
   },
   defaultOptions
 );
@@ -441,7 +524,7 @@ export const PropertyImage = mongoose.model("PropertyImage", propertyImageSchema
 export const Favorite = mongoose.model("Favorite", favoriteSchema);
 export const SystemSetting = mongoose.model("SystemSetting", systemSettingSchema);
 
-// 21. FixIt Local Service Provider Model
+// 21. FixIt & Home Services Service Provider Model
 const serviceProviderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -466,21 +549,150 @@ const serviceProviderSchema = new mongoose.Schema(
     distanceKm: { type: Number, default: 1.5 },
     availability: { type: String, default: "Available Today" },
     isAvailable: { type: Boolean, default: true },
+    status: { type: String, enum: ["Active", "Inactive", "Suspended"], default: "Active" },
     phone: { type: String, default: "+91 98765 00001" },
+    email: { type: String, default: "" },
+    location: { type: String, default: "Chennai, Tamil Nadu" },
     lat: { type: Number, default: 13.0827 },
     lng: { type: Number, default: 80.2707 },
     address: { type: String, default: "Chennai, Tamil Nadu" },
     skills: { type: [String], default: [] },
-    badge: { type: String, default: "FixIt Verified Pro" },
+    badge: { type: String, default: "PropConnect Verified Pro" },
     vehicle: { type: String, default: "TVS Apache - TN 01 AB 4321" },
     experienceYears: { type: Number, default: 5 },
     image: { type: String, default: "" },
     description: { type: String, default: "" },
+    workingDays: {
+      type: [String],
+      default: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    },
+    timeSlots: {
+      type: [String],
+      default: [
+        "09:00 AM",
+        "10:00 AM",
+        "11:00 AM",
+        "12:00 PM",
+        "02:00 PM",
+        "03:00 PM",
+        "04:00 PM",
+        "05:00 PM",
+      ],
+    },
+    maxBookingsPerSlot: { type: Number, default: 1 },
   },
   defaultOptions
 );
 
-// 22. Landlord Preferred Provider Model (Per Property & Category)
+// 22. Service Category Model
+const serviceCategorySchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    name: { type: String, required: true, unique: true },
+    slug: { type: String, required: true },
+    description: { type: String, default: "" },
+    icon: { type: String, default: "Wrench" },
+    basePrice: { type: Number, default: 499 },
+    unit: { type: String, default: "per service" },
+    services: { type: [String], default: [] },
+    isActive: { type: Boolean, default: true },
+    displayOrder: { type: Number, default: 0 },
+  },
+  defaultOptions
+);
+
+// 23. Provider Availability Override / Custom Schedule Model
+const providerAvailabilitySchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    providerId: { type: String, required: true, index: true },
+    date: { type: String, required: true, index: true }, // "YYYY-MM-DD"
+    timeSlot: { type: String, required: true }, // "10:00 AM"
+    isAvailable: { type: Boolean, default: false }, // false indicates blocked/leave
+    status: { type: String, enum: ["Available", "Booked", "Blocked", "Leave"], default: "Blocked" },
+    reason: { type: String, default: "" },
+    bookingId: { type: String, default: null },
+  },
+  defaultOptions
+);
+
+// 24. Home Service Booking Model
+const serviceBookingSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    bookingNumber: { type: String, default: "" },
+    complaintId: { type: String, default: null },
+
+    // User / Booker
+    userId: { type: String, required: true, index: true },
+    userName: { type: String, required: true },
+    userEmail: { type: String, default: "" },
+    userPhone: { type: String, default: "" },
+    userRole: { type: String, enum: ["tenant", "landlord", "admin"], required: true },
+
+    // Property Reference
+    propertyId: { type: String, required: true, index: true },
+    propertyName: { type: String, default: "" },
+    unit: { type: String, default: "" },
+    address: { type: String, default: "" },
+    landlordId: { type: String, default: "LDL001", index: true },
+
+    // Service & Provider
+    serviceCategory: { type: String, required: true, index: true },
+    serviceName: { type: String, default: "" },
+    serviceDescription: { type: String, default: "" },
+    providerId: { type: String, required: true, index: true },
+    providerName: { type: String, required: true },
+    providerPhone: { type: String, default: "" },
+    technicianName: { type: String, default: "" },
+    technicianPhone: { type: String, default: "" },
+
+    // Schedule
+    date: { type: String, required: true, index: true }, // "YYYY-MM-DD"
+    timeSlot: { type: String, required: true }, // "10:00 AM"
+
+    // Lifecycle Status
+    status: {
+      type: String,
+      enum: ["Pending", "Confirmed", "Assigned", "In Progress", "Completed", "Cancelled"],
+      default: "Confirmed",
+      index: true,
+    },
+
+    amount: { type: Number, default: 499 },
+    paymentStatus: { type: String, enum: ["Pending", "Paid", "Refunded"], default: "Pending" },
+
+    timeline: [
+      {
+        status: { type: String, required: true },
+        time: { type: String, required: true },
+        note: { type: String, default: "" },
+        updatedBy: { type: String, default: "" },
+      },
+    ],
+
+    notes: { type: String, default: "" },
+    cancellationReason: { type: String, default: "" },
+    completionDate: { type: String, default: "" },
+    completionNotes: { type: String, default: "" },
+    rating: { type: Number, default: 0 },
+    reviewText: { type: String, default: "" },
+  },
+  defaultOptions
+);
+
+// Prevent concurrent double bookings at the database index level
+serviceBookingSchema.index(
+  { providerId: 1, date: 1, timeSlot: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["Pending", "Confirmed", "Assigned", "In Progress"] },
+    },
+  }
+);
+
+// 25. Landlord Preferred Provider Model (Per Property & Category)
 const preferredProviderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -496,7 +708,7 @@ const preferredProviderSchema = new mongoose.Schema(
   defaultOptions
 );
 
-// 23. FixIt Local Service Booking & Live GPS Dispatch Model
+// 26. FixIt Local Service Booking & Live GPS Dispatch Model
 const fixItBookingSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -552,7 +764,7 @@ const fixItBookingSchema = new mongoose.Schema(
   defaultOptions
 );
 
-// 24. Property Maintenance History & Cost Ledger Model
+// 27. Property Maintenance History & Cost Ledger Model
 const propertyMaintenanceHistorySchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -577,6 +789,9 @@ const propertyMaintenanceHistorySchema = new mongoose.Schema(
 );
 
 export const ServiceProvider = mongoose.model("ServiceProvider", serviceProviderSchema);
+export const ServiceCategory = mongoose.model("ServiceCategory", serviceCategorySchema);
+export const ProviderAvailability = mongoose.model("ProviderAvailability", providerAvailabilitySchema);
+export const ServiceBooking = mongoose.model("ServiceBooking", serviceBookingSchema);
 export const PreferredProvider = mongoose.model("PreferredProvider", preferredProviderSchema);
 export const FixItBooking = mongoose.model("FixItBooking", fixItBookingSchema);
 export const PropertyMaintenanceHistory = mongoose.model(
@@ -606,8 +821,12 @@ export const models = {
   saved_properties: Favorite,
   system_settings: SystemSetting,
   service_providers: ServiceProvider,
+  service_categories: ServiceCategory,
+  provider_availabilities: ProviderAvailability,
+  service_bookings: ServiceBooking,
   preferred_providers: PreferredProvider,
   fixit_bookings: FixItBooking,
   maintenance_history: PropertyMaintenanceHistory,
 };
+
 

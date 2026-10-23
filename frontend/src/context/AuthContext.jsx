@@ -45,6 +45,9 @@ export function AuthProvider({ children }) {
         const norm = normalizeUser(data.user);
         setUser(norm);
         localStorage.setItem("pc-user", JSON.stringify(norm));
+        if (data.token) {
+          localStorage.setItem("pc-token", data.token);
+        }
         return { success: true, role: data.role };
       }
     } catch (err) {
@@ -79,6 +82,9 @@ export function AuthProvider({ children }) {
         const norm = normalizeUser(data.user);
         setUser(norm);
         localStorage.setItem("pc-user", JSON.stringify(norm));
+        if (data.token) {
+          localStorage.setItem("pc-token", data.token);
+        }
         return { success: true, role: data.role };
       }
     } catch (err) {
@@ -123,6 +129,9 @@ export function AuthProvider({ children }) {
         const norm = normalizeUser(data.user);
         setUser(norm);
         localStorage.setItem("pc-user", JSON.stringify(norm));
+        if (data.token) {
+          localStorage.setItem("pc-token", data.token);
+        }
         return { success: true, user: norm, role: "tenant", message: data.message };
       }
       return { success: false, message: data.message || "Registration failed" };
@@ -134,6 +143,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("pc-user");
+    localStorage.removeItem("pc-token");
   }, []);
 
   return (

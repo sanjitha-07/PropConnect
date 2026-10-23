@@ -7,8 +7,24 @@ const API_BASE = "/api";
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
+  const token = localStorage.getItem("pc-token");
+  let user = null;
+  try {
+    const raw = localStorage.getItem("pc-user");
+    if (raw) user = JSON.parse(raw);
+  } catch {}
+
   const config = {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(user?.role ? { "x-user-role": user.role } : {}),
+      ...(user?.entityId || user?.entity_id || user?.id
+        ? { "x-user-id": user.entityId || user.entity_id || user.id }
+        : {}),
+      ...(user?.email ? { "x-user-email": user.email } : {}),
+      ...options.headers,
+    },
     ...options,
   };
   if (config.body && typeof config.body === "object") {
@@ -228,6 +244,59 @@ export async function deleteLease(id) {
 }
 
 // -------------------------------------------------------------
+// Move-In Date Rent Cycle API
+// -------------------------------------------------------------
+export async function fetchRentSchedules(params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const query = qs ? `?${qs}` : "";
+    return await request(`/leases/rent-schedules${query}`);
+  } catch (err) {
+    console.warn("fetchRentSchedules fallback:", err.message);
+    return null;
+  }
+}
+
+export async function fetchLeaseRentCycle(leaseId) {
+  try {
+    return await request(`/leases/${leaseId}/rent-cycle`);
+  } catch (err) {
+    console.warn("fetchLeaseRentCycle fallback:", err.message);
+    return null;
+  }
+}
+
+export async function generateRentInvoice(leaseId) {
+  try {
+    return await request(`/leases/${leaseId}/generate-rent-invoice`, { method: "POST" });
+  } catch (err) {
+    console.warn("generateRentInvoice fallback:", err.message);
+    return null;
+  }
+}
+
+export async function remindRent(leaseId, message = "") {
+  try {
+    return await request(`/leases/${leaseId}/remind-rent`, {
+      method: "POST",
+      body: { message },
+    });
+  } catch (err) {
+    console.warn("remindRent fallback:", err.message);
+    return null;
+  }
+}
+
+export async function triggerRentReminders() {
+  try {
+    return await request("/leases/trigger-reminders", { method: "POST" });
+  } catch (err) {
+    console.warn("triggerRentReminders fallback:", err.message);
+    return null;
+  }
+}
+
+// -------------------------------------------------------------
 // Payments CRUD
 // -------------------------------------------------------------
 export async function fetchPayments(tenantId) {
@@ -388,13 +457,44 @@ export async function deleteDeposit(id) {
 }
 
 // -------------------------------------------------------------
-// Utility Bills CRUD
+// Utility Bills & EB Bill Management CRUD
 // -------------------------------------------------------------
-export async function fetchUtilityBills() {
+export async function fetchUtilityBills(params = {}) {
   try {
-    return await request("/utility-bills");
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "" && val !== "All") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return await request(`/utility-bills${qs}`);
   } catch (err) {
     console.warn("fetchUtilityBills fallback to local:", err.message);
+    return null;
+  }
+}
+
+export async function fetchUtilityBillSummary(params = {}) {
+  try {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return await request(`/utility-bills/summary${qs}`);
+  } catch (err) {
+    console.warn("fetchUtilityBillSummary fallback:", err.message);
+    return null;
+  }
+}
+
+export async function fetchUtilityBillById(id) {
+  try {
+    return await request(`/utility-bills/${id}`);
+  } catch (err) {
     return null;
   }
 }
@@ -404,7 +504,7 @@ export async function createUtilityBill(billData) {
     return await request("/utility-bills", { method: "POST", body: billData });
   } catch (err) {
     console.warn("createUtilityBill offline fallback:", err.message);
-    return { ...billData, id: billData.id || `UB_${Date.now()}` };
+    throw err;
   }
 }
 
@@ -423,6 +523,41 @@ export async function deleteUtilityBill(id) {
   } catch (err) {
     console.warn("deleteUtilityBill offline fallback:", err.message);
     return { success: true, id };
+  }
+}
+
+export async function createEbBillOrder(id) {
+  try {
+    return await request(`/utility-bills/${id}/create-order`, { method: "POST" });
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function payUtilityBill(id, paymentData) {
+  try {
+    return await request(`/utility-bills/${id}/pay`, {
+      method: "POST",
+      body: paymentData,
+    });
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function sendUtilityBillReminder(id) {
+  try {
+    return await request(`/utility-bills/${id}/remind`, { method: "POST" });
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function triggerAutomaticReminders() {
+  try {
+    return await request("/utility-bills/trigger-reminders", { method: "POST" });
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
@@ -999,5 +1134,210 @@ export async function addPropertyMaintenanceHistory(propertyId = "TN101", entry)
     return entry;
   }
 }
+
+// =============================================================
+// HOME SERVICES PORTAL CLIENT APIS
+// =============================================================
+
+// --- Service Categories ---
+export async function fetchServiceCategories() {
+  try {
+    return await request("/service-categories");
+  } catch (err) {
+    console.warn("fetchServiceCategories fallback:", err.message);
+    return [
+      { id: "CAT_CLEAN", name: "Cleaning", slug: "cleaning", icon: "Sparkles", basePrice: 399, unit: "per room", services: ["Full Home Deep Cleaning", "Bathroom Deep Scrub & Sanitize", "Kitchen Degreasing & Chimney", "Sofa & Carpet Shampooing", "Balcony & Window Wash"], isActive: true },
+      { id: "CAT_PLUMB", name: "Plumbing", slug: "plumbing", icon: "Droplets", basePrice: 350, unit: "per visit", services: ["Tap / Mixer Leakage Repair", "Concealed Pipe Inspection", "Flush Tank & Commode Fix", "Water Meter & Pump Setup", "Drain Unclogging & Trap Fix"], isActive: true },
+      { id: "CAT_ELEC", name: "Electrical", slug: "electrical", icon: "Zap", basePrice: 399, unit: "per visit", services: ["MCB & Trip Diagnosis", "Switchboard & Socket Fix", "Ceiling Fan & Exhaust Setup", "Inverter & Battery Wiring", "LED Light Concealed Fitting"], isActive: true },
+      { id: "CAT_CARP", name: "Carpentry", slug: "carpentry", icon: "Hammer", basePrice: 449, unit: "per service", services: ["Door Lock & Latch Replacement", "Hinges & Wardrobe Repair", "Furniture Assembly / Disassembly", "Wooden Window Latch & Mesh", "Custom Shelf & Bracket Fit"], isActive: true },
+      { id: "CAT_AC", name: "AC Repair / Service", slug: "ac-repair", icon: "Wind", basePrice: 699, unit: "per unit", services: ["AC Jet Pump Wet Service", "Refrigerant Gas Top-Up", "PCB & Capacitor Diagnosis", "AC Installation / Uninstallation", "Drain Pipe Water Leakage Fix"], isActive: true },
+      { id: "CAT_PAINT", name: "Painting", slug: "painting", icon: "Paintbrush", basePrice: 899, unit: "per room", services: ["Full Flat Repainting", "Single Wall Touch-up & Putty", "Waterproofing & Seepage Seal", "Texture & Accent Wall", "Door & Grill Enamel Paint"], isActive: true },
+      { id: "CAT_PEST", name: "Pest Control", slug: "pest-control", icon: "Bug", basePrice: 599, unit: "per treatment", services: ["Cockroach Herbal Gel Treatment", "Termite Wood Drill & Chemical", "Bedbug Heat & Spray Treatment", "Mosquito & Drain Fumigation", "Rodent Baiting & Trapping"], isActive: true },
+      { id: "CAT_APPL", name: "Appliance Repair", slug: "appliance-repair", icon: "Wrench", basePrice: 499, unit: "per diagnosis", services: ["Washing Machine Drum & Motor", "Refrigerator Cooling & Gas", "Microwave Magnetron Fix", "Water Purifier RO Candle & Membrane", "Geyser Element & Thermostat"], isActive: true },
+    ];
+  }
+}
+
+export async function createServiceCategory(categoryData) {
+  return await request("/service-categories", {
+    method: "POST",
+    body: categoryData,
+  });
+}
+
+export async function updateServiceCategory(id, categoryData) {
+  return await request(`/service-categories/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: categoryData,
+  });
+}
+
+export async function deleteServiceCategory(id) {
+  return await request(`/service-categories/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Service Providers & Dynamic Availability ---
+export async function fetchServiceProviders(category = "All", search = "", status = "All") {
+  try {
+    const params = new URLSearchParams();
+    if (category && category !== "All") params.append("category", category);
+    if (search) params.append("search", search);
+    if (status && status !== "All") params.append("status", status);
+
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return await request(`/service-providers${query}`);
+  } catch (err) {
+    console.warn("fetchServiceProviders fallback:", err.message);
+    return [];
+  }
+}
+
+export async function fetchProviderAvailability(category, date, timeSlot) {
+  try {
+    const params = new URLSearchParams();
+    if (category && category !== "All") params.append("category", category);
+    if (date) params.append("date", date);
+    if (timeSlot) params.append("timeSlot", timeSlot);
+
+    return await request(`/service-providers/availability?${params.toString()}`);
+  } catch (err) {
+    console.warn("fetchProviderAvailability error:", err.message);
+    return {
+      category: category || "All",
+      date: date || "",
+      timeSlot: timeSlot || "",
+      providers: [],
+      totalAvailable: 0,
+      totalBooked: 0,
+    };
+  }
+}
+
+export async function fetchServiceProviderById(id) {
+  return await request(`/service-providers/${encodeURIComponent(id)}`);
+}
+
+export async function createServiceProvider(providerData) {
+  return await request("/service-providers", {
+    method: "POST",
+    body: providerData,
+  });
+}
+
+export async function updateServiceProvider(id, providerData) {
+  return await request(`/service-providers/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: providerData,
+  });
+}
+
+export async function updateServiceProviderStatus(id, status) {
+  return await request(`/service-providers/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
+}
+
+export async function deleteServiceProvider(id) {
+  return await request(`/service-providers/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Provider Availability Overrides & Leave Schedules ---
+export async function fetchProviderAvailabilityOverrides(providerId, date) {
+  try {
+    const params = new URLSearchParams();
+    if (providerId) params.append("providerId", providerId);
+    if (date) params.append("date", date);
+    return await request(`/provider-availability${params.toString() ? `?${params.toString()}` : ""}`);
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function setProviderAvailabilityOverride(payload) {
+  return await request("/provider-availability", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function removeProviderAvailabilityOverride(id) {
+  return await request(`/provider-availability/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Home Service Bookings (Double Booking Prevention & Lifecycle) ---
+export async function fetchServiceBookings(filter = {}) {
+  try {
+    const params = new URLSearchParams();
+    Object.entries(filter).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        params.append(key, val);
+      }
+    });
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return await request(`/service-bookings${query}`);
+  } catch (err) {
+    console.warn("fetchServiceBookings error:", err.message);
+    return [];
+  }
+}
+
+export async function fetchServiceBookingById(id) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}`);
+}
+
+export async function createServiceBooking(bookingData) {
+  return await request("/service-bookings", {
+    method: "POST",
+    body: bookingData,
+  });
+}
+
+export async function updateServiceBookingStatus(id, { status, note, technicianName, technicianPhone }) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}/status`, {
+    method: "PUT",
+    body: { status, note, technicianName, technicianPhone },
+  });
+}
+
+export async function cancelServiceBooking(id, reason) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+    body: { reason },
+  });
+}
+
+// -------------------------------------------------------------
+// Reminders Center API
+// -------------------------------------------------------------
+export async function fetchRemindersSummary(params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const query = qs ? `?${qs}` : "";
+    return await request(`/reminders/summary${query}`);
+  } catch (err) {
+    console.warn("fetchRemindersSummary error:", err.message);
+    return null;
+  }
+}
+
+export async function sendAllReminders(landlordId = "LDL001") {
+  try {
+    return await request("/reminders/send-all", {
+      method: "POST",
+      body: { landlordId },
+    });
+  } catch (err) {
+    console.warn("sendAllReminders error:", err.message);
+    return null;
+  }
+}
+
 
 

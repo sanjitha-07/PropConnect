@@ -208,47 +208,89 @@ export default function MyComplaintsPage() {
         subtitle="Report maintenance issues, get Landlord approval, and track FixIt Local verified technicians in real-time."
       />
 
-      {/* Quick Problem Report Spotlight Banner */}
+      {/* Dual Choice Gateway Banner for Flat Issues */}
       <div
         style={{
-          background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
-          border: "1px solid #bae6fd",
-          borderRadius: 14,
-          padding: "18px 24px",
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 14,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 16,
+          marginBottom: 24,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontSize: 32, background: "#ffffff", padding: "8px 14px", borderRadius: 12, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
-            ❄️
-          </div>
+        {/* Option A: Book Home Service */}
+        <div
+          className="hs-card"
+          style={{
+            padding: "20px 24px",
+            background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)",
+            border: "1.5px solid #38bdf8",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
           <div>
-            <h4 style={{ margin: "0 0 4px 0", fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
-              Have an AC or Plumbing Problem in your Flat?
-            </h4>
-            <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
-              Submit your complaint to notify Landlord. FixIt Local will instantly search verified nearby AC and maintenance technicians with price &amp; rating comparison!
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 28 }}>🛠️</span>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "#0369a1", letterSpacing: "0.05em" }}>
+                  Option A • Immediate Resolution
+                </span>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }}>
+                  Book Home Service
+                </h3>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: "#334155", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+              For minor repairs or personal maintenance (Cleaning, Plumbing, Electrical, AC Repair, Pest Control, Appliances). Select verified technicians with atomic slot booking!
             </p>
           </div>
+          <a
+            href="/tenant/home-services"
+            className="hs-primary-btn"
+            style={{ textAlign: "center", textDecoration: "none", display: "block", padding: "10px 16px", fontWeight: 700 }}
+          >
+            ⚡ Explore Home Services &amp; Book Pro →
+          </a>
         </div>
 
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            setCategoryInput("AC Repair");
-            setSubjectInput("AC not cooling properly in Master Bedroom - Flat B-204");
-            setModalOpen(true);
+        {/* Option B: Raise Complaint to Landlord */}
+        <div
+          className="hs-card"
+          style={{
+            padding: "20px 24px",
+            background: "linear-gradient(135deg, #fff7ed 0%, #fef2f2 100%)",
+            border: "1.5px solid #fb923c",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
-          style={{ padding: "10px 20px", fontWeight: 700, fontSize: 13.5 }}
         >
-          + Report AC Problem
-        </button>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 28 }}>📢</span>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "#c2410c", letterSpacing: "0.05em" }}>
+                  Option B • Landlord Responsibility
+                </span>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }}>
+                  Raise Complaint to Landlord
+                </h3>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: "#334155", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+              For major structural issues, heavy water seepage, main electrical wiring failures, or lease violations requiring official landlord approval &amp; expense coverage.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="hs-secondary-btn"
+            onClick={() => setModalOpen(true)}
+            style={{ padding: "10px 16px", fontWeight: 700, borderColor: "#ea580c", color: "#c2410c", background: "#ffffff" }}
+          >
+            + Lodge Formal Complaint to Landlord
+          </button>
+        </div>
       </div>
 
       <DataTable

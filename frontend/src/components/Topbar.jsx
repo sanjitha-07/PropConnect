@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext.jsx";
 import { SettingsContext } from "../context/SettingsContext.jsx";
 import SettingsPanel from "./SettingsPanel.jsx";
 import MongoConsoleModal from "./MongoConsoleModal.jsx";
+import BillReminderBell from "./BillReminderBell.jsx";
 import { fetchDbStatus } from "../utils/apiClient.js";
 
 export default function Topbar({ roleLabel, onToggleNav, children }) {
@@ -92,6 +93,8 @@ export default function Topbar({ roleLabel, onToggleNav, children }) {
           >
             🌐 {lang === "en" ? "தமிழ்" : "English"}
           </button>
+
+          <BillReminderBell />
 
           <div className="user-profile-badge">
             <div className="user-avatar-circle" title={user?.email}>
