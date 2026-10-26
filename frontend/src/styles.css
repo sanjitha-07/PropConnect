@@ -2292,6 +2292,16 @@ td.empty {
   max-width: 780px;
 }
 
+.modal-card > form {
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 75px);
+}
+
+.modal-backdrop, .modal-overlay {
+  overflow-y: auto;
+}
+
 @keyframes slideUp {
   from { transform: translateY(12px) scale(0.98); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }

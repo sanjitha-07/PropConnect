@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ["admin", "landlord", "tenant"], default: "tenant" },
+    role: { type: String, enum: ["admin", "landlord", "tenant", "provider", "service_provider"], default: "tenant" },
     name: { type: String, required: true },
     entity_id: { type: String, default: null },
     entityId: { type: String, default: null },
@@ -99,6 +99,7 @@ const propertySchema = new mongoose.Schema(
     availableUnits: { type: Number, default: 1 },
     totalUnits: { type: Number, default: 1 },
     builder: { type: String, default: "" },
+    maintenanceCharges: { type: Number, default: 0 },
     image: { type: String, default: "" },
     images: {
       type: [
@@ -143,6 +144,11 @@ const leaseSchema = new mongoose.Schema(
     term_months: { type: Number, default: 11 },
     agreementDoc: { type: String, default: "" },
     agreement_doc: { type: String, default: "" },
+    dueDay: { type: Number, default: 10 },
+    due_day: { type: Number, default: 10 },
+    reminderDaysBefore: { type: Number, default: 5 },
+    reminder_days_before: { type: Number, default: 5 },
+    gracePeriodDays: { type: Number, default: 5 },
     utilityResponsibility: {
       type: {
         electricity: { type: String, enum: ["Tenant", "Landlord", "Shared"], default: "Tenant" },
@@ -232,11 +238,17 @@ const complaintSchema = new mongoose.Schema(
     property_id: { type: String, default: null },
     property: { type: String, default: "Apartment" },
     propertyName: { type: String, default: "Apartment" },
+    unit: { type: String, default: "" },
+    category: { type: String, default: "General" },
     subject: { type: String, default: "" },
     issue: { type: String, default: "Complaint" },
+    language: { type: String, default: "en" },
+    tamilTranscript: { type: String, default: "" },
     priority: { type: String, default: "Medium" },
     status: { type: String, default: "Open" },
     date: { type: String, default: "" },
+    serviceBookingId: { type: String, default: null },
+    landlordNotes: { type: String, default: "" },
   },
   defaultOptions
 );
@@ -676,7 +688,9 @@ const serviceBookingSchema = new mongoose.Schema(
     completionDate: { type: String, default: "" },
     completionNotes: { type: String, default: "" },
     rating: { type: Number, default: 0 },
+    customerRating: { type: Number, default: 0 },
     reviewText: { type: String, default: "" },
+    customerFeedback: { type: String, default: "" },
   },
   defaultOptions
 );
@@ -788,6 +802,22 @@ const propertyMaintenanceHistorySchema = new mongoose.Schema(
   defaultOptions
 );
 
+// 28. Complaint Category Model
+const complaintCategorySchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    name: { type: String, required: true, unique: true },
+    slug: { type: String, required: true },
+    description: { type: String, default: "" },
+    icon: { type: String, default: "AlertCircle" },
+    defaultPriority: { type: String, enum: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
+    expectedResolutionHours: { type: Number, default: 24 },
+    isActive: { type: Boolean, default: true },
+    displayOrder: { type: Number, default: 0 },
+  },
+  defaultOptions
+);
+
 export const ServiceProvider = mongoose.model("ServiceProvider", serviceProviderSchema);
 export const ServiceCategory = mongoose.model("ServiceCategory", serviceCategorySchema);
 export const ProviderAvailability = mongoose.model("ProviderAvailability", providerAvailabilitySchema);
@@ -798,6 +828,7 @@ export const PropertyMaintenanceHistory = mongoose.model(
   "PropertyMaintenanceHistory",
   propertyMaintenanceHistorySchema
 );
+export const ComplaintCategory = mongoose.model("ComplaintCategory", complaintCategorySchema);
 
 export const models = {
   users: User,
@@ -808,6 +839,7 @@ export const models = {
   payments: Payment,
   maintenance_requests: MaintenanceRequest,
   complaints: Complaint,
+  complaint_categories: ComplaintCategory,
   security_deposits: SecurityDeposit,
   utility_bills: UtilityBill,
   expenses: Expense,

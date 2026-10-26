@@ -37,6 +37,9 @@ import ServiceProvidersPage from "./pages/admin/ServiceProvidersPage.jsx";
 import AvailabilityManagementPage from "./pages/admin/AvailabilityManagementPage.jsx";
 import TenantEbBillsPage from "./pages/tenant/TenantEbBillsPage.jsx";
 import LandlordEbBillsPage from "./pages/landlord/LandlordEbBillsPage.jsx";
+import ServicesAndComplaintsHub from "./pages/shared/ServicesAndComplaintsHub.jsx";
+import ProviderOverview from "./pages/provider/ProviderOverview.jsx";
+import AgreementPage from "./pages/shared/AgreementPage.jsx";
 
 export default function App() {
   return (
@@ -82,6 +85,8 @@ export default function App() {
                   <Route path="complaints" element={<ComplaintsPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="agreement" element={<AgreementPage />} />
+                  <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
                 </Route>
 
                 {/* ---------------- Landlord ---------------- */}
@@ -112,6 +117,8 @@ export default function App() {
                   <Route path="complaints" element={<ComplaintsPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="agreement" element={<AgreementPage />} />
+                  <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
                 </Route>
 
                 {/* ---------------- Tenant ---------------- */}
@@ -136,6 +143,24 @@ export default function App() {
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="documents" element={<MyDocumentsPage />} />
                   <Route path="complaints" element={<MyComplaintsPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="agreement" element={<AgreementPage />} />
+                  <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
+                </Route>
+
+                {/* ---------------- Provider ---------------- */}
+                <Route
+                  path="/provider"
+                  element={
+                    <ProtectedRoute allowedRoles={["provider"]}>
+                      <DashboardLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<ProviderOverview />} />
+                  <Route path="bookings" element={<ProviderOverview />} />
+                  <Route path="services" element={<ServicesPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

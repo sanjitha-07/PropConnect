@@ -189,21 +189,24 @@ const NavIcon = ({ type }) => {
 
 /* Navigation items config mapped cleanly to roles */
 const NAV_ITEMS = [
-  { to: "", labelKey: "dashboard", iconType: "dashboard", roles: ["admin", "landlord", "tenant"], end: true },
+  { to: "", labelKey: "dashboard", iconType: "dashboard", roles: ["admin", "landlord", "tenant", "provider"], end: true },
   { to: "analytics", labelKey: "analytics", iconType: "analytics", roles: ["admin", "landlord", "tenant"] },
   { to: "properties", labelKey: "properties", iconType: "properties", roles: ["admin", "landlord", "tenant"] },
   { to: "landlords", labelKey: "landlordsTable", iconType: "landlords", roles: ["admin"] },
   { to: "tenants", labelKey: "tenantsTable", iconType: "tenants", roles: ["admin", "landlord"] },
   { to: "lease", labelKey: "myLease", iconType: "leases", roles: ["tenant"] },
   { to: "leases", labelKey: "leasesTable", iconType: "leases", roles: ["admin", "landlord"] },
+  { to: "agreement", labelKey: "rentalAgreement", iconType: "leases", roles: ["admin", "landlord", "tenant"] },
   { to: "payments", labelKey: "myPayments", iconType: "payments", roles: ["tenant"] },
   { to: "payments", labelKey: "paymentsInvoices", iconType: "payments", roles: ["admin", "landlord"] },
   { to: "eb-bills", labelKey: "ebBills", iconType: "utilities", roles: ["tenant"] },
   { to: "eb-bills", labelKey: "ebBillManagement", iconType: "utilities", roles: ["landlord", "admin"] },
+  { to: "utility-bills", labelKey: "utilityBillsTable", iconType: "utilities", roles: ["admin", "landlord", "tenant"] },
   { to: "maintenance", labelKey: "myMaintenance", iconType: "maintenance", roles: ["tenant"] },
   { to: "maintenance", labelKey: "maintenanceTable", iconType: "maintenance", roles: ["admin", "landlord"] },
 
-  // Home Service Portal & Bookings
+  // Home Service Portal & Combined Hub & Bookings
+  { to: "services-complaints", labelKey: "servicesAndComplaints", iconType: "homeServices", roles: ["tenant", "landlord"] },
   { to: "home-services", labelKey: "homeServices", iconType: "homeServices", roles: ["tenant", "landlord"] },
   { to: "my-bookings", labelKey: "myBookings", iconType: "bookings", roles: ["tenant"] },
   { to: "bookings", labelKey: "bookings", iconType: "bookings", roles: ["landlord"] },
@@ -214,16 +217,15 @@ const NAV_ITEMS = [
   { to: "service-bookings", labelKey: "serviceBookings", iconType: "bookings", roles: ["admin"] },
   { to: "availability-management", labelKey: "availabilityManagement", iconType: "availability", roles: ["admin"] },
 
-  { to: "services", labelKey: "fixitServices", iconType: "services", roles: ["admin", "landlord", "tenant"] },
+  { to: "services", labelKey: "fixitServices", iconType: "services", roles: ["admin", "landlord", "tenant", "provider"] },
   { to: "deposits", labelKey: "depositsTable", iconType: "deposits", roles: ["admin", "landlord"] },
-  { to: "utility-bills", labelKey: "utilityBillsTable", iconType: "utilities", roles: ["admin", "landlord"] },
   { to: "expenses", labelKey: "expensesTable", iconType: "expenses", roles: ["admin", "landlord"] },
   { to: "documents", labelKey: "myDocuments", iconType: "documents", roles: ["tenant"] },
   { to: "documents", labelKey: "documentsTable", iconType: "documents", roles: ["admin", "landlord"] },
   { to: "complaints", labelKey: "myComplaints", iconType: "complaints", roles: ["tenant"] },
   { to: "complaints", labelKey: "complaintsTable", iconType: "complaints", roles: ["admin", "landlord"] },
-  { to: "profile", labelKey: "myProfile", iconType: "profile", roles: ["admin", "landlord", "tenant"] },
-  { to: "settings", labelKey: "settings", iconType: "settings", roles: ["admin", "landlord", "tenant"] },
+  { to: "profile", labelKey: "myProfile", iconType: "profile", roles: ["admin", "landlord", "tenant", "provider"] },
+  { to: "settings", labelKey: "settings", iconType: "settings", roles: ["admin", "landlord", "tenant", "provider"] },
 ];
 
 export default function Sidebar({ role, mobileOpen, onClose }) {

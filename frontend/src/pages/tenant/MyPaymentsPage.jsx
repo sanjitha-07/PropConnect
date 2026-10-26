@@ -7,6 +7,8 @@ import PageHero from "../../components/PageHero.jsx";
 import { PAYMENTS, LEASES } from "../../data/db.js";
 import { fetchPayments, updatePayment, fetchRentSchedules, generateRentInvoice } from "../../utils/apiClient.js";
 import { calculateTenantRentCycle } from "../../utils/rentCycleEngine.js";
+import { exportPaymentLedgerToCSV, exportPaymentLedgerToPDF } from "../../utils/paymentReportExport.js";
+import { useEscapeKey } from "../../utils/useEscapeKey.js";
 
 const MONTH_KEYS = { May: "monthMay", Jun: "monthJun", Jul: "monthJul", Aug: "monthAug", Sep: "Sep 2026" };
 
@@ -24,6 +26,16 @@ export default function MyPaymentsPage() {
   const [paymentMode, setPaymentMode] = useState("UPI");
   const [upiId, setUpiId] = useState("resident@okhdfcbank");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [datePreset, setDatePreset] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Esc key closes modals
+  useEscapeKey(() => {
+    if (payingInvoice) setPayingInvoice(null);
+    if (selectedReceipt) setSelectedReceipt(null);
+  }, !!payingInvoice || !!selectedReceipt);
 
   // Strictly use logged-in tenant entityId (only demo user divya.priya has TEN001)
   const entityId = user?.entityId || user?.entity_id || (user?.email === "divya.priya@mail.com" ? "TEN001" : null);
@@ -86,7 +98,47 @@ export default function MyPaymentsPage() {
       }
     }
     loadPayments();
-    return () => {
+    const getFilteredPayments = () => {
+    let result = paymentsList;
+    if (statusFilter !== "all") {
+      result = result.filter((p) => (p.status || "").toLowerCase() === statusFilter.toLowerCase());
+    }
+    if (datePreset !== "all") {
+      const now = new Date();
+      if (datePreset === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || now);
+          return d >= start && d <= now;
+        });
+      } else if (datePreset === "last30") {
+        const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || now);
+          return d >= past30 && d <= now;
+        });
+      } else if (datePreset === "last90") {
+        const past90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || now);
+          return d >= past90 && d <= now;
+        });
+      } else if (datePreset === "custom") {
+        if (startDate) {
+          const s = new Date(startDate);
+          result = result.filter((p) => new Date(p.dueDate || p.paidDate || now) >= s);
+        }
+        if (endDate) {
+          const e = new Date(endDate);
+          e.setHours(23, 59, 59, 999);
+          result = result.filter((p) => new Date(p.dueDate || p.paidDate || now) <= e);
+        }
+      }
+    }
+    return result;
+  };
+
+  return () => {
       isMounted = false;
     };
   }, [entityId]);

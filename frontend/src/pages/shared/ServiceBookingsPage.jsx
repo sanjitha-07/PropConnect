@@ -6,7 +6,10 @@ import {
   fetchServiceBookings,
   updateServiceBookingStatus,
   cancelServiceBooking,
+  payServiceBooking,
+  submitServiceFeedback,
 } from "../../utils/apiClient.js";
+import { useEscapeKey } from "../../utils/useEscapeKey.js";
 import "../../components/services/HomeServicesStyles.css";
 
 const STATUS_PIPELINE = ["Pending", "Confirmed", "Assigned", "In Progress", "Completed"];
@@ -24,11 +27,34 @@ export default function ServiceBookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
+  // View mode: default 'table'
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'cards'
+
   // Modals state
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+
+  // Pay after completion modal
+  const [payBookingModal, setPayBookingModal] = useState(null);
+  const [payingService, setPayingService] = useState(false);
+  const [servicePaymentMethod, setServicePaymentMethod] = useState("UPI");
+
+  // Customer Feedback modal
+  const [feedbackBookingModal, setFeedbackBookingModal] = useState(null);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  // Global ESC key to close any popup
+  useEscapeKey(() => {
+    if (cancelModalOpen) setCancelModalOpen(false);
+    if (statusModalOpen) setStatusModalOpen(false);
+    if (payBookingModal) setPayBookingModal(null);
+    if (feedbackBookingModal) setFeedbackBookingModal(null);
+    if (selectedBooking && !cancelModalOpen && !statusModalOpen) setSelectedBooking(null);
+  }, cancelModalOpen || statusModalOpen || !!payBookingModal || !!feedbackBookingModal || !!selectedBooking);
 
   // Admin status update modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -84,6 +110,52 @@ export default function ServiceBookingsPage() {
     "In Progress": bookings.filter((b) => b.status === "In Progress").length,
     Completed: bookings.filter((b) => b.status === "Completed").length,
     Cancelled: bookings.filter((b) => b.status === "Cancelled").length,
+  };
+
+  const handleOpenPay = (booking) => {
+    if (booking.status !== "Completed") {
+      showToast("Payment is only allowed after service is Completed by technician.", "error");
+      return;
+    }
+    setPayBookingModal(booking);
+  };
+
+  const handleConfirmServicePayment = async (e) => {
+    e.preventDefault();
+    if (!payBookingModal) return;
+    setPayingService(true);
+    try {
+      const bId = payBookingModal.bookingId || payBookingModal._id || payBookingModal.id;
+      await payServiceBooking(bId, { paymentMethod: servicePaymentMethod });
+      showToast(`Payment of ₹${payBookingModal.estimatedCost || 450} processed successfully!`);
+      const paidItem = payBookingModal;
+      setPayBookingModal(null);
+      setFeedbackBookingModal(paidItem);
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || "Payment failed", "error");
+    } finally {
+      setPayingService(false);
+    }
+  };
+
+  const handleSubmitFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedbackBookingModal) return;
+    setSubmittingFeedback(true);
+    try {
+      const bId = feedbackBookingModal.bookingId || feedbackBookingModal._id || feedbackBookingModal.id;
+      await submitServiceFeedback(bId, { rating: feedbackRating, reviewText: feedbackText });
+      showToast("Thank you! Your rating & review have been submitted.");
+      setFeedbackBookingModal(null);
+      setFeedbackText("");
+      setFeedbackRating(5);
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || "Feedback submission failed", "error");
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   const handleOpenCancel = (booking) => {
@@ -261,6 +333,44 @@ export default function ServiceBookingsPage() {
         >
           🔄 Refresh
         </button>
+
+        {/* View Mode Switcher: Table vs Cards */}
+        <div style={{ marginLeft: "auto", display: "flex", background: "var(--bg-subtle, #f1f5f9)", padding: "3px", borderRadius: "8px", border: "1px solid var(--border-subtle, #e2e8f0)" }}>
+          <button
+            type="button"
+            className={`hs-secondary-btn ${viewMode === "table" ? "active" : ""}`}
+            onClick={() => setViewMode("table")}
+            style={{
+              padding: "5px 12px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: viewMode === "table" ? "var(--color-primary, #2563eb)" : "transparent",
+              color: viewMode === "table" ? "#ffffff" : "var(--ink-secondary, #475569)",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            ☰ Table View
+          </button>
+          <button
+            type="button"
+            className={`hs-secondary-btn ${viewMode === "cards" ? "active" : ""}`}
+            onClick={() => setViewMode("cards")}
+            style={{
+              padding: "5px 12px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: viewMode === "cards" ? "var(--color-primary, #2563eb)" : "transparent",
+              color: viewMode === "cards" ? "#ffffff" : "var(--ink-secondary, #475569)",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            ⊞ Card View
+          </button>
+        </div>
       </div>
 
       {/* Loading & Error States */}
@@ -305,9 +415,133 @@ export default function ServiceBookingsPage() {
         </div>
       )}
 
-      {/* Bookings Grid */}
+      {/* Bookings Data: Table vs Cards */}
       {!loading && !error && filteredBookings.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        viewMode === "table" ? (
+          <div className="card" style={{ padding: "0", overflowX: "auto", borderRadius: "10px", border: "1px solid var(--border-subtle, #e2e8f0)", marginBottom: "24px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+              <thead>
+                <tr style={{ background: "var(--bg-subtle, #f8fafc)", borderBottom: "1px solid var(--border-subtle, #e2e8f0)", color: "var(--ink-secondary, #475569)", fontSize: "11.5px", textTransform: "uppercase" }}>
+                  <th style={{ padding: "12px 16px" }}>Booking ID</th>
+                  <th style={{ padding: "12px 16px" }}>Service Category &amp; Task</th>
+                  <th style={{ padding: "12px 16px" }}>Property / Unit</th>
+                  <th style={{ padding: "12px 16px" }}>Provider &amp; Tech</th>
+                  <th style={{ padding: "12px 16px" }}>Date &amp; Slot</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>Cost (₹)</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center" }}>Job Status</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center" }}>Payment</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBookings.map((b, idx) => {
+                  const isCompleted = b.status === "Completed";
+                  const isPaid = b.paymentStatus === "Paid";
+                  const canCancel = b.status !== "Completed" && b.status !== "Cancelled";
+
+                  return (
+                    <tr
+                      key={b._id || b.bookingId || idx}
+                      style={{
+                        borderBottom: "1px solid var(--border-subtle, #f1f5f9)",
+                        background: idx % 2 === 0 ? "transparent" : "rgba(248, 250, 252, 0.5)",
+                      }}
+                    >
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: "#0284c7" }}>
+                        #{b.bookingId}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ fontWeight: 600, color: "var(--ink-primary)" }}>{b.categoryName || "Home Service"}</div>
+                        <div style={{ fontSize: "11px", color: "var(--ink-muted)" }}>{b.subService || b.issueDescription?.slice(0, 30) || "Standard Service"}</div>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ fontWeight: 600 }}>{b.propertyName || "Resident Flat"}</div>
+                        <div style={{ fontSize: "11px", color: "var(--ink-muted)" }}>{b.unit ? `Unit: ${b.unit}` : b.bookedByName}</div>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div>{b.providerName || "Assigned Partner"}</div>
+                        {b.assignedTechnician?.name && (
+                          <div style={{ fontSize: "11px", color: "#059669" }}>🔧 {b.assignedTechnician.name}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div>📅 {b.date || "Scheduled"}</div>
+                        <div style={{ fontSize: "11px", color: "var(--ink-muted)" }}>⏰ {b.timeSlot || "Anytime"}</div>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700 }}>
+                        ₹{(b.estimatedCost || 450).toLocaleString("en-IN")}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                        <span className={`hs-status-pill hs-status-${(b.status || "").toLowerCase().replace(/\s+/g, "-")}`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                        {isPaid ? (
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#15803d", background: "#dcfce7", padding: "2px 8px", borderRadius: "9999px" }}>
+                            ✓ Paid
+                          </span>
+                        ) : isCompleted ? (
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ padding: "4px 8px", fontSize: "11px", borderRadius: "4px" }}
+                            onClick={() => handleOpenPay(b)}
+                          >
+                            💳 Pay ₹{b.estimatedCost || 450}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: "10.5px", color: "var(--ink-muted)", fontStyle: "italic" }}>
+                            🔒 After Completion
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                          {isCompleted && isPaid && (
+                            <button
+                              type="button"
+                              className="btn-outline"
+                              style={{ padding: "3px 8px", fontSize: "11px" }}
+                              onClick={() => {
+                                setFeedbackBookingModal(b);
+                                setFeedbackRating(b.customerRating || 5);
+                                setFeedbackText(b.customerFeedback || "");
+                              }}
+                            >
+                              ⭐ {b.customerRating ? `${b.customerRating}★` : "Review"}
+                            </button>
+                          )}
+                          {user?.role === "admin" && (
+                            <button
+                              type="button"
+                              className="btn-outline"
+                              style={{ padding: "3px 8px", fontSize: "11px" }}
+                              onClick={() => handleOpenStatusModal(b)}
+                            >
+                              Status
+                            </button>
+                          )}
+                          {canCancel && (
+                            <button
+                              type="button"
+                              className="btn-outline"
+                              style={{ padding: "3px 8px", fontSize: "11px", color: "var(--red)" }}
+                              onClick={() => handleOpenCancel(b)}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {filteredBookings.map((b) => {
             const isCancelled = b.status === "Cancelled";
             const isCompleted = b.status === "Completed";
@@ -497,7 +731,8 @@ export default function ServiceBookingsPage() {
             );
           })}
         </div>
-      )}
+      )
+    )}
 
       {/* Details & Receipt Modal */}
       {selectedBooking && !cancelModalOpen && !statusModalOpen && (

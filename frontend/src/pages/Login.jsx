@@ -7,6 +7,7 @@ const ROLE_DEMO = {
   admin: { email: "admin@propconnect.com", password: "admin123" },
   landlord: { email: "karthik.raja@mail.com", password: "land123" },
   tenant: { email: "divya.priya@mail.com", password: "tenant123" },
+  provider: { email: "provider@propconnect.com", password: "provider123" },
 };
 
 const GOOGLE_ACCOUNTS = [
@@ -38,6 +39,13 @@ const GOOGLE_ACCOUNTS = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Admin",
     location: "State Administrator",
   },
+  {
+    name: "Kumar Services (Pro)",
+    email: "provider@propconnect.com",
+    role: "provider",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kumar",
+    location: "Chennai, Tamil Nadu",
+  },
 ];
 
 const CAPABILITIES = [
@@ -54,7 +62,7 @@ const CAPABILITIES = [
 ];
 
 export default function Login() {
-  const { login, loginWithGoogle, registerTenant } = useContext(AuthContext);
+  const { login, loginWithGoogle, registerTenant, registerProvider } = useContext(AuthContext);
   const { t } = useContext(SettingsContext);
   const navigate = useNavigate();
 
@@ -69,7 +77,8 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // New Tenant Registration states
+  // Registration states
+  const [regRole, setRegRole] = useState("tenant"); // "tenant" or "provider"
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
@@ -78,6 +87,10 @@ export default function Login() {
   const [regCity, setRegCity] = useState("Chennai");
   const [regLocality, setRegLocality] = useState("");
   const [regFamilyMembers, setRegFamilyMembers] = useState(2);
+  const [regCategory, setRegCategory] = useState("CAT_CIVIL");
+  const [regHourlyRate, setRegHourlyRate] = useState(450);
+  const [regBio, setRegBio] = useState("");
+  const [regExperienceYears, setRegExperienceYears] = useState(3);
 
   // Google Sign-In Modal states
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -388,7 +401,7 @@ export default function Login() {
 
                 {/* Role Switcher Tabs */}
                 <div className="role-tab-switcher" style={{ marginBottom: "16px" }}>
-                  {["admin", "landlord", "tenant"].map((r) => (
+                  {["admin", "landlord", "tenant", "provider"].map((r) => (
                     <button
                       type="button"
                       key={r}
@@ -472,14 +485,19 @@ export default function Login() {
                     Demo Accounts (Click to test):
                   </div>
                   <div className="demo-chips-row" style={{ display: "flex", gap: "8px" }}>
-                    {["admin", "landlord", "tenant"].map((r) => (
+                    {[
+                      { id: "admin", label: "Admin", icon: "👑" },
+                      { id: "landlord", label: "Landlord", icon: "🏠" },
+                      { id: "tenant", label: "Tenant", icon: "👤" },
+                      { id: "provider", label: "Provider (Pro)", icon: "🛠️" },
+                    ].map((item) => (
                       <button
                         type="button"
-                        key={r}
+                        key={item.id}
                         className="btn-demo-chip"
-                        onClick={() => handleUseDemoAccount(r)}
+                        onClick={() => handleUseDemoAccount(item.id)}
                       >
-                        👤 {r.charAt(0).toUpperCase() + r.slice(1)}
+                        {item.icon} {item.label}
                       </button>
                     ))}
                   </div>
@@ -508,14 +526,56 @@ export default function Login() {
                 </div>
               </>
             ) : (
-              /* ----------------- MODE B: NEW TENANT SIGN-UP ----------------- */
+              /* ----------------- MODE B: REGISTRATION (TENANT OR PROVIDER) ----------------- */
               <>
                 <h2 className="login-title" style={{ fontSize: "22px", marginBottom: "4px" }}>
-                  Create Tenant Account
+                  {regRole === "provider" ? "Register as Service Provider" : "Create Tenant Account"}
                 </h2>
-                <p className="login-subtitle" style={{ fontSize: "13px", marginBottom: "18px" }}>
-                  Join PropConnect to discover verified rental homes and connect with Tamil Nadu landlords.
+                <p className="login-subtitle" style={{ fontSize: "13px", marginBottom: "14px" }}>
+                  {regRole === "provider"
+                    ? "Offer civil, plumbing, electrical, cleaning & home maintenance services."
+                    : "Join PropConnect to discover verified rental homes and connect with Tamil Nadu landlords."}
                 </p>
+
+                {/* Account Type Selector */}
+                <div style={{ display: "flex", gap: "8px", marginBottom: "16px", background: "var(--bg-subtle, #f1f5f9)", padding: "4px", borderRadius: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setRegRole("tenant")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12.5px",
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: "pointer",
+                      background: regRole === "tenant" ? "var(--color-primary, #2563eb)" : "transparent",
+                      color: regRole === "tenant" ? "#ffffff" : "var(--ink-secondary, #475569)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    👤 Tenant Account
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegRole("provider")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12.5px",
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: "pointer",
+                      background: regRole === "provider" ? "var(--color-primary, #2563eb)" : "transparent",
+                      color: regRole === "provider" ? "#ffffff" : "var(--ink-secondary, #475569)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    🛠️ Service Provider (Pro)
+                  </button>
+                </div>
 
                 <form onSubmit={handleRegisterSubmit} autoComplete="off">
                   <div className="form-group" style={{ marginBottom: "12px" }}>
@@ -612,20 +672,84 @@ export default function Login() {
                     </div>
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: "18px" }}>
-                    <label className="form-label">Number of Family Members</label>
-                    <select
-                      className="form-input"
-                      value={regFamilyMembers}
-                      onChange={(e) => setRegFamilyMembers(Number(e.target.value))}
-                    >
-                      <option value={1}>1 Person (Individual)</option>
-                      <option value={2}>2 Persons (Couple / Small Family)</option>
-                      <option value={3}>3 Persons</option>
-                      <option value={4}>4 Persons (Family)</option>
-                      <option value={5}>5+ Persons (Large Family)</option>
-                    </select>
-                  </div>
+                  {regRole === "tenant" ? (
+                    <div className="form-group" style={{ marginBottom: "18px" }}>
+                      <label className="form-label">Number of Family Members</label>
+                      <select
+                        className="form-input"
+                        value={regFamilyMembers}
+                        onChange={(e) => setRegFamilyMembers(Number(e.target.value))}
+                      >
+                        <option value={1}>1 Person (Individual)</option>
+                        <option value={2}>2 Persons (Couple / Small Family)</option>
+                        <option value={3}>3 Persons</option>
+                        <option value={4}>4 Persons (Family)</option>
+                        <option value={5}>5+ Persons (Large Family)</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-row-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+                        <div className="form-group">
+                          <label className="form-label">Primary Service Domain <span style={{ color: "var(--red)" }}>*</span></label>
+                          <select
+                            className="form-input"
+                            value={regCategory}
+                            onChange={(e) => setRegCategory(e.target.value)}
+                            required
+                          >
+                            <option value="CAT_CIVIL">Civil Work (Masonry & Tile)</option>
+                            <option value="CAT_PLUMB">Plumbing Services</option>
+                            <option value="CAT_ELEC">Electrical Services</option>
+                            <option value="CAT_CLEAN">Deep Cleaning Services</option>
+                            <option value="CAT_AC">Air Conditioning (HVAC)</option>
+                            <option value="CAT_CARP">Carpentry & Woodwork</option>
+                            <option value="CAT_PAINT">Painting & Waterproofing</option>
+                            <option value="CAT_PEST">Pest Control & Fumigation</option>
+                            <option value="CAT_APPL">Appliance Repair</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">Standard Visiting Rate (₹) <span style={{ color: "var(--red)" }}>*</span></label>
+                          <input
+                            className="form-input"
+                            type="number"
+                            min="100"
+                            step="50"
+                            placeholder="e.g. 450"
+                            value={regHourlyRate}
+                            onChange={(e) => setRegHourlyRate(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-row-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                        <div className="form-group">
+                          <label className="form-label">Experience (Years)</label>
+                          <input
+                            className="form-input"
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={regExperienceYears}
+                            onChange={(e) => setRegExperienceYears(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Service Specialization</label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            placeholder="e.g. Masonry, Bathroom waterproofing"
+                            value={regBio}
+                            onChange={(e) => setRegBio(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <button
                     type="submit"
@@ -633,7 +757,7 @@ export default function Login() {
                     disabled={isSubmitting}
                     style={{ width: "100%", padding: "11px", fontSize: "14px", fontWeight: 600 }}
                   >
-                    {isSubmitting ? "Creating Account…" : "Create Tenant Account →"}
+                    {isSubmitting ? "Submitting Registration…" : regRole === "provider" ? "Register as Service Provider →" : "Create Tenant Account →"}
                   </button>
                 </form>
 

@@ -21,6 +21,7 @@ import {
 } from "../../utils/apiClient.js";
 import { rankPropertiesClient } from "../../utils/clientMatchingEngine.js";
 import { PROPERTIES as INITIAL_PROPERTIES, TENANTS as INITIAL_TENANTS } from "../../data/db.js";
+import { useEscapeKey } from "../../utils/useEscapeKey.js";
 
 const TN_CITIES = [
   { id: "all", label: "All Regions" },
@@ -92,8 +93,24 @@ export default function PropertiesPage() {
   const [deletingProp, setDeletingProp] = useState(null);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
+  // Esc key closes modals
+  useEscapeKey(() => {
+    if (showAddModal) setShowAddModal(false);
+    if (editingProp) setEditingProp(null);
+    if (deletingProp) setDeletingProp(null);
+    if (activeChatProperty) setActiveChatProperty(null);
+    if (activeVisitProperty) setActiveVisitProperty(null);
+  }, showAddModal || !!editingProp || !!deletingProp || !!activeChatProperty || !!activeVisitProperty);
+
   const [newProp, setNewProp] = useState({
     name: "",
+    propertyType: "Apartment",
+    facingDirection: "East",
+    carParking: "1 Covered Car Bay",
+    balconies: 1,
+    floor: "2nd Floor",
+    furnishing: "Semi-Furnished",
+    maintenanceCharges: 2500,
     city: "Chennai",
     locality: "",
     location: "",
@@ -103,8 +120,11 @@ export default function PropertiesPage() {
     rent: 25000,
     deposit: 90000,
     area: 1250,
+    sqft: 1250,
     status: "Available",
     tenantId: "",
+    waterSupply: "24/7 Metro Water + Borewell",
+    preferredTenants: "Family / Working Professionals",
   });
 
   const showToast = (message, type = "success") => {
@@ -728,10 +748,13 @@ export default function PropertiesPage() {
                     <span>📍</span> {p.locality || p.location || p.city}
                   </p>
 
-                  <div className="prop-specs-pills">
+                  <div className="prop-specs-pills" style={{ flexWrap: "wrap", gap: "6px" }}>
                     <span>📐 {p.sqft || p.area || 800} sqft</span>
                     <span>🛁 {p.bathrooms || 1} Bath</span>
-                    <span>🛋️ {p.furnishing}</span>
+                    <span>🧭 {p.facingDirection || "East Facing"}</span>
+                    <span>🚗 {p.carParking || "Covered Parking"}</span>
+                    {p.propertyType && <span style={{ background: "rgba(37,99,235,0.08)", color: "#1d4ed8" }}>🏢 {p.propertyType}</span>}
+                    {p.maintenanceCharges > 0 && <span style={{ background: "#f0fdf4", color: "#15803d" }}>+₹{p.maintenanceCharges} Maint</span>}
                   </div>
 
                   {/* "Why This Property Matches" Section */}

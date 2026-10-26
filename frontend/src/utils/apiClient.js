@@ -1339,5 +1339,83 @@ export async function sendAllReminders(landlordId = "LDL001") {
   }
 }
 
+export async function payServiceBooking(id, { paymentMethod = "UPI", transactionId } = {}) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}/pay`, {
+    method: "POST",
+    body: { paymentMethod, transactionId },
+  });
+}
+
+export async function submitServiceFeedback(id, { rating, reviewText }) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}/feedback`, {
+    method: "POST",
+    body: { rating, reviewText },
+  });
+}
+
+// -------------------------------------------------------------
+// Service Provider Portal APIs
+// -------------------------------------------------------------
+export async function fetchProviderBookings(params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const query = qs ? `?${qs}` : "";
+    return await request(`/provider/bookings${query}`);
+  } catch (err) {
+    console.warn("fetchProviderBookings error:", err.message);
+    return [];
+  }
+}
+
+export async function fetchProviderStats(providerId) {
+  try {
+    const query = providerId ? `?providerId=${encodeURIComponent(providerId)}` : "";
+    return await request(`/provider/stats${query}`);
+  } catch (err) {
+    console.warn("fetchProviderStats error:", err.message);
+    return null;
+  }
+}
+
+// -------------------------------------------------------------
+// Complaint Categories APIs
+// -------------------------------------------------------------
+export async function fetchComplaintCategories() {
+  try {
+    return await request("/complaint-categories");
+  } catch (err) {
+    console.warn("fetchComplaintCategories error:", err.message);
+    return [
+      { id: "CCAT_CIVIL", name: "Civil Work & Masonry", slug: "civil-work", description: "Wall cracks, tile repairs, damp patches, loose masonry, plaster spalling, structural leaks.", icon: "HardHat", defaultPriority: "High", expectedResolutionHours: 48, isActive: true, totalComplaints: 3, openComplaints: 2 },
+      { id: "CCAT_PLUMB", name: "Plumbing & Sanitary", slug: "plumbing", description: "Pipe leakages, tap replacements, low pressure, flush tank overflow, drain clog, sewer backflow.", icon: "Droplets", defaultPriority: "High", expectedResolutionHours: 24, isActive: true, totalComplaints: 4, openComplaints: 1 },
+      { id: "CCAT_ELEC", name: "Electrical & Power", slug: "electrical", description: "MCB tripping, burning smell, loose wiring, power fluctuation, earthing fault, switchboard failure.", icon: "Zap", defaultPriority: "Urgent", expectedResolutionHours: 12, isActive: true, totalComplaints: 2, openComplaints: 1 },
+      { id: "CCAT_CLEAN", name: "Cleaning & Waste Management", slug: "cleaning", description: "Common corridor filth, garbage accumulation, water tank cleaning, pest infestation.", icon: "Sparkles", defaultPriority: "Medium", expectedResolutionHours: 24, isActive: true, totalComplaints: 1, openComplaints: 0 },
+      { id: "CCAT_AC", name: "HVAC & Air Conditioning", slug: "ac-repair", description: "AC cooling loss, compressor tripping, gas leakage, continuous drain overflow, unusual noise.", icon: "Wind", defaultPriority: "Medium", expectedResolutionHours: 24, isActive: true, totalComplaints: 2, openComplaints: 1 },
+      { id: "CCAT_CARP", name: "Carpentry & Locks", slug: "carpentry", description: "Main door lock jammed, window latch broken, wardrobe hinge snapped, termite damaged wood.", icon: "Hammer", defaultPriority: "Medium", expectedResolutionHours: 36, isActive: true, totalComplaints: 1, openComplaints: 0 },
+      { id: "CCAT_SEC", name: "Security & Amenities", slug: "security", description: "Lift breakdown, CCTV offline, gate intercom failure, parking slot dispute, noise complaints.", icon: "ShieldAlert", defaultPriority: "High", expectedResolutionHours: 12, isActive: true, totalComplaints: 1, openComplaints: 1 },
+    ];
+  }
+}
+
+export async function createComplaintCategory(data) {
+  return await request("/complaint-categories", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function updateComplaintCategory(id, data) {
+  return await request(`/complaint-categories/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: data,
+  });
+}
+
+export async function deleteComplaintCategory(id) {
+  return await request(`/complaint-categories/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
 
 

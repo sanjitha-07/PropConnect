@@ -8,12 +8,23 @@ export const MOCK_USERS = [
   { email: "admin@propconnect.com", password: "admin123", role: "admin", name: "Admin", entityId: null },
   { email: "karthik.raja@mail.com", password: "land123", role: "landlord", name: "Karthik Raja", entityId: "LDL001" },
   { email: "divya.priya@mail.com", password: "tenant123", role: "tenant", name: "Divya Priya", entityId: "TEN001" },
+  { email: "provider@propconnect.com", password: "provider123", role: "provider", name: "Kumar Services (Pro)", entityId: "PROV_AC_01" },
+  { email: "murugan.civil@propconnect.com", password: "provider123", role: "provider", name: "Murugan Civil Works", entityId: "PROV_CV_01" },
 ];
 
 export function AuthProvider({ children }) {
   const normalizeUser = (u) => {
     if (!u) return null;
-    const fallbackEntityId = u.email === "divya.priya@mail.com" ? "TEN001" : u.email === "karthik.raja@mail.com" ? "LDL001" : null;
+    const fallbackEntityId =
+      u.email === "divya.priya@mail.com"
+        ? "TEN001"
+        : u.email === "karthik.raja@mail.com"
+        ? "LDL001"
+        : u.email === "provider@propconnect.com"
+        ? "PROV_AC_01"
+        : u.email === "murugan.civil@propconnect.com"
+        ? "PROV_CV_01"
+        : null;
     const entityId = u.entityId || u.entity_id || fallbackEntityId;
     return {
       ...u,
@@ -117,12 +128,12 @@ export function AuthProvider({ children }) {
     return { success: true, role: norm.role };
   }, []);
 
-  const registerTenantAccount = useCallback(async (tenantData) => {
+  const registerAccount = useCallback(async (accountData) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tenantData),
+        body: JSON.stringify(accountData),
       });
       const data = await res.json();
       if (data.success && data.user) {
@@ -132,13 +143,18 @@ export function AuthProvider({ children }) {
         if (data.token) {
           localStorage.setItem("pc-token", data.token);
         }
-        return { success: true, user: norm, role: "tenant", message: data.message };
+        return { success: true, user: norm, role: norm.role || accountData.role || "tenant", message: data.message };
       }
       return { success: false, message: data.message || "Registration failed" };
     } catch (err) {
       return { success: false, message: "Unable to connect to PropConnect server. Please check connection." };
     }
   }, []);
+
+  const registerTenantAccount = registerAccount;
+  const registerProviderAccount = useCallback(async (providerData) => {
+    return registerAccount({ ...providerData, role: "provider" });
+  }, [registerAccount]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -147,7 +163,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, registerTenant: registerTenantAccount, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        loginWithGoogle,
+        registerTenant: registerTenantAccount,
+        registerProvider: registerProviderAccount,
+        registerAccount,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

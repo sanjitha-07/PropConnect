@@ -70,15 +70,17 @@ export function getOrdinalSuffix(n) {
 
 /**
  * Calculates a specific N-th rent cycle starting from the lease start date.
- * Handles month day-clamping (e.g., leases starting on the 31st).
+ * Handles month day-clamping (e.g., leases starting on the 31st or custom due day).
  */
-export function getNthRentCycle(startDateInput, cycleIndex = 0) {
+export function getNthRentCycle(startDateInput, cycleIndex = 0, customDueDay = null) {
   const start = parseFlexibleDate(startDateInput);
   if (!start) return null;
 
   const initialYear = start.getFullYear();
   const initialMonth = start.getMonth();
-  const moveInDay = start.getDate();
+  const moveInDay = customDueDay && Number(customDueDay) >= 1 && Number(customDueDay) <= 31
+    ? Number(customDueDay)
+    : start.getDate();
 
   // Current cycle start
   const totMonth = initialMonth + cycleIndex;
@@ -116,7 +118,7 @@ export function getNthRentCycle(startDateInput, cycleIndex = 0) {
 
 /**
  * Calculates the tenant's current active rent cycle and payment status
- * based on their lease move-in date and existing payment history.
+ * based on their lease move-in date, personalized due dates, and existing payment history.
  */
 export function calculateTenantRentCycle(lease, referenceDateInput = new Date(), payments = []) {
   if (!lease) return null;
@@ -127,7 +129,13 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
 
   if (!startDate) return null;
 
+  const customDueDay = lease.dueDay || lease.due_day || null;
   const moveInDay = startDate.getDate();
+  const effectiveDueDay = customDueDay && Number(customDueDay) >= 1 && Number(customDueDay) <= 31
+    ? Number(customDueDay)
+    : moveInDay;
+  const reminderThreshold = Math.max(5, Number(lease.reminderDaysBefore || lease.reminder_days_before || 5));
+
   let rentAmount = Number(lease.monthlyRent || lease.monthly_rent || lease.rent || 0);
   if (!rentAmount || rentAmount <= 0) {
     if (lease.property && (lease.property.rent || lease.property.monthlyRent)) {
@@ -155,7 +163,7 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
   } else {
     // Find the cycle that envelopes refDate
     for (let k = 0; k < 60; k++) {
-      const cycle = getNthRentCycle(startDate, k);
+      const cycle = getNthRentCycle(startDate, k, effectiveDueDay);
       if (!cycle) break;
 
       if (refDate >= cycle.cycleStartDate && refDate <= cycle.cycleEndDate) {
@@ -171,8 +179,8 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
     }
   }
 
-  const currentCycle = getNthRentCycle(startDate, activeIndex);
-  const nextCycle = getNthRentCycle(startDate, activeIndex + 1);
+  const currentCycle = getNthRentCycle(startDate, activeIndex, effectiveDueDay);
+  const nextCycle = getNthRentCycle(startDate, activeIndex + 1, effectiveDueDay);
 
   // Match existing payment for current rent cycle
   const currentInvoiceNo = `INV-RENT-${lease.id}-${currentCycle.periodStart}`;
@@ -208,23 +216,29 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
   let paymentStatus = "Unpaid";
   let daysOverdue = 0;
   let daysRemaining = 0;
+  let isDueSoon = false;
+  let isOverdue = false;
 
   if (isPaid) {
     paymentStatus = "Paid";
   } else if (diffDays > 0) {
     paymentStatus = "Overdue";
     daysOverdue = diffDays;
+    isOverdue = true;
   } else if (diffDays === 0) {
     paymentStatus = "Due Today";
-  } else if (Math.abs(diffDays) <= 3) {
+    isDueSoon = true;
+  } else if (Math.abs(diffDays) <= reminderThreshold) {
     paymentStatus = "Due Soon";
     daysRemaining = Math.abs(diffDays);
+    isDueSoon = true;
   } else {
     paymentStatus = "Pending";
     daysRemaining = Math.abs(diffDays);
   }
 
   const isLeaseActive = !endDate || refDate <= endDate;
+  const isPersonalized = Boolean(customDueDay && Number(customDueDay) !== moveInDay);
 
   return {
     leaseId: lease.id,
@@ -236,6 +250,10 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
     moveInDateISO: formatYMD(startDate),
     moveInDay,
     moveInDayOrdinal: getOrdinalSuffix(moveInDay),
+    dueDay: effectiveDueDay,
+    dueDayOrdinal: getOrdinalSuffix(effectiveDueDay),
+    isPersonalizedDueDate: isPersonalized,
+    reminderDaysBefore: reminderThreshold,
     rentAmount,
     cycleIndex: activeIndex,
     periodStart: currentCycle.periodStart,
@@ -243,15 +261,22 @@ export function calculateTenantRentCycle(lease, referenceDateInput = new Date(),
     periodLabel: currentCycle.periodLabel,
     currentDueDate: currentCycle.currentDueDate,
     currentDueDateFormatted: currentCycle.currentDueDateFormatted,
+    dueDate: currentCycle.currentDueDate,
+    dueDateFormatted: currentCycle.currentDueDateFormatted,
     nextDueDate: currentCycle.nextDueDate,
     nextDueDateFormatted: currentCycle.nextDueDateFormatted,
     paymentStatus,
     isPaid,
+    isDueSoon,
+    isOverdue,
     daysOverdue,
     daysRemaining,
+    daysUntilDue: daysRemaining,
     invoiceNo: currentInvoiceNo,
     existingPayment: matchingPayment || null,
     isLeaseActive,
-    cycleRuleDescription: `Rent cycle runs from the ${getOrdinalSuffix(moveInDay)} of each month to the ${getOrdinalSuffix(currentCycle.cycleEndDate.getDate())} of the following month. Next rent due on ${currentCycle.nextDueDateFormatted}.`,
+    cycleRuleDescription: isPersonalized
+      ? `Personalized rent cycle: Rent is due on the ${getOrdinalSuffix(effectiveDueDay)} of each month (move-in date: ${formatDisplayDate(startDate)}). Automatic payment reminders dispatched ${reminderThreshold} days prior to due date.`
+      : `Rent cycle runs from the ${getOrdinalSuffix(moveInDay)} of each month. Payment reminders dispatched at least 5 days before payment. Next rent due on ${currentCycle.currentDueDateFormatted || currentCycle.nextDueDateFormatted}.`,
   };
 }

@@ -4,6 +4,8 @@ import { SettingsContext } from "../../context/SettingsContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
 import PageHero from "../../components/PageHero.jsx";
 import { PAYMENTS, PROPERTIES, TENANTS } from "../../data/db.js";
+import { exportPaymentLedgerToCSV, exportPaymentLedgerToPDF } from "../../utils/paymentReportExport.js";
+import { useEscapeKey } from "../../utils/useEscapeKey.js";
 import {
   fetchPayments,
   fetchProperties,
@@ -32,11 +34,23 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
 
   const [month, setMonth] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [datePreset, setDatePreset] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [deletingPayment, setDeletingPayment] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Esc key closes modals
+  useEscapeKey(() => {
+    if (isAddOpen) setIsAddOpen(false);
+    if (editingPayment) setEditingPayment(null);
+    if (deletingPayment) setDeletingPayment(null);
+    if (selectedInvoice) setSelectedInvoice(null);
+  }, isAddOpen || !!editingPayment || !!deletingPayment || !!selectedInvoice);
 
   // Form State for Record Payment
   const initialFormState = {
@@ -318,9 +332,54 @@ export default function PaymentsPage() {
   }
 
   const rows = useMemo(() => {
-    if (month === "all") return baseRows;
-    return baseRows.filter((p) => (p.month || "").startsWith(month));
-  }, [baseRows, month]);
+    let result = baseRows;
+
+    // Filter by Month
+    if (month !== "all") {
+      result = result.filter((p) => (p.month || "").startsWith(month));
+    }
+
+    // Filter by Status
+    if (statusFilter !== "all") {
+      result = result.filter((p) => (p.status || "").toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    // Filter by Date Range Preset
+    if (datePreset !== "all") {
+      const now = new Date();
+      if (datePreset === "thisMonth") {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || p.createdAt || now);
+          return d >= startOfMonth && d <= now;
+        });
+      } else if (datePreset === "last30") {
+        const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || p.createdAt || now);
+          return d >= past30 && d <= now;
+        });
+      } else if (datePreset === "last90") {
+        const past90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        result = result.filter((p) => {
+          const d = new Date(p.dueDate || p.paidDate || p.createdAt || now);
+          return d >= past90 && d <= now;
+        });
+      } else if (datePreset === "custom") {
+        if (startDate) {
+          const start = new Date(startDate);
+          result = result.filter((p) => new Date(p.dueDate || p.paidDate || now) >= start);
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          result = result.filter((p) => new Date(p.dueDate || p.paidDate || now) <= end);
+        }
+      }
+    }
+
+    return result;
+  }, [baseRows, month, statusFilter, datePreset, startDate, endDate]);
 
   // Aggregate totals
   const totalPaid = rows.filter((r) => r.status === "Paid").reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -493,19 +552,150 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      <div className="card property-controls-card" style={{ padding: "14px 20px", marginBottom: "20px" }}>
-        <div className="controls-row">
-          <div className="status-filter-group">
-            <label htmlFor="month">{t("month")}:</label>
-            <select id="month" value={month} onChange={(e) => setMonth(e.target.value)}>
-              {Object.entries(MONTH_KEYS).map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
+      <div className="card property-controls-card" style={{ padding: "16px 20px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
+            {/* Status Filter */}
+            <div className="status-filter-group">
+              <label style={{ fontSize: "12.5px", fontWeight: 600 }}>Status:</label>
+              <select
+                className="form-input"
+                style={{ padding: "6px 12px", fontSize: "12.5px", minWidth: "130px" }}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="Paid">✓ Paid</option>
+                <option value="Pending">⏳ Pending</option>
+                <option value="Overdue">⚠️ Overdue</option>
+              </select>
+            </div>
+
+            {/* Billing Cycle */}
+            <div className="status-filter-group">
+              <label htmlFor="month" style={{ fontSize: "12.5px", fontWeight: 600 }}>Billing Cycle:</label>
+              <select
+                id="month"
+                className="form-input"
+                style={{ padding: "6px 12px", fontSize: "12.5px" }}
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+              >
+                {Object.entries(MONTH_KEYS).map(([k, label]) => (
+                  <option key={k} value={k}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Range Report Preset */}
+            <div className="status-filter-group">
+              <label style={{ fontSize: "12.5px", fontWeight: 600 }}>Date Range:</label>
+              <select
+                className="form-input"
+                style={{ padding: "6px 12px", fontSize: "12.5px" }}
+                value={datePreset}
+                onChange={(e) => setDatePreset(e.target.value)}
+              >
+                <option value="all">All Dates</option>
+                <option value="thisMonth">This Month</option>
+                <option value="last30">Last 30 Days</option>
+                <option value="last90">Last 90 Days</option>
+                <option value="custom">Custom Date Range…</option>
+              </select>
+            </div>
+
+            {/* Custom Dates Input if selected */}
+            {datePreset === "custom" && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ padding: "5px 8px", fontSize: "12px" }}
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  placeholder="Start Date"
+                />
+                <span style={{ fontSize: "12px", color: "var(--ink-muted)" }}>to</span>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ padding: "5px 8px", fontSize: "12px" }}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  placeholder="End Date"
+                />
+              </div>
+            )}
           </div>
-          <span className="sub-text">All transactions formatted in Indian Rupees (₹)</span>
+
+          {/* Export Action Buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              className="btn-outline"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                padding: "7px 12px",
+                borderColor: "#10b981",
+                color: "#059669",
+                fontWeight: 600,
+              }}
+              onClick={() =>
+                exportPaymentLedgerToCSV(
+                  rows,
+                  `PropConnect_Payment_Ledger_${statusFilter}_${new Date().toISOString().slice(0, 10)}.csv`
+                )
+              }
+              title="Download Excel / CSV SpreadSheet"
+            >
+              <span>📊</span>
+              <span>Export Excel</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn-outline"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                padding: "7px 12px",
+                borderColor: "#2563eb",
+                color: "#2563eb",
+                fontWeight: 600,
+              }}
+              onClick={() =>
+                exportPaymentLedgerToPDF(rows, {
+                  title: "Rent Invoices & Payment Ledger Report",
+                  dateRangeLabel:
+                    datePreset === "custom"
+                      ? `${startDate || "Start"} to ${endDate || "Present"}`
+                      : datePreset === "last30"
+                      ? "Past 30 Days"
+                      : datePreset === "last90"
+                      ? "Past 90 Days"
+                      : datePreset === "thisMonth"
+                      ? "Current Calendar Month"
+                      : "Full Tenancy Ledger",
+                })
+              }
+              title="Print or Save PDF Statement"
+            >
+              <span>🖨️</span>
+              <span>Export PDF Report</span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11.5px", color: "var(--ink-muted)", borderTop: "1px solid var(--border-subtle)", paddingTop: "8px" }}>
+          <span>Showing <strong>{rows.length}</strong> matching transaction entries</span>
+          <span>All amounts formatted in Indian Rupees (₹) • TNRRRLTA Compliant</span>
         </div>
       </div>
 

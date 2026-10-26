@@ -21,6 +21,7 @@ import {
   PreferredProvider,
   FixItBooking,
   PropertyMaintenanceHistory,
+  ComplaintCategory,
 } from "./models/index.js";
 import {
   LANDLORDS,
@@ -97,6 +98,24 @@ export async function seedAllData() {
       entity_id: "TEN003",
       entityId: "TEN003",
       location: "KK Nagar, Madurai",
+    },
+    {
+      email: "provider@propconnect.com",
+      password: "provider123",
+      role: "provider",
+      name: "Kumar Services (Pro)",
+      entity_id: "PROV_AC_01",
+      entityId: "PROV_AC_01",
+      location: "T. Nagar, Chennai",
+    },
+    {
+      email: "murugan.civil@propconnect.com",
+      password: "provider123",
+      role: "provider",
+      name: "Murugan Civil Works",
+      entity_id: "PROV_CV_01",
+      entityId: "PROV_CV_01",
+      location: "Mylapore, Chennai",
     },
   ];
 
@@ -538,6 +557,24 @@ export async function seedAllData() {
   // 14. Seed Service Categories (Home Service Portal)
   const serviceCategories = [
     {
+      id: "CAT_CIVIL",
+      name: "Civil Work",
+      slug: "civil-work",
+      description: "Masonry, tile repairs, wall plastering, concrete drilling, crack filling & structural waterproofing.",
+      icon: "HardHat",
+      basePrice: 799,
+      unit: "per visit / day",
+      services: [
+        "Tile & Flooring Replacement",
+        "Wall Plastering & Cement Masonry",
+        "Crack Filling & Structural Sealing",
+        "Demolition & Debris Removal",
+        "Waterproofing & Balcony Grouting",
+      ],
+      isActive: true,
+      displayOrder: 0,
+    },
+    {
       id: "CAT_CLEAN",
       name: "Cleaning",
       slug: "cleaning",
@@ -699,6 +736,61 @@ export async function seedAllData() {
   ];
 
   const fixitProviders = [
+    // --- CIVIL WORK PROVIDERS ---
+    {
+      id: "PROV_CV_01",
+      name: "Murugan Civil Works & Masonry",
+      technicianName: "Murugan K.",
+      category: "Civil Work",
+      price: 799,
+      unit: "per day / task",
+      rating: 4.9,
+      reviewCount: 52,
+      distanceKm: 1.4,
+      availability: "Available Today",
+      isAvailable: true,
+      status: "Active",
+      phone: "+91 98401 23456",
+      email: "murugan.civil@propconnect.com",
+      location: "Mylapore, Chennai",
+      address: "14, Kutchery Road, Mylapore, Chennai",
+      skills: ["Wall Plastering", "Tile Laying", "Crack Sealing", "Concrete Drilling", "Waterproofing"],
+      badge: "PropConnect Master Mason",
+      vehicle: "Bajaj Maxima - TN 06 AB 7890",
+      experienceYears: 12,
+      image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=400&q=80",
+      description: "Certified civil contractor specializing in residential brickwork, crack repairs, tile replacement, and structural plastering.",
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      timeSlots: defaultSlots,
+      maxBookingsPerSlot: 1,
+    },
+    {
+      id: "PROV_CV_02",
+      name: "Sri Krishna Waterproofing & Civil Solutions",
+      technicianName: "Rajan S.",
+      category: "Civil Work",
+      price: 850,
+      unit: "per inspection / fix",
+      rating: 4.8,
+      reviewCount: 38,
+      distanceKm: 2.1,
+      availability: "Available Today",
+      isAvailable: true,
+      status: "Active",
+      phone: "+91 98765 44321",
+      email: "rajan.krishna@mail.com",
+      location: "T. Nagar, Chennai",
+      address: "42, South Usman Road, T. Nagar, Chennai",
+      skills: ["Balcony Waterproofing", "Floor Grouting", "Demolition", "Seepage Control"],
+      badge: "Verified Waterproofing Pro",
+      vehicle: "Hero Splendor - TN 09 CD 1234",
+      experienceYears: 9,
+      image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=400&q=80",
+      description: "Expert leak prevention, terrace polymer coating, and bathroom flooring repair specialist.",
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      timeSlots: defaultSlots,
+      maxBookingsPerSlot: 1,
+    },
     // --- 5 CLEANING PROVIDERS ---
     {
       id: "PROV_CL_01",
@@ -1935,6 +2027,89 @@ export async function seedAllData() {
   ];
   await PropertyMaintenanceHistory.deleteMany({});
   await PropertyMaintenanceHistory.insertMany(initialHistory);
+
+  // 17. Seed Complaint Categories
+  const initialComplaintCategories = [
+    {
+      id: "CCAT_CIVIL",
+      name: "Civil Work & Masonry",
+      slug: "civil-work",
+      description: "Wall cracks, tile breakage, damp patches, loose masonry, plaster spalling, structural leaks.",
+      icon: "HardHat",
+      defaultPriority: "High",
+      expectedResolutionHours: 48,
+      isActive: true,
+      displayOrder: 1,
+    },
+    {
+      id: "CCAT_PLUMB",
+      name: "Plumbing & Sanitary",
+      slug: "plumbing",
+      description: "Pipe leakages, tap replacements, low pressure, flush tank overflow, drain clog, sewer backflow.",
+      icon: "Droplets",
+      defaultPriority: "High",
+      expectedResolutionHours: 24,
+      isActive: true,
+      displayOrder: 2,
+    },
+    {
+      id: "CCAT_ELEC",
+      name: "Electrical & Power",
+      slug: "electrical",
+      description: "MCB tripping, burning smell, loose wiring, power fluctuation, earthing fault, switchboard failure.",
+      icon: "Zap",
+      defaultPriority: "Urgent",
+      expectedResolutionHours: 12,
+      isActive: true,
+      displayOrder: 3,
+    },
+    {
+      id: "CCAT_CLEAN",
+      name: "Cleaning & Waste Management",
+      slug: "cleaning",
+      description: "Common corridor filth, garbage accumulation, water tank cleaning, pest infestation.",
+      icon: "Sparkles",
+      defaultPriority: "Medium",
+      expectedResolutionHours: 24,
+      isActive: true,
+      displayOrder: 4,
+    },
+    {
+      id: "CCAT_AC",
+      name: "HVAC & Air Conditioning",
+      slug: "ac-repair",
+      description: "AC cooling loss, compressor tripping, gas leakage, continuous drain overflow, unusual noise.",
+      icon: "Wind",
+      defaultPriority: "Medium",
+      expectedResolutionHours: 24,
+      isActive: true,
+      displayOrder: 5,
+    },
+    {
+      id: "CCAT_CARP",
+      name: "Carpentry & Locks",
+      slug: "carpentry",
+      description: "Main door lock jammed, window latch broken, wardrobe hinge snapped, termite damaged wood.",
+      icon: "Hammer",
+      defaultPriority: "Medium",
+      expectedResolutionHours: 36,
+      isActive: true,
+      displayOrder: 6,
+    },
+    {
+      id: "CCAT_SEC",
+      name: "Security & Amenities",
+      slug: "security",
+      description: "Lift breakdown, CCTV offline, gate intercom failure, parking slot dispute, noise complaints.",
+      icon: "ShieldAlert",
+      defaultPriority: "High",
+      expectedResolutionHours: 12,
+      isActive: true,
+      displayOrder: 7,
+    },
+  ];
+  await ComplaintCategory.deleteMany({});
+  await ComplaintCategory.insertMany(initialComplaintCategories);
 
   console.log(
     "✅ Finished populating all MongoDB collections + FixIt Local Unified Services & Maintenance Ledger successfully!",
