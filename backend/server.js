@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 // Backend Server for PropConnect Portal
 import path from "path";
 import crypto from "crypto";
+import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { connectMongoDB, getMongoStatus, COMPASS_URI, MONGODB_URI } from "./config/db.js";
 import { seedAllData } from "./seed.js";
@@ -128,7 +129,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(authenticateToken);
 
 // Background MongoDB connection & seeding
@@ -2734,7 +2736,59 @@ app.get("/api/service-bookings", async (req, res) => {
     if (date) filter.date = date;
 
     const rows = await ServiceBooking.find(filter).sort({ id: -1, date: -1 }).lean();
-    res.json(rows);
+
+    // Look up associated complaints for all retrieved bookings
+    const bookingIds = rows.map((r) => r.id).filter(Boolean);
+    const bookingNumbers = rows.map((r) => r.bookingNumber).filter(Boolean);
+    const complaintIds = rows.map((r) => r.complaintId).filter(Boolean);
+
+    const complaints = await Complaint.find({
+      $or: [
+        { id: { $in: complaintIds } },
+        { serviceBookingId: { $in: [...bookingIds, ...bookingNumbers] } },
+        { bookingId: { $in: [...bookingIds, ...bookingNumbers] } },
+      ],
+    }).sort({ createdAt: -1 }).lean();
+
+    const complaintMap = {};
+    for (const c of complaints) {
+      if (c.serviceBookingId && !complaintMap[c.serviceBookingId]) complaintMap[c.serviceBookingId] = c;
+      if (c.bookingId && !complaintMap[c.bookingId]) complaintMap[c.bookingId] = c;
+      if (c.id && !complaintMap[c.id]) complaintMap[c.id] = c;
+    }
+
+    const enrichedRows = rows.map((b) => {
+      const comp =
+        complaintMap[b.id] ||
+        complaintMap[b.bookingNumber] ||
+        (b.complaintId ? complaintMap[b.complaintId] : null);
+
+      return {
+        ...b,
+        bookingId: b.bookingId || b.bookingNumber || b.id,
+        categoryName: b.categoryName || b.serviceCategory,
+        subService: b.subService || b.serviceName,
+        bookedByName: b.bookedByName || b.userName,
+        bookedByRole: b.bookedByRole || b.userRole,
+        estimatedCost: b.estimatedCost || b.amount,
+        complaint: comp
+          ? {
+              id: comp.id,
+              complaintId: comp.id,
+              complaintType: comp.complaintType || comp.category || "Service Quality",
+              subject: comp.subject || comp.issue || "",
+              description: comp.description || comp.issue || "",
+              status: comp.status || "Submitted",
+              date: comp.date || (comp.createdAt ? new Date(comp.createdAt).toISOString().split("T")[0] : ""),
+              providerId: comp.providerId || b.providerId,
+              providerName: comp.providerName || b.providerName,
+              attachment: comp.attachment || "",
+            }
+          : null,
+      };
+    });
+
+    res.json(enrichedRows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2742,7 +2796,9 @@ app.get("/api/service-bookings", async (req, res) => {
 
 app.get("/api/service-bookings/:id", async (req, res) => {
   try {
-    const booking = await ServiceBooking.findOne({ id: req.params.id }).lean();
+    const booking = await ServiceBooking.findOne({
+      $or: [{ id: req.params.id }, { bookingNumber: req.params.id }],
+    }).lean();
     if (!booking) return res.status(404).json({ error: "Booking not found" });
 
     // Validate role permissions
@@ -2758,7 +2814,180 @@ app.get("/api/service-bookings/:id", async (req, res) => {
       }
     }
 
-    res.json(booking);
+    const comp = await Complaint.findOne({
+      $or: [
+        { serviceBookingId: booking.id },
+        { serviceBookingId: booking.bookingNumber },
+        { bookingId: booking.id },
+        { bookingId: booking.bookingNumber },
+        ...(booking.complaintId ? [{ id: booking.complaintId }] : []),
+      ],
+    }).sort({ createdAt: -1 }).lean();
+
+    const enriched = {
+      ...booking,
+      bookingId: booking.bookingId || booking.bookingNumber || booking.id,
+      categoryName: booking.categoryName || booking.serviceCategory,
+      subService: booking.subService || booking.serviceName,
+      bookedByName: booking.bookedByName || booking.userName,
+      bookedByRole: booking.bookedByRole || booking.userRole,
+      estimatedCost: booking.estimatedCost || booking.amount,
+      complaint: comp
+        ? {
+            id: comp.id,
+            complaintId: comp.id,
+            complaintType: comp.complaintType || comp.category || "Service Quality",
+            subject: comp.subject || comp.issue || "",
+            description: comp.description || comp.issue || "",
+            status: comp.status || "Submitted",
+            date: comp.date || (comp.createdAt ? new Date(comp.createdAt).toISOString().split("T")[0] : ""),
+            providerId: comp.providerId || booking.providerId,
+            providerName: comp.providerName || booking.providerName,
+            attachment: comp.attachment || "",
+          }
+        : null,
+    };
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// RAISE COMPLAINT AGAINST SERVICE PROVIDER FROM SPECIFIC BOOKING
+app.post("/api/service-bookings/:id/complaint", async (req, res) => {
+  try {
+    const bookingParam = req.params.id;
+    const booking = await ServiceBooking.findOne({
+      $or: [
+        { id: bookingParam },
+        { bookingId: bookingParam },
+        { bookingNumber: bookingParam },
+        ...(bookingParam && bookingParam.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: bookingParam }] : []),
+      ],
+    }).lean();
+
+    if (!booking) {
+      return res.status(404).json({ error: "Service booking not found" });
+    }
+
+    // Role-based Tenant Authorization & Isolation
+    const currentUserRole = req.user?.role || "tenant";
+    const currentUserId = req.user?.entityId || req.user?.id || "TEN001";
+    const currentUserEmail = req.user?.email || "";
+
+    if (currentUserRole === "tenant") {
+      const isOwner =
+        booking.userId === currentUserId ||
+        (currentUserEmail && booking.userEmail && booking.userEmail.toLowerCase() === currentUserEmail.toLowerCase()) ||
+        booking.userId === "TEN001";
+      if (!isOwner) {
+        return res.status(403).json({ error: "Access denied. You can only raise complaints for your own bookings." });
+      }
+    }
+
+    // Required field validation
+    const { complaintType, subject, description, attachment } = req.body;
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ error: "Complaint subject is required" });
+    }
+    if (!description || !description.trim()) {
+      return res.status(400).json({ error: "Complaint description is required" });
+    }
+
+    const validTypes = [
+      "Poor Service Quality",
+      "Provider Did Not Arrive",
+      "Incomplete Work",
+      "Property Damage",
+      "Overcharging / Payment Issue",
+      "Service Quality",
+      "Provider Behaviour",
+      "Delay",
+      "Payment Issue",
+      "Other",
+    ];
+    const selectedType = validTypes.includes(complaintType) ? complaintType : (complaintType || "Poor Service Quality");
+
+    // Enforce business rule: check if complaint already exists for this booking
+    const existing = await Complaint.findOne({
+      $or: [
+        { serviceBookingId: booking.id },
+        { serviceBookingId: booking.bookingNumber },
+        { bookingId: booking.id },
+        { bookingId: booking.bookingNumber },
+        ...(booking.complaintId ? [{ id: booking.complaintId }] : []),
+      ],
+    }).lean();
+
+    if (existing) {
+      return res.status(400).json({
+        error: "A complaint has already been submitted for this booking.",
+        complaint: existing,
+      });
+    }
+
+    // Generate unique complaint ID: CMP_BK_XXXXXX
+    const complaintId = `CMP_BK_${Date.now().toString().slice(-6)}`;
+    const today = new Date().toISOString().split("T")[0];
+
+    const tenantId = booking.userId || currentUserId;
+    const tenantName = booking.userName || req.user?.name || "Tenant";
+
+    // Create complaint linked to provider, booking, tenant, and property
+    const newComplaint = await Complaint.create({
+      id: complaintId,
+      tenantId,
+      tenant_id: tenantId,
+      tenantName,
+      tenant_name: tenantName,
+      propertyId: booking.propertyId || "TN101",
+      property_id: booking.propertyId || "TN101",
+      property: booking.propertyName || "Sai Kala Apartments",
+      propertyName: booking.propertyName || "Sai Kala Apartments",
+      unit: booking.unit || "Flat B-204",
+      category: booking.serviceCategory || "Service Provider",
+      complaintType: selectedType,
+      subject: subject.trim(),
+      description: description.trim(),
+      issue: `${selectedType}: ${subject.trim()} - ${description.trim()}`,
+      serviceBookingId: booking.id,
+      bookingId: booking.id,
+      providerId: booking.providerId,
+      providerName: booking.providerName,
+      attachment: attachment || "",
+      priority: "Medium",
+      status: "Submitted",
+      date: today,
+    });
+
+    // Link complaintId to the ServiceBooking in database
+    await ServiceBooking.findOneAndUpdate(
+      { $or: [{ id: booking.id }, { bookingNumber: booking.id }] },
+      { complaintId: newComplaint.id }
+    );
+
+    // Notify landlord
+    try {
+      await Notification.create({
+        id: `NOTIF_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        userId: booking.landlordId || "LDL001",
+        user_id: booking.landlordId || "LDL001",
+        title: `⚠️ Complaint Raised Against Provider: ${booking.providerName}`,
+        message: `${tenantName} raised a complaint for booking #${booking.bookingNumber || booking.id}: "${subject.trim()}". Status: Submitted.`,
+        time: "Just now",
+        type: "warning",
+        isRead: false,
+      });
+    } catch (notifErr) {
+      console.warn("Notification warning:", notifErr.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Complaint submitted successfully against service provider",
+      complaint: newComplaint,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -6010,12 +6239,69 @@ app.delete("/api/provider-availability/:id", authenticateToken, async (req, res)
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`\n==========================================================`);
-  console.log(`🚀 PropConnect MongoDB Backend Server running on http://localhost:${PORT}`);
-  console.log(`🧭 MongoDB Compass connection string: ${COMPASS_URI}`);
-  console.log(`🗄️ Database: propconnect_db`);
-  console.log(`📡 MongoDB URI: ${MONGODB_URI}`);
-  console.log(`==========================================================\n`);
+function autoFreePort(port) {
+  try {
+    if (process.platform === "win32") {
+      const output = execSync(`netstat -ano | findstr :${port}`, { encoding: "utf8" });
+      const lines = output.trim().split("\n");
+      for (const line of lines) {
+        if (line.includes("LISTENING")) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== "0" && pid !== String(process.pid)) {
+            try {
+              execSync(`taskkill /F /PID ${pid}`, { stdio: "ignore" });
+              console.log(`🧹 Auto-freed port ${port} by terminating stale process (PID: ${pid})`);
+            } catch {}
+          }
+        }
+      }
+    }
+  } catch {
+    // Port is already free or netstat found nothing
+  }
+}
+
+// Automatically free port 5000 on startup if held by a stale process
+autoFreePort(PORT);
+
+let serverInstance = null;
+
+function startServer(port, retries = 3) {
+  serverInstance = app
+    .listen(port, () => {
+      console.log(`\n==========================================================`);
+      console.log(`🚀 PropConnect MongoDB Backend Server running on http://localhost:${port}`);
+      console.log(`🧭 MongoDB Compass connection string: ${COMPASS_URI}`);
+      console.log(`🗄️ Database: propconnect_db`);
+      console.log(`📡 MongoDB URI: ${MONGODB_URI}`);
+      console.log(`==========================================================\n`);
+    })
+    .on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.warn(`⚠️ Port ${port} was busy. Auto-clearing and restarting...`);
+        autoFreePort(port);
+        if (retries > 0) {
+          setTimeout(() => startServer(port, retries - 1), 600);
+        } else {
+          console.error(`❌ Could not free port ${port}. Please run in PowerShell:`);
+          console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${port}).OwningProcess -Force`);
+        }
+      } else {
+        console.error("Server error:", err.message);
+      }
+    });
+}
+
+process.on("SIGINT", () => {
+  if (serverInstance) serverInstance.close();
+  process.exit(0);
 });
+
+process.on("SIGTERM", () => {
+  if (serverInstance) serverInstance.close();
+  process.exit(0);
+});
+
+startServer(PORT);
+

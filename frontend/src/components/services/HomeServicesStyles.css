@@ -430,36 +430,40 @@
 }
 
 /* Modal styling */
+.hs-modal-overlay,
 .service-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 99999;
   padding: 20px;
 }
 
+.hs-modal-content,
 .service-modal-content {
   background: #ffffff;
   border-radius: 16px;
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
-  animation: modalFadeIn 0.25s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  animation: modalFadeIn 0.22s ease-out;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.98);
+    transform: translateY(16px) scale(0.97);
   }
   to {
     opacity: 1;

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { SettingsContext } from "../context/SettingsContext.jsx";
 import { fetchRemindersSummary, sendAllReminders, remindRent } from "../utils/apiClient.js";
+import { Bell } from "lucide-react";
 
 export default function BillReminderBell() {
   const { user } = useContext(AuthContext);
@@ -144,7 +145,7 @@ export default function BillReminderBell() {
           transition: "all 0.2s ease",
         }}
       >
-        <span>🔔</span>
+        <Bell size={18} strokeWidth={2.2} />
         {urgentCount > 0 && (
           <span
             style={{

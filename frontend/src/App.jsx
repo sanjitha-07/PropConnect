@@ -137,6 +137,7 @@ export default function App() {
                   <Route path="lease" element={<MyLeasePage />} />
                   <Route path="payments" element={<MyPaymentsPage />} />
                   <Route path="eb-bills" element={<TenantEbBillsPage />} />
+                  <Route path="utility-bills" element={<UtilityBillsPage />} />
                   <Route path="maintenance" element={<MyMaintenancePage />} />
                   <Route path="home-services" element={<HomeServicesPortal />} />
                   <Route path="my-bookings" element={<ServiceBookingsPage />} />

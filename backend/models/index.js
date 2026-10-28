@@ -248,6 +248,12 @@ const complaintSchema = new mongoose.Schema(
     status: { type: String, default: "Open" },
     date: { type: String, default: "" },
     serviceBookingId: { type: String, default: null },
+    bookingId: { type: String, default: null },
+    providerId: { type: String, default: null },
+    providerName: { type: String, default: "" },
+    complaintType: { type: String, default: "Service Quality" },
+    description: { type: String, default: "" },
+    attachment: { type: String, default: "" },
     landlordNotes: { type: String, default: "" },
   },
   defaultOptions

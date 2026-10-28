@@ -10,9 +10,26 @@ export default function DashboardLayout() {
   const { user } = useContext(AuthContext);
   const { t } = useContext(SettingsContext);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("tlms-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("tlms-sidebar-collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   return (
-    <div className="layout">
+    <div className={`layout ${isCollapsed ? "sidebar-is-collapsed" : ""}`}>
       {mobileNavOpen && (
         <div
           className="sidebar-backdrop"
@@ -20,13 +37,15 @@ export default function DashboardLayout() {
         />
       )}
       <Sidebar
-        role={user.role}
+        role={user?.role || "tenant"}
         mobileOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={handleToggleCollapse}
       />
       <div className="layout-main">
         <Topbar
-          roleLabel={t(user.role)}
+          roleLabel={t(user?.role || "tenant")}
           onToggleNav={() => setMobileNavOpen((prev) => !prev)}
         />
         <main className="page-body">

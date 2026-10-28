@@ -1313,6 +1313,13 @@ export async function cancelServiceBooking(id, reason) {
   });
 }
 
+export async function createBookingComplaint(id, complaintData) {
+  return await request(`/service-bookings/${encodeURIComponent(id)}/complaint`, {
+    method: "POST",
+    body: complaintData,
+  });
+}
+
 // -------------------------------------------------------------
 // Reminders Center API
 // -------------------------------------------------------------

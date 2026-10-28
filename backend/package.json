@@ -4,6 +4,9 @@
   "type": "module",
   "description": "PropConnect Express REST API connected to MongoDB Compass",
   "scripts": {
+    "clean": "node cleanPort.js",
+    "predev": "node cleanPort.js",
+    "prestart": "node cleanPort.js",
     "start": "node server.js",
     "dev": "node --watch server.js",
     "seed": "node seed.js"

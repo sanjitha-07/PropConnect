@@ -1,34 +1,15 @@
-import { useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { SettingsContext } from "../context/SettingsContext.jsx";
-import SettingsPanel from "./SettingsPanel.jsx";
-import MongoConsoleModal from "./MongoConsoleModal.jsx";
 import BillReminderBell from "./BillReminderBell.jsx";
-import { fetchDbStatus } from "../utils/apiClient.js";
+import { Globe, Settings as SettingsIcon, LogOut, Menu, ChevronRight } from "lucide-react";
 
 export default function Topbar({ roleLabel, onToggleNav, children }) {
   const { user, logout } = useContext(AuthContext);
   const { t, lang, setLang } = useContext(SettingsContext);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [mongoModalOpen, setMongoModalOpen] = useState(false);
-  const [dbInfo, setDbInfo] = useState({ status: "checking", engine: "MongoDB Compass" });
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let mounted = true;
-    fetchDbStatus().then((data) => {
-      if (mounted && data) {
-        setDbInfo({
-          status: data.status === "connected" ? "online" : "offline",
-          engine: data.engine || "MongoDB Compass",
-        });
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -37,6 +18,31 @@ export default function Topbar({ roleLabel, onToggleNav, children }) {
 
   const toggleLang = () => {
     setLang((prev) => (prev === "en" ? "ta" : "en"));
+  };
+
+  // Compute active page title for the breadcrumb
+  const getPageTitle = () => {
+    const segments = location.pathname.split("/").filter(Boolean);
+    const subRoute = segments[1] || "";
+
+    const titleMap = {
+      "": t("dashboard") || "Dashboard",
+      properties: t("navFindProperties") || "Find Properties",
+      lease: t("navMyLease") || "My Lease",
+      agreement: t("navTenancyAgreement") || "Tenancy Agreement",
+      payments: t("navRentPayments") || "Rent Payments",
+      "eb-bills": t("navEbAndUtilityBills") || "EB Bills & Utility Bills",
+      maintenance: t("navMaintenanceRequests") || "Maintenance Requests",
+      "services-complaints": t("navServicesAndComplaints") || "Services & Complaints",
+      "home-services": t("navHomeServices") || "Home Services",
+      "my-bookings": t("navMyBookings") || "My Bookings",
+      documents: t("navMyDocuments") || "My Documents",
+      profile: t("myProfile") || "Profile",
+      settings: t("settings") || "Settings",
+      analytics: t("analytics") || "Analytics",
+    };
+
+    return titleMap[subRoute] || (segments[1] ? segments[1].replace("-", " ") : t("dashboard") || "Dashboard");
   };
 
   // Get user initials
@@ -50,76 +56,90 @@ export default function Topbar({ roleLabel, onToggleNav, children }) {
     : "PC";
 
   return (
-    <>
-      <header className="topbar">
-        <div className="topbar-left">
-          <button
-            type="button"
-            className="mobile-nav-toggle"
-            onClick={onToggleNav}
-            aria-label="Toggle navigation menu"
-          >
-            ☰
-          </button>
-          <span className="role-chip">
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--brand-blue)" }} />
-            {roleLabel} {t("portal")}
-          </span>
-          <button
-            type="button"
-            className="db-chip"
-            title="Click to open MongoDB Compass Diagnostics & Live Query Explorer"
-            onClick={() => setMongoModalOpen(true)}
-          >
-            <span
-              className="db-dot"
-              style={{
-                background: dbInfo.status === "online" ? "#10b981" : "#ef4444",
-                boxShadow: dbInfo.status === "online" ? "0 0 6px #10b981" : "none",
-              }}
-            />
-            🍃 {dbInfo.engine} ({dbInfo.status === "online" ? t("connected") : t("standby")})
-          </button>
-        </div>
+    <header className="topbar">
+      {/* Left: Mobile Nav Toggle + Breadcrumb */}
+      <div className="topbar-left">
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          onClick={onToggleNav}
+          aria-label="Toggle navigation menu"
+        >
+          <Menu size={20} />
+        </button>
 
-        <div className="topbar-right">
-          {children}
+        <nav className="topbar-breadcrumb" aria-label="Breadcrumb">
+          <span className="breadcrumb-portal">{roleLabel} {t("portal")}</span>
+          <ChevronRight size={14} className="breadcrumb-separator" />
+          <span className="breadcrumb-current">{getPageTitle()}</span>
+        </nav>
 
-          <button
-            type="button"
-            className="lang-chip"
-            title="Switch Language (English / தமிழ்)"
-            onClick={toggleLang}
-          >
-            🌐 {lang === "en" ? "தமிழ்" : "English"}
-          </button>
+        {/* Tenant Portal Indicator */}
+        <span className="tenant-portal-indicator" title="PropConnect Resident Portal Active">
+          <span className="portal-status-dot" />
+          <span>{roleLabel} {t("portal")}</span>
+        </span>
+      </div>
 
-          <BillReminderBell />
+      {/* Right: Actions, Language Switcher, Reminders, User Profile, Settings, Logout */}
+      <div className="topbar-right">
+        {children}
 
-          <div className="user-profile-badge">
-            <div className="user-avatar-circle" title={user?.email}>
-              {initials}
-            </div>
-            <span className="user-name">{user?.name}</span>
+        {/* Language Switcher */}
+        <button
+          type="button"
+          className="topbar-lang-btn"
+          title={lang === "en" ? "தமிழ் மொழிக்கு மாற்றவும்" : "Switch to English"}
+          onClick={toggleLang}
+          aria-label="Switch Language"
+        >
+          <Globe size={15} />
+          <span className="lang-text">{lang === "en" ? "தமிழ்" : "English"}</span>
+        </button>
+
+        {/* Notification Bell with unread count */}
+        <BillReminderBell />
+
+        {/* User Profile Avatar & Name */}
+        <div
+          className="topbar-user-profile"
+          onClick={() => navigate("profile")}
+          title={`Signed in as ${user?.name} (${user?.email || "Tenant"})`}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="user-avatar-circle">
+            {initials}
           </div>
-
-          <button
-            type="button"
-            className="icon-btn"
-            title={t("settings")}
-            onClick={() => navigate("settings")}
-            aria-label={t("settings")}
-          >
-            ⚙️
-          </button>
-
-          <button type="button" className="btn-outline" onClick={handleLogout}>
-            {t("logout")}
-          </button>
+          <div className="user-info-text">
+            <span className="user-name">{user?.name || "Resident"}</span>
+            <span className="user-role-label">{roleLabel}</span>
+          </div>
         </div>
-      </header>
 
-      <MongoConsoleModal isOpen={mongoModalOpen} onClose={() => setMongoModalOpen(false)} />
-    </>
+        {/* Settings Control */}
+        <button
+          type="button"
+          className="topbar-icon-action"
+          title={t("settings")}
+          onClick={() => navigate("settings")}
+          aria-label={t("settings")}
+        >
+          <SettingsIcon size={18} />
+        </button>
+
+        {/* Logout Control */}
+        <button
+          type="button"
+          className="topbar-logout-btn"
+          onClick={handleLogout}
+          title={t("logout")}
+          aria-label={t("logout")}
+        >
+          <LogOut size={16} />
+          <span className="logout-text">{t("logout")}</span>
+        </button>
+      </div>
+    </header>
   );
 }
