@@ -2,7 +2,12 @@ import { useContext, useState, useEffect } from "react";
 import { SettingsContext } from "../../context/SettingsContext.jsx";
 import { AuthContext } from "../../context/AuthContext.jsx";
 import PageHero from "../../components/PageHero.jsx";
-import { fetchDbStatus } from "../../utils/apiClient.js";
+import {
+  fetchDbStatus,
+  changePassword,
+  fetchLandlordSettings,
+  saveLandlordSettings,
+} from "../../utils/apiClient.js";
 import { isValidHex, normalizeHex } from "../../utils/themeGenerator.js";
 
 export default function SettingsPage() {
@@ -42,12 +47,69 @@ export default function SettingsPage() {
     t,
   } = useContext(SettingsContext);
 
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
+  const isAdmin = user?.role === "admin";
+  const isLandlord = user?.role === "landlord" || isAdmin;
 
   const [activeTab, setActiveTab] = useState("appearance");
   const [dbStatus, setDbStatus] = useState(null);
   const [isTestingDb, setIsTestingDb] = useState(false);
   const [saveToast, setSaveToast] = useState("");
+
+  // Landlord Notification & Reminder Preferences (Persisted in MongoDB)
+  const [rentPaymentsNotif, setRentPaymentsNotif] = useState(true);
+  const [maintenanceNotif, setMaintenanceNotif] = useState(true);
+  const [complaintNotif, setComplaintNotif] = useState(true);
+  const [bookingNotif, setBookingNotif] = useState(true);
+  const [leaseExpiryNotif, setLeaseExpiryNotif] = useState(true);
+  const [emailNotif, setEmailNotif] = useState(true);
+  const [inAppNotif, setInAppNotif] = useState(true);
+  const [smsAlertsNotif, setSmsAlertsNotif] = useState(false);
+
+  // Payment & Rent Reminders Preferences
+  const [autoRentReminders, setAutoRentReminders] = useState(true);
+  const [reminderLeadDays, setReminderLeadDays] = useState(3);
+  const [gracePeriodDays, setGracePeriodDays] = useState(5);
+  const [lateFeeEnabled, setLateFeeEnabled] = useState(false);
+  const [lateFeeAmount, setLateFeeAmount] = useState(250);
+
+  // Fetch Landlord Settings from Database on Mount
+  useEffect(() => {
+    let mounted = true;
+    async function loadSettings() {
+      if (!isLandlord) return;
+      try {
+        const remote = await fetchLandlordSettings();
+        if (remote && mounted) {
+          if (remote.notificationPreferences) {
+            const np = remote.notificationPreferences;
+            if (np.rentPayments !== undefined) setRentPaymentsNotif(np.rentPayments);
+            if (np.maintenanceUpdates !== undefined) setMaintenanceNotif(np.maintenanceUpdates);
+            if (np.complaintAlerts !== undefined) setComplaintNotif(np.complaintAlerts);
+            if (np.bookingAlerts !== undefined) setBookingNotif(np.bookingAlerts);
+            if (np.leaseExpiryAlerts !== undefined) setLeaseExpiryNotif(np.leaseExpiryAlerts);
+            if (np.emailNotifications !== undefined) setEmailNotif(np.emailNotifications);
+            if (np.inAppNotifications !== undefined) setInAppNotif(np.inAppNotifications);
+            if (np.smsAlerts !== undefined) setSmsAlertsNotif(np.smsAlerts);
+          }
+          if (remote.paymentPreferences) {
+            const pp = remote.paymentPreferences;
+            if (pp.autoRentReminders !== undefined) setAutoRentReminders(pp.autoRentReminders);
+            if (pp.reminderLeadDays !== undefined) setReminderLeadDays(pp.reminderLeadDays);
+            if (pp.gracePeriodDays !== undefined) setGracePeriodDays(pp.gracePeriodDays);
+            if (pp.lateFeeEnabled !== undefined) setLateFeeEnabled(pp.lateFeeEnabled);
+            if (pp.lateFeeAmount !== undefined) setLateFeeAmount(pp.lateFeeAmount);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load landlord settings from database:", err.message);
+      }
+    }
+    loadSettings();
+    return () => {
+      mounted = false;
+    };
+  }, [isLandlord]);
 
   // Custom Hex Input State
   const [customHexInput, setCustomHexInput] = useState(primaryColor);
@@ -65,7 +127,33 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState({ text: "", isError: false });
 
+  // Privacy preferences (for tenants and users)
+  const [profileVisibility, setProfileVisibility] = useState(true);
+  const [activityAuditLogging, setActivityAuditLogging] = useState(true);
+  const [dataCommunications, setDataCommunications] = useState(true);
+
+  const handleExportDataArchive = () => {
+    const data = {
+      tenantId: user?.entityId || user?.entity_id || "TEN001",
+      name: user?.name,
+      email: user?.email,
+      role: user?.role,
+      exportDate: new Date().toISOString(),
+      platform: "PropConnect Tenant Portal",
+      complianceNotice: "Exported in accordance with DPDP Act 2023 regulations.",
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `propconnect-data-export-${user?.entityId || "tenant"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    triggerToast(language === "ta" ? "✓ தனிப்பட்ட தரவு காப்பகம் பதிவிறக்கப்பட்டது" : "✓ Personal data archive exported successfully!");
+  };
+
   const loadDbInfo = async () => {
+    if (!isAdmin) return;
     setIsTestingDb(true);
     const data = await fetchDbStatus();
     setDbStatus(data);
@@ -73,8 +161,12 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    loadDbInfo();
-  }, []);
+    if (isAdmin) {
+      loadDbInfo();
+    } else if (activeTab === "system") {
+      setActiveTab("appearance");
+    }
+  }, [isAdmin, activeTab]);
 
   const triggerToast = (msg) => {
     setSaveToast(msg);
@@ -109,16 +201,46 @@ export default function SettingsPage() {
   };
 
   const handleSaveToDatabase = async () => {
-    const res = await syncSettingsToDatabase();
-    if (res.success) {
+    try {
+      const res = await syncSettingsToDatabase();
+      if (isLandlord) {
+        await saveLandlordSettings({
+          notificationPreferences: {
+            rentPayments: rentPaymentsNotif,
+            maintenanceUpdates: maintenanceNotif,
+            complaintAlerts: complaintNotif,
+            bookingAlerts: bookingNotif,
+            leaseExpiryAlerts: leaseExpiryNotif,
+            emailNotifications: emailNotif,
+            inAppNotifications: inAppNotif,
+            smsAlerts: smsAlertsNotif,
+          },
+          paymentPreferences: {
+            autoRentReminders,
+            reminderLeadDays: Number(reminderLeadDays),
+            gracePeriodDays: Number(gracePeriodDays),
+            lateFeeEnabled,
+            lateFeeAmount: Number(lateFeeAmount),
+          },
+          appearance: {
+            theme,
+            primaryColor,
+            language,
+          },
+        });
+      }
       triggerToast(language === "ta" ? "✓ விருப்பங்கள் MongoDB Compass-ல் வெற்றிகரமாகச் சேமிக்கப்பட்டன!" : "✓ Preferences synchronized and saved to MongoDB Compass!");
-    } else {
-      triggerToast(`⚠️ ${res.message}`);
+    } catch (err) {
+      triggerToast(`⚠️ ${err.message || "Failed to persist to database"}`);
     }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    if (!oldPassword) {
+      setPasswordMsg({ text: "Please enter your current password.", isError: true });
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
       setPasswordMsg({ text: t("atLeast6Chars", "New password must be at least 6 characters long."), isError: true });
       return;
@@ -127,11 +249,26 @@ export default function SettingsPage() {
       setPasswordMsg({ text: language === "ta" ? "புதிய கடவுச்சொற்கள் பொருந்தவில்லை." : "New password and confirmation do not match.", isError: true });
       return;
     }
-    setPasswordMsg({ text: language === "ta" ? "கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது!" : "Password updated successfully!", isError: false });
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    triggerToast(t("saveChanges", "Security credentials updated"));
+
+    try {
+      const res = await changePassword({
+        email: user?.email,
+        currentPassword: oldPassword,
+        newPassword,
+      });
+
+      if (res && res.success === false) {
+        setPasswordMsg({ text: `⚠️ ${res.message || "Current password does not match"}`, isError: true });
+      } else {
+        setPasswordMsg({ text: language === "ta" ? "கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது!" : "Password updated successfully!", isError: false });
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        triggerToast(t("saveChanges", "Security credentials updated"));
+      }
+    } catch (err) {
+      setPasswordMsg({ text: `⚠️ ${err.message || "Failed to update password"}`, isError: true });
+    }
   };
 
   // Helper for preset translated label
@@ -183,11 +320,19 @@ export default function SettingsPage() {
           👤 {t("accountSecurity")}
         </button>
         <button
-          className={`settings-tab-btn ${activeTab === "system" ? "active" : ""}`}
-          onClick={() => setActiveTab("system")}
+          className={`settings-tab-btn ${activeTab === "privacy" ? "active" : ""}`}
+          onClick={() => setActiveTab("privacy")}
         >
-          ⚡ {t("systemDatabase")}
+          🛡️ {t("privacyTab", "Privacy")}
         </button>
+        {isAdmin && (
+          <button
+            className={`settings-tab-btn ${activeTab === "system" ? "active" : ""}`}
+            onClick={() => setActiveTab("system")}
+          >
+            ⚡ {t("systemDatabase")}
+          </button>
+        )}
       </div>
 
       {/* ----------------- TAB: APPEARANCE ----------------- */}
@@ -592,76 +737,260 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ----------------- TAB: NOTIFICATIONS ----------------- */}
+      {/* ----------------- TAB: NOTIFICATIONS & REMINDERS ----------------- */}
       {activeTab === "notifications" && (
-        <div className="settings-card">
-          <div className="settings-card-header">
-            <h3>{t("notifPrefTitle")}</h3>
-            <p>{t("notifPrefDesc")}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* Card 1: Operational Activity Alerts */}
+          <div className="settings-card">
+            <div className="settings-card-header">
+              <h3>Operational Activity Alerts</h3>
+              <p>Choose which property events trigger notifications for your landlord account</p>
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Rent Payment Alerts</div>
+                <div className="settings-row-desc">Receive instant notifications when tenants submit rent payments or utility settlements</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={rentPaymentsNotif}
+                onChange={(e) => {
+                  setRentPaymentsNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "Rent payment alerts enabled" : "Rent payment alerts disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Maintenance Tickets &amp; Updates</div>
+                <div className="settings-row-desc">Alerts when maintenance tickets are logged, reviewed, or assigned to specialists</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={maintenanceNotif}
+                onChange={(e) => {
+                  setMaintenanceNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "Maintenance alerts enabled" : "Maintenance alerts disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Tenant Complaint Alerts</div>
+                <div className="settings-row-desc">Real-time alerts when tenants raise noise, water supply, or building complaints</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={complaintNotif}
+                onChange={(e) => {
+                  setComplaintNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "Complaint alerts enabled" : "Complaint alerts disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Home Services &amp; Provider Bookings</div>
+                <div className="settings-row-desc">Updates when local service specialists schedule or complete home repairs</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={bookingNotif}
+                onChange={(e) => {
+                  setBookingNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "Booking alerts enabled" : "Booking alerts disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Lease Expiry Reminders</div>
+                <div className="settings-row-desc">Automatic warnings 60, 30, and 15 days before registered tenancy agreements expire</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={leaseExpiryNotif}
+                onChange={(e) => {
+                  setLeaseExpiryNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "Lease expiry alerts enabled" : "Lease expiry alerts disabled");
+                }}
+              />
+            </div>
           </div>
 
-          <div className="settings-row">
-            <div className="settings-row-info">
-              <div className="settings-row-title">{t("emailNotifTitle")}</div>
-              <div className="settings-row-desc">{t("emailNotifDesc")}</div>
+          {/* Card 2: Delivery Channels */}
+          <div className="settings-card">
+            <div className="settings-card-header">
+              <h3>Notification Delivery Channels</h3>
+              <p>Configure how alerts are delivered to you and your maintenance team</p>
             </div>
-            <input
-              type="checkbox"
-              style={{ width: "20px", height: "20px", accentColor: primaryColor }}
-              checked={emailNotifications}
-              onChange={(e) => {
-                setEmailNotifications(e.target.checked);
-                triggerToast(e.target.checked ? t("approved") : t("rejected"));
-              }}
-            />
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">Email Notifications</div>
+                <div className="settings-row-desc">Send official activity notices and monthly financial statements to {user?.email}</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={emailNotif}
+                onChange={(e) => {
+                  setEmailNotif(e.target.checked);
+                  setEmailNotifications(e.target.checked);
+                  triggerToast(e.target.checked ? "Email delivery enabled" : "Email delivery disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">In-App Dashboard Alerts</div>
+                <div className="settings-row-desc">Surface badge counters and notification drawer banners within PropConnect</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={inAppNotif}
+                onChange={(e) => {
+                  setInAppNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "In-app alerts enabled" : "In-app alerts disabled");
+                }}
+              />
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-info">
+                <div className="settings-row-title">SMS &amp; WhatsApp Notifications</div>
+                <div className="settings-row-desc">Urgent emergency alerts and instant rent payment confirmations via mobile SMS</div>
+              </div>
+              <input
+                type="checkbox"
+                style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                checked={smsAlertsNotif}
+                onChange={(e) => {
+                  setSmsAlertsNotif(e.target.checked);
+                  triggerToast(e.target.checked ? "SMS alerts enabled" : "SMS alerts disabled");
+                }}
+              />
+            </div>
           </div>
 
-          <div className="settings-row">
-            <div className="settings-row-info">
-              <div className="settings-row-title">{t("paymentReminderTitle")}</div>
-              <div className="settings-row-desc">{t("paymentReminderDesc")}</div>
-            </div>
-            <input
-              type="checkbox"
-              style={{ width: "20px", height: "20px", accentColor: primaryColor }}
-              checked={paymentReminders}
-              onChange={(e) => {
-                setPaymentReminders(e.target.checked);
-                triggerToast(e.target.checked ? t("approved") : t("rejected"));
-              }}
-            />
-          </div>
+          {/* Card 3: Payment & Rent Reminders (Landlord Automation) */}
+          {isLandlord && (
+            <div className="settings-card">
+              <div className="settings-card-header">
+                <h3>Payment &amp; Rent Reminder Automation</h3>
+                <p>Configure automated tenant reminders, grace periods, and late fee policies</p>
+              </div>
 
-          <div className="settings-row">
-            <div className="settings-row-info">
-              <div className="settings-row-title">{t("maintenanceAlertTitle")}</div>
-              <div className="settings-row-desc">{t("maintenanceAlertDesc")}</div>
-            </div>
-            <input
-              type="checkbox"
-              style={{ width: "20px", height: "20px", accentColor: primaryColor }}
-              checked={maintenanceAlerts}
-              onChange={(e) => {
-                setMaintenanceAlerts(e.target.checked);
-                triggerToast(e.target.checked ? t("approved") : t("rejected"));
-              }}
-            />
-          </div>
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <div className="settings-row-title">Automated Tenant Rent Reminders</div>
+                  <div className="settings-row-desc">Automatically dispatch courteous rent payment reminders to tenants prior to due dates</div>
+                </div>
+                <input
+                  type="checkbox"
+                  style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                  checked={autoRentReminders}
+                  onChange={(e) => {
+                    setAutoRentReminders(e.target.checked);
+                    setPaymentReminders(e.target.checked);
+                    triggerToast(e.target.checked ? "Auto rent reminders enabled" : "Auto rent reminders disabled");
+                  }}
+                />
+              </div>
 
-          <div className="settings-row">
-            <div className="settings-row-info">
-              <div className="settings-row-title">{t("leaseExpiryTitle")}</div>
-              <div className="settings-row-desc">{t("leaseExpiryDesc")}</div>
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <div className="settings-row-title">Reminder Dispatch Lead Days</div>
+                  <div className="settings-row-desc">Number of days before rent due date (1st of month) to send reminder notice</div>
+                </div>
+                <div style={{ width: "160px" }}>
+                  <select
+                    className="form-select"
+                    value={reminderLeadDays}
+                    onChange={(e) => setReminderLeadDays(Number(e.target.value))}
+                  >
+                    <option value={1}>1 day before</option>
+                    <option value={3}>3 days before</option>
+                    <option value={5}>5 days before</option>
+                    <option value={7}>7 days before</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <div className="settings-row-title">Grace Period Duration</div>
+                  <div className="settings-row-desc">Number of calendar days after due date before rent invoice is marked Overdue</div>
+                </div>
+                <div style={{ width: "160px" }}>
+                  <select
+                    className="form-select"
+                    value={gracePeriodDays}
+                    onChange={(e) => setGracePeriodDays(Number(e.target.value))}
+                  >
+                    <option value={3}>3 calendar days</option>
+                    <option value={5}>5 calendar days</option>
+                    <option value={7}>7 calendar days</option>
+                    <option value={10}>10 calendar days</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <div className="settings-row-title">Automated Late Fee Calculation</div>
+                  <div className="settings-row-desc">Automatically calculate statutory late penalty on invoices unpaid after grace period</div>
+                </div>
+                <input
+                  type="checkbox"
+                  style={{ width: "20px", height: "20px", accentColor: primaryColor }}
+                  checked={lateFeeEnabled}
+                  onChange={(e) => setLateFeeEnabled(e.target.checked)}
+                />
+              </div>
+
+              {lateFeeEnabled && (
+                <div className="settings-row">
+                  <div className="settings-row-info">
+                    <div className="settings-row-title">Late Fee Fixed Penalty (₹)</div>
+                    <div className="settings-row-desc">Fixed statutory penalty applied per overdue monthly rental billing cycle</div>
+                  </div>
+                  <div style={{ width: "160px" }}>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={lateFeeAmount}
+                      onChange={(e) => setLateFeeAmount(Number(e.target.value))}
+                      placeholder="250"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <input
-              type="checkbox"
-              style={{ width: "20px", height: "20px", accentColor: primaryColor }}
-              checked={leaseExpiryAlerts}
-              onChange={(e) => {
-                setLeaseExpiryAlerts(e.target.checked);
-                triggerToast(e.target.checked ? t("approved") : t("rejected"));
-              }}
-            />
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleSaveToDatabase}
+              disabled={isSyncingDb}
+              style={{ background: primaryColor, color: palette?.primaryContrast || "#ffffff" }}
+            >
+              {isSyncingDb ? t("savingToMongo") : "Save All Preferences to MongoDB"}
+            </button>
           </div>
         </div>
       )}
@@ -693,6 +1022,24 @@ export default function SettingsPage() {
                 <div className="settings-row-title">{t("entityIdLabel")}</div>
                 <div className="settings-row-desc">{user?.entityId || user?.entity_id || "N/A"}</div>
               </div>
+            </div>
+
+            <div className="settings-row" style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+              <div className="settings-row-info">
+                <div className="settings-row-title">Active Session &amp; Sign Out</div>
+                <div className="settings-row-desc">Signed in as {user?.email} ({user?.role || "landlord"})</div>
+              </div>
+              <button
+                type="button"
+                className="btn-outline"
+                style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
+                onClick={() => {
+                  if (logout) logout();
+                  else window.location.href = "/login";
+                }}
+              >
+                🚪 Sign Out
+              </button>
             </div>
           </div>
 
@@ -767,8 +1114,119 @@ export default function SettingsPage() {
         </>
       )}
 
-      {/* ----------------- TAB: SYSTEM & DATABASE ----------------- */}
-      {activeTab === "system" && (
+      {/* ----------------- TAB: PRIVACY ----------------- */}
+      {activeTab === "privacy" && (
+        <div className="settings-card">
+          <div className="settings-card-header">
+            <h3>{language === "ta" ? "தனியுரிமை மற்றும் தரவுப் பாதுகாப்பு" : "Privacy & Data Protection"}</h3>
+            <p>
+              {language === "ta"
+                ? "உங்கள் தனிப்பட்ட தகவல் தெரிவுநிலை, தகவல் தொடர்பு விருப்பங்கள் மற்றும் தரவு பகிர்வை நிர்வகிக்கவும்"
+                : "Manage your personal visibility, communication consents, and data rights."}
+            </p>
+          </div>
+
+          {/* Setting 1: Profile Visibility */}
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <div className="settings-row-title">
+                {language === "ta" ? "சுயவிவர தெரிவுநிலை கட்டுப்பாடு" : "Restricted Profile Visibility"}
+              </div>
+              <div className="settings-row-desc">
+                {language === "ta"
+                  ? "சரிபார்க்கப்பட்ட சொத்து மேலாளர்கள் மற்றும் அங்கீகரிக்கப்பட்ட சேவை தொழில்நுட்ப வல்லுநர்களுக்கு மட்டுமே தொடர்பு விவரங்கள் தெரியும்"
+                  : "Only verified property managers and authorized service dispatchers can view your contact information."}
+              </div>
+            </div>
+            <label className="settings-switch">
+              <input
+                type="checkbox"
+                checked={profileVisibility}
+                onChange={(e) => {
+                  setProfileVisibility(e.target.checked);
+                  triggerToast(language === "ta" ? "✓ விருப்பம் புதுப்பிக்கப்பட்டது" : "✓ Profile visibility updated");
+                }}
+              />
+              <span className="settings-slider" />
+            </label>
+          </div>
+
+          {/* Setting 2: Activity Logging */}
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <div className="settings-row-title">
+                {language === "ta" ? "பாதுகாப்பான செயல்பாடு தணிக்கை பதிவு" : "Audit Trail & Activity Logging"}
+              </div>
+              <div className="settings-row-desc">
+                {language === "ta"
+                  ? "வாடகை கொடுப்பனவுகள் மற்றும் சேவை முன்பதிவுகளுக்கான பாதுகாப்பு தணிக்கை பதிவுகளைப் பராமரிக்கவும்"
+                  : "Keep an encrypted audit trail of maintenance requests, payment verifications, and lease interactions."}
+              </div>
+            </div>
+            <label className="settings-switch">
+              <input
+                type="checkbox"
+                checked={activityAuditLogging}
+                onChange={(e) => {
+                  setActivityAuditLogging(e.target.checked);
+                  triggerToast(language === "ta" ? "✓ விருப்பம் புதுப்பிக்கப்பட்டது" : "✓ Audit trail preferences updated");
+                }}
+              />
+              <span className="settings-slider" />
+            </label>
+          </div>
+
+          {/* Setting 3: Important Notices & Communications */}
+          <div className="settings-row">
+            <div className="settings-row-info">
+              <div className="settings-row-title">
+                {language === "ta" ? "அத்தியாவசிய அறிவிப்பு சம்மதம்" : "Service Communications & Notices"}
+              </div>
+              <div className="settings-row-desc">
+                {language === "ta"
+                  ? "வாடகை ரசீதுகள் மற்றும் கட்டண நினைவூட்டல்களுக்கான மின்னஞ்சல் & எஸ்எம்எஸ் பெறவும்"
+                  : "Receive digital rent receipts, utility statements, and building maintenance notices."}
+              </div>
+            </div>
+            <label className="settings-switch">
+              <input
+                type="checkbox"
+                checked={dataCommunications}
+                onChange={(e) => {
+                  setDataCommunications(e.target.checked);
+                  triggerToast(language === "ta" ? "✓ விருப்பம் புதுப்பிக்கப்பட்டது" : "✓ Communication preferences updated");
+                }}
+              />
+              <span className="settings-slider" />
+            </label>
+          </div>
+
+          {/* Setting 4: Data Export */}
+          <div className="settings-row" style={{ borderTop: "1px solid var(--border-subtle)", marginTop: "16px", paddingTop: "16px" }}>
+            <div className="settings-row-info">
+              <div className="settings-row-title">
+                {language === "ta" ? "தனிப்பட்ட தரவு காப்பகம் பதிவிறக்கம்" : "Personal Data Portability"}
+              </div>
+              <div className="settings-row-desc">
+                {language === "ta"
+                  ? "உங்கள் முழுமையான சுயவிவரம், வாடகை மற்றும் ஆவணங்களின் நகலை JSON வடிவத்தில் பதிவிறக்கவும்"
+                  : "Export a complete copy of your profile, verified records, and preferences in JSON format."}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={handleExportDataArchive}
+              style={{ fontSize: "12.5px", padding: "6px 14px", fontWeight: 600 }}
+            >
+              📥 {language === "ta" ? "தரவை பதிவிறக்கு" : "Export Archive"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- TAB: SYSTEM & DATABASE (Admin only) ----------------- */}
+      {isAdmin && activeTab === "system" && (
         <div className="settings-card">
           <div
             className="settings-card-header"

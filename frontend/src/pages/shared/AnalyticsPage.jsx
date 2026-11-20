@@ -545,10 +545,24 @@ export default function AnalyticsPage() {
   // Tenant Specific View
   // -------------------------------------------------------------
   if (isTenant) {
-    const tenantProperty = properties.find((p) => p.id === user?.propertyId || p.tenantId === userEntityId) || properties[0];
-    const tenantLease = leases.find((l) => l.tenantId === userEntityId || l.propertyId === tenantProperty?.id);
+    const tenantLeases = leases.filter((l) => l.tenantId === userEntityId || l.tenant_id === userEntityId);
+    const tenantLease =
+      tenantLeases.find((l) => (l.status || "").toLowerCase() === "active" && !l.id?.includes("-P") && !l.id?.includes("-S")) ||
+      tenantLeases.find((l) => (l.status || "").toLowerCase() === "active") ||
+      tenantLeases[0] ||
+      null;
+
+    const tenantProperty =
+      properties.find((p) => p.id === tenantLease?.propertyId || p.id === tenantLease?.property_id) ||
+      properties.find((p) => p.id === user?.propertyId || p.tenantId === userEntityId) ||
+      properties[0];
+
+    const tenantMonthlyObligation = Number(
+      tenantLease?.monthlyRent || tenantLease?.monthly_rent || tenantLease?.rent || tenantProperty?.rent || 22000
+    );
+
     const tenantPmts = payments.filter((p) => p.tenantId === userEntityId || p.propertyId === tenantProperty?.id);
-    const tenantTotalPaid = tenantPmts.filter((p) => p.status === "Paid").reduce((s, p) => s + (p.amount || 0), 0);
+    const tenantTotalPaid = tenantPmts.filter((p) => (p.status || "").toLowerCase() === "paid").reduce((s, p) => s + (p.amount || 0), 0);
     const tenantMaintTickets = maintenance.filter((m) => m.tenantId === userEntityId || m.propertyId === tenantProperty?.id);
     const tenantDeposit = deposits.find((d) => d.tenantId === userEntityId || d.propertyId === tenantProperty?.id);
 
@@ -592,7 +606,7 @@ export default function AnalyticsPage() {
               <span className="lbl">{t("Monthly Obligation")}</span>
               <span className="stat-icon-wrap">🏠</span>
             </div>
-            <div className="val">₹{(tenantProperty?.rent || 22000).toLocaleString("en-IN")}</div>
+            <div className="val">₹{tenantMonthlyObligation.toLocaleString("en-IN")}</div>
             <div className="stat-footer">
               <span className="trend-badge neutral">Due 5th of Month</span>
               <span>{tenantProperty?.name || "Apartment"}</span>

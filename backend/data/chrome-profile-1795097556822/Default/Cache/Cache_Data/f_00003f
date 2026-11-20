@@ -1,0 +1,245 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/discovery/PropertyCompareTray.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+import { X, ArrowRight } from "/node_modules/.vite/deps/lucide-react.js?v=1e3aa71c";
+export default function PropertyCompareTray({
+  compareProperties = [],
+  onOpenCompare,
+  onRemove,
+  onClearAll
+}) {
+  if (compareProperties.length === 0) return null;
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      style: {
+        position: "fixed",
+        bottom: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#0f172a",
+        color: "#ffffff",
+        padding: "10px 18px",
+        borderRadius: "14px",
+        boxShadow: "0 10px 25px -3px rgba(0, 0, 0, 0.4)",
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        zIndex: 900,
+        maxWidth: "92vw",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
+        backdropFilter: "blur(8px)"
+      },
+      children: [
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "10px" }, children: [
+          /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "13px", fontWeight: 700, color: "#f8fafc" }, children: [
+            "Compare (",
+            compareProperties.length,
+            "/3):"
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+            lineNumber: 52,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "8px" }, children: compareProperties.map(
+            (p) => /* @__PURE__ */ jsxDEV(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  padding: "3px 8px 3px 4px",
+                  borderRadius: "8px",
+                  fontSize: "12px"
+                },
+                children: [
+                  /* @__PURE__ */ jsxDEV(
+                    "img",
+                    {
+                      src: p.image || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=100",
+                      alt: p.name,
+                      style: { width: "24px", height: "24px", borderRadius: "4px", objectFit: "cover" }
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                      lineNumber: 69,
+                      columnNumber: 15
+                    },
+                    this
+                  ),
+                  /* @__PURE__ */ jsxDEV("span", { style: { maxWidth: "100px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: p.name.split("-")[0].trim() }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                    lineNumber: 74,
+                    columnNumber: 15
+                  }, this),
+                  /* @__PURE__ */ jsxDEV(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => onRemove(p.id),
+                      style: {
+                        background: "transparent",
+                        border: "none",
+                        color: "#94a3b8",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "2px"
+                      },
+                      children: /* @__PURE__ */ jsxDEV(X, { size: 12 }, void 0, false, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                        lineNumber: 90,
+                        columnNumber: 17
+                      }, this)
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                      lineNumber: 77,
+                      columnNumber: 15
+                    },
+                    this
+                  )
+                ]
+              },
+              p.id,
+              true,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                lineNumber: 57,
+                columnNumber: 11
+              },
+              this
+            )
+          ) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+            lineNumber: 55,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+          lineNumber: 51,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: onOpenCompare,
+              disabled: compareProperties.length < 2,
+              style: {
+                background: compareProperties.length >= 2 ? "#2563eb" : "#475569",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "7px 14px",
+                fontSize: "12.5px",
+                fontWeight: 700,
+                cursor: compareProperties.length >= 2 ? "pointer" : "not-allowed",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.15s ease"
+              },
+              title: compareProperties.length < 2 ? "Select at least 2 properties to compare" : "Open comparison",
+              children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "Compare Now" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                  lineNumber: 118,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV(ArrowRight, { size: 14 }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+                  lineNumber: 119,
+                  columnNumber: 11
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+              lineNumber: 98,
+              columnNumber: 9
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: onClearAll,
+              style: {
+                background: "transparent",
+                border: "none",
+                color: "#cbd5e1",
+                fontSize: "12px",
+                cursor: "pointer",
+                padding: "4px 8px"
+              },
+              children: "Clear"
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+              lineNumber: 121,
+              columnNumber: 9
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+          lineNumber: 97,
+          columnNumber: 7
+        }, this)
+      ]
+    },
+    void 0,
+    true,
+    {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx",
+      lineNumber: 31,
+      columnNumber: 5
+    },
+    this
+  );
+}
+_c = PropertyCompareTray;
+var _c;
+$RefreshReg$(_c, "PropertyCompareTray");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/PropertyCompareTray.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBZ0NROzs7Ozs7Ozs7Ozs7Ozs7O0FBaENSLFNBQVNBLEdBQUdDLGtCQUFrQjtBQUU5Qix3QkFBd0JDLG9CQUFvQjtBQUFBLEVBQzFDQyxvQkFBb0I7QUFBQSxFQUNwQkM7QUFBQUEsRUFDQUM7QUFBQUEsRUFDQUM7QUFDRixHQUFHO0FBQ0QsTUFBSUgsa0JBQWtCSSxXQUFXLEVBQUcsUUFBTztBQUUzQyxTQUNFO0FBQUEsSUFBQztBQUFBO0FBQUEsTUFDQyxPQUFPO0FBQUEsUUFDTEMsVUFBVTtBQUFBLFFBQ1ZDLFFBQVE7QUFBQSxRQUNSQyxNQUFNO0FBQUEsUUFDTkMsV0FBVztBQUFBLFFBQ1hDLFlBQVk7QUFBQSxRQUNaQyxPQUFPO0FBQUEsUUFDUEMsU0FBUztBQUFBLFFBQ1RDLGNBQWM7QUFBQSxRQUNkQyxXQUFXO0FBQUEsUUFDWEMsU0FBUztBQUFBLFFBQ1RDLFlBQVk7QUFBQSxRQUNaQyxLQUFLO0FBQUEsUUFDTEMsUUFBUTtBQUFBLFFBQ1JDLFVBQVU7QUFBQSxRQUNWQyxRQUFRO0FBQUEsUUFDUkMsZ0JBQWdCO0FBQUEsTUFDbEI7QUFBQSxNQUVBO0FBQUEsK0JBQUMsU0FBSSxPQUFPLEVBQUVOLFNBQVMsUUFBUUMsWUFBWSxVQUFVQyxLQUFLLE9BQU8sR0FDL0Q7QUFBQSxpQ0FBQyxVQUFLLE9BQU8sRUFBRUssVUFBVSxRQUFRQyxZQUFZLEtBQUtaLE9BQU8sVUFBVSxHQUFFO0FBQUE7QUFBQSxZQUN6RFYsa0JBQWtCSTtBQUFBQSxZQUFPO0FBQUEsZUFEckM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLFVBQ0EsdUJBQUMsU0FBSSxPQUFPLEVBQUVVLFNBQVMsUUFBUUUsS0FBSyxNQUFNLEdBQ3ZDaEIsNEJBQWtCdUI7QUFBQUEsWUFBSSxDQUFDQyxNQUN0QjtBQUFBLGNBQUM7QUFBQTtBQUFBLGdCQUVDLE9BQU87QUFBQSxrQkFDTFYsU0FBUztBQUFBLGtCQUNUQyxZQUFZO0FBQUEsa0JBQ1pDLEtBQUs7QUFBQSxrQkFDTFAsWUFBWTtBQUFBLGtCQUNaRSxTQUFTO0FBQUEsa0JBQ1RDLGNBQWM7QUFBQSxrQkFDZFMsVUFBVTtBQUFBLGdCQUNaO0FBQUEsZ0JBRUE7QUFBQTtBQUFBLG9CQUFDO0FBQUE7QUFBQSxzQkFDQyxLQUFLRyxFQUFFQyxTQUFTO0FBQUEsc0JBQ2hCLEtBQUtELEVBQUVFO0FBQUFBLHNCQUNQLE9BQU8sRUFBRUMsT0FBTyxRQUFRQyxRQUFRLFFBQVFoQixjQUFjLE9BQU9pQixXQUFXLFFBQVE7QUFBQTtBQUFBLG9CQUhsRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsa0JBR29GO0FBQUEsa0JBRXBGLHVCQUFDLFVBQUssT0FBTyxFQUFFWCxVQUFVLFNBQVNZLFlBQVksVUFBVUMsVUFBVSxVQUFVQyxjQUFjLFdBQVcsR0FDbEdSLFlBQUVFLEtBQUtPLE1BQU0sR0FBRyxFQUFFLENBQUMsRUFBRUMsS0FBSyxLQUQ3QjtBQUFBO0FBQUE7QUFBQTtBQUFBLHlCQUVBO0FBQUEsa0JBQ0E7QUFBQSxvQkFBQztBQUFBO0FBQUEsc0JBQ0MsTUFBSztBQUFBLHNCQUNMLFNBQVMsTUFBTWhDLFNBQVNzQixFQUFFVyxFQUFFO0FBQUEsc0JBQzVCLE9BQU87QUFBQSx3QkFDTDFCLFlBQVk7QUFBQSx3QkFDWlUsUUFBUTtBQUFBLHdCQUNSVCxPQUFPO0FBQUEsd0JBQ1AwQixRQUFRO0FBQUEsd0JBQ1J0QixTQUFTO0FBQUEsd0JBQ1RDLFlBQVk7QUFBQSx3QkFDWkosU0FBUztBQUFBLHNCQUNYO0FBQUEsc0JBRUEsaUNBQUMsS0FBRSxNQUFNLE1BQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSw2QkFBWTtBQUFBO0FBQUEsb0JBYmQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGtCQWNBO0FBQUE7QUFBQTtBQUFBLGNBakNLYSxFQUFFVztBQUFBQSxjQURUO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsWUFtQ0E7QUFBQSxVQUNELEtBdENIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBdUNBO0FBQUEsYUEzQ0Y7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQTRDQTtBQUFBLFFBRUEsdUJBQUMsU0FBSSxPQUFPLEVBQUVyQixTQUFTLFFBQVFDLFlBQVksVUFBVUMsS0FBSyxNQUFNLEdBQzlEO0FBQUE7QUFBQSxZQUFDO0FBQUE7QUFBQSxjQUNDLE1BQUs7QUFBQSxjQUNMLFNBQVNmO0FBQUFBLGNBQ1QsVUFBVUQsa0JBQWtCSSxTQUFTO0FBQUEsY0FDckMsT0FBTztBQUFBLGdCQUNMSyxZQUFZVCxrQkFBa0JJLFVBQVUsSUFBSSxZQUFZO0FBQUEsZ0JBQ3hETSxPQUFPO0FBQUEsZ0JBQ1BTLFFBQVE7QUFBQSxnQkFDUlAsY0FBYztBQUFBLGdCQUNkRCxTQUFTO0FBQUEsZ0JBQ1RVLFVBQVU7QUFBQSxnQkFDVkMsWUFBWTtBQUFBLGdCQUNaYyxRQUFRcEMsa0JBQWtCSSxVQUFVLElBQUksWUFBWTtBQUFBLGdCQUNwRFUsU0FBUztBQUFBLGdCQUNUQyxZQUFZO0FBQUEsZ0JBQ1pDLEtBQUs7QUFBQSxnQkFDTHFCLFlBQVk7QUFBQSxjQUNkO0FBQUEsY0FDQSxPQUFPckMsa0JBQWtCSSxTQUFTLElBQUksNENBQTRDO0FBQUEsY0FFbEY7QUFBQSx1Q0FBQyxVQUFLLDJCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQWlCO0FBQUEsZ0JBQ2pCLHVCQUFDLGNBQVcsTUFBTSxNQUFsQjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFxQjtBQUFBO0FBQUE7QUFBQSxZQXJCdkI7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFVBc0JBO0FBQUEsVUFDQTtBQUFBLFlBQUM7QUFBQTtBQUFBLGNBQ0MsTUFBSztBQUFBLGNBQ0wsU0FBU0Q7QUFBQUEsY0FDVCxPQUFPO0FBQUEsZ0JBQ0xNLFlBQVk7QUFBQSxnQkFDWlUsUUFBUTtBQUFBLGdCQUNSVCxPQUFPO0FBQUEsZ0JBQ1BXLFVBQVU7QUFBQSxnQkFDVmUsUUFBUTtBQUFBLGdCQUNSekIsU0FBUztBQUFBLGNBQ1g7QUFBQSxjQUFFO0FBQUE7QUFBQSxZQVZKO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxVQWFBO0FBQUEsYUFyQ0Y7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQXNDQTtBQUFBO0FBQUE7QUFBQSxJQXhHRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsRUF5R0E7QUFFSjtBQUFDMkIsS0FwSHVCdkM7QUFBbUIsSUFBQXVDO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbIlgiLCJBcnJvd1JpZ2h0IiwiUHJvcGVydHlDb21wYXJlVHJheSIsImNvbXBhcmVQcm9wZXJ0aWVzIiwib25PcGVuQ29tcGFyZSIsIm9uUmVtb3ZlIiwib25DbGVhckFsbCIsImxlbmd0aCIsInBvc2l0aW9uIiwiYm90dG9tIiwibGVmdCIsInRyYW5zZm9ybSIsImJhY2tncm91bmQiLCJjb2xvciIsInBhZGRpbmciLCJib3JkZXJSYWRpdXMiLCJib3hTaGFkb3ciLCJkaXNwbGF5IiwiYWxpZ25JdGVtcyIsImdhcCIsInpJbmRleCIsIm1heFdpZHRoIiwiYm9yZGVyIiwiYmFja2Ryb3BGaWx0ZXIiLCJmb250U2l6ZSIsImZvbnRXZWlnaHQiLCJtYXAiLCJwIiwiaW1hZ2UiLCJuYW1lIiwid2lkdGgiLCJoZWlnaHQiLCJvYmplY3RGaXQiLCJ3aGl0ZVNwYWNlIiwib3ZlcmZsb3ciLCJ0ZXh0T3ZlcmZsb3ciLCJzcGxpdCIsInRyaW0iLCJpZCIsImN1cnNvciIsInRyYW5zaXRpb24iLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJQcm9wZXJ0eUNvbXBhcmVUcmF5LmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBYLCBBcnJvd1JpZ2h0IH0gZnJvbSBcImx1Y2lkZS1yZWFjdFwiO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBQcm9wZXJ0eUNvbXBhcmVUcmF5KHtcbiAgY29tcGFyZVByb3BlcnRpZXMgPSBbXSxcbiAgb25PcGVuQ29tcGFyZSxcbiAgb25SZW1vdmUsXG4gIG9uQ2xlYXJBbGwsXG59KSB7XG4gIGlmIChjb21wYXJlUHJvcGVydGllcy5sZW5ndGggPT09IDApIHJldHVybiBudWxsO1xuXG4gIHJldHVybiAoXG4gICAgPGRpdlxuICAgICAgc3R5bGU9e3tcbiAgICAgICAgcG9zaXRpb246IFwiZml4ZWRcIixcbiAgICAgICAgYm90dG9tOiBcIjIwcHhcIixcbiAgICAgICAgbGVmdDogXCI1MCVcIixcbiAgICAgICAgdHJhbnNmb3JtOiBcInRyYW5zbGF0ZVgoLTUwJSlcIixcbiAgICAgICAgYmFja2dyb3VuZDogXCIjMGYxNzJhXCIsXG4gICAgICAgIGNvbG9yOiBcIiNmZmZmZmZcIixcbiAgICAgICAgcGFkZGluZzogXCIxMHB4IDE4cHhcIixcbiAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjE0cHhcIixcbiAgICAgICAgYm94U2hhZG93OiBcIjAgMTBweCAyNXB4IC0zcHggcmdiYSgwLCAwLCAwLCAwLjQpXCIsXG4gICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxuICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxuICAgICAgICBnYXA6IFwiMTZweFwiLFxuICAgICAgICB6SW5kZXg6IDkwMCxcbiAgICAgICAgbWF4V2lkdGg6IFwiOTJ2d1wiLFxuICAgICAgICBib3JkZXI6IFwiMXB4IHNvbGlkIHJnYmEoMjU1LCAyNTUsIDI1NSwgMC4xNSlcIixcbiAgICAgICAgYmFja2Ryb3BGaWx0ZXI6IFwiYmx1cig4cHgpXCIsXG4gICAgICB9fVxuICAgID5cbiAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsIGdhcDogXCIxMHB4XCIgfX0+XG4gICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOiBcIjEzcHhcIiwgZm9udFdlaWdodDogNzAwLCBjb2xvcjogXCIjZjhmYWZjXCIgfX0+XG4gICAgICAgICAgQ29tcGFyZSAoe2NvbXBhcmVQcm9wZXJ0aWVzLmxlbmd0aH0vMyk6XG4gICAgICAgIDwvc3Bhbj5cbiAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiBcIjhweFwiIH19PlxuICAgICAgICAgIHtjb21wYXJlUHJvcGVydGllcy5tYXAoKHApID0+IChcbiAgICAgICAgICAgIDxkaXZcbiAgICAgICAgICAgICAga2V5PXtwLmlkfVxuICAgICAgICAgICAgICBzdHlsZT17e1xuICAgICAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxuICAgICAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXG4gICAgICAgICAgICAgICAgZ2FwOiBcIjZweFwiLFxuICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwicmdiYSgyNTUsIDI1NSwgMjU1LCAwLjEpXCIsXG4gICAgICAgICAgICAgICAgcGFkZGluZzogXCIzcHggOHB4IDNweCA0cHhcIixcbiAgICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiOHB4XCIsXG4gICAgICAgICAgICAgICAgZm9udFNpemU6IFwiMTJweFwiLFxuICAgICAgICAgICAgICB9fVxuICAgICAgICAgICAgPlxuICAgICAgICAgICAgICA8aW1nXG4gICAgICAgICAgICAgICAgc3JjPXtwLmltYWdlIHx8IFwiaHR0cHM6Ly9pbWFnZXMudW5zcGxhc2guY29tL3Bob3RvLTE1NDUzMjQ0MTgtY2MxYTNmYTEwYzAwP3c9MTAwXCJ9XG4gICAgICAgICAgICAgICAgYWx0PXtwLm5hbWV9XG4gICAgICAgICAgICAgICAgc3R5bGU9e3sgd2lkdGg6IFwiMjRweFwiLCBoZWlnaHQ6IFwiMjRweFwiLCBib3JkZXJSYWRpdXM6IFwiNHB4XCIsIG9iamVjdEZpdDogXCJjb3ZlclwiIH19XG4gICAgICAgICAgICAgIC8+XG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IG1heFdpZHRoOiBcIjEwMHB4XCIsIHdoaXRlU3BhY2U6IFwibm93cmFwXCIsIG92ZXJmbG93OiBcImhpZGRlblwiLCB0ZXh0T3ZlcmZsb3c6IFwiZWxsaXBzaXNcIiB9fT5cbiAgICAgICAgICAgICAgICB7cC5uYW1lLnNwbGl0KFwiLVwiKVswXS50cmltKCl9XG4gICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG9uUmVtb3ZlKHAuaWQpfVxuICAgICAgICAgICAgICAgIHN0eWxlPXt7XG4gICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInRyYW5zcGFyZW50XCIsXG4gICAgICAgICAgICAgICAgICBib3JkZXI6IFwibm9uZVwiLFxuICAgICAgICAgICAgICAgICAgY29sb3I6IFwiIzk0YTNiOFwiLFxuICAgICAgICAgICAgICAgICAgY3Vyc29yOiBcInBvaW50ZXJcIixcbiAgICAgICAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxuICAgICAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcbiAgICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiMnB4XCIsXG4gICAgICAgICAgICAgICAgfX1cbiAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgIDxYIHNpemU9ezEyfSAvPlxuICAgICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiOHB4XCIgfX0+XG4gICAgICAgIDxidXR0b25cbiAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICBvbkNsaWNrPXtvbk9wZW5Db21wYXJlfVxuICAgICAgICAgIGRpc2FibGVkPXtjb21wYXJlUHJvcGVydGllcy5sZW5ndGggPCAyfVxuICAgICAgICAgIHN0eWxlPXt7XG4gICAgICAgICAgICBiYWNrZ3JvdW5kOiBjb21wYXJlUHJvcGVydGllcy5sZW5ndGggPj0gMiA/IFwiIzI1NjNlYlwiIDogXCIjNDc1NTY5XCIsXG4gICAgICAgICAgICBjb2xvcjogXCIjZmZmZmZmXCIsXG4gICAgICAgICAgICBib3JkZXI6IFwibm9uZVwiLFxuICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjhweFwiLFxuICAgICAgICAgICAgcGFkZGluZzogXCI3cHggMTRweFwiLFxuICAgICAgICAgICAgZm9udFNpemU6IFwiMTIuNXB4XCIsXG4gICAgICAgICAgICBmb250V2VpZ2h0OiA3MDAsXG4gICAgICAgICAgICBjdXJzb3I6IGNvbXBhcmVQcm9wZXJ0aWVzLmxlbmd0aCA+PSAyID8gXCJwb2ludGVyXCIgOiBcIm5vdC1hbGxvd2VkXCIsXG4gICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcbiAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXG4gICAgICAgICAgICBnYXA6IFwiNnB4XCIsXG4gICAgICAgICAgICB0cmFuc2l0aW9uOiBcImFsbCAwLjE1cyBlYXNlXCIsXG4gICAgICAgICAgfX1cbiAgICAgICAgICB0aXRsZT17Y29tcGFyZVByb3BlcnRpZXMubGVuZ3RoIDwgMiA/IFwiU2VsZWN0IGF0IGxlYXN0IDIgcHJvcGVydGllcyB0byBjb21wYXJlXCIgOiBcIk9wZW4gY29tcGFyaXNvblwifVxuICAgICAgICA+XG4gICAgICAgICAgPHNwYW4+Q29tcGFyZSBOb3c8L3NwYW4+XG4gICAgICAgICAgPEFycm93UmlnaHQgc2l6ZT17MTR9IC8+XG4gICAgICAgIDwvYnV0dG9uPlxuICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgb25DbGljaz17b25DbGVhckFsbH1cbiAgICAgICAgICBzdHlsZT17e1xuICAgICAgICAgICAgYmFja2dyb3VuZDogXCJ0cmFuc3BhcmVudFwiLFxuICAgICAgICAgICAgYm9yZGVyOiBcIm5vbmVcIixcbiAgICAgICAgICAgIGNvbG9yOiBcIiNjYmQ1ZTFcIixcbiAgICAgICAgICAgIGZvbnRTaXplOiBcIjEycHhcIixcbiAgICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjRweCA4cHhcIixcbiAgICAgICAgICB9fVxuICAgICAgICA+XG4gICAgICAgICAgQ2xlYXJcbiAgICAgICAgPC9idXR0b24+XG4gICAgICA8L2Rpdj5cbiAgICA8L2Rpdj5cbiAgKTtcbn1cbiJdLCJmaWxlIjoiQzovVXNlcnMvU2l2YS9Eb3dubG9hZHMvUHJvcENvbm5lY3QvZnJvbnRlbmQvc3JjL2NvbXBvbmVudHMvZGlzY292ZXJ5L1Byb3BlcnR5Q29tcGFyZVRyYXkuanN4In0=

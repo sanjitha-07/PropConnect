@@ -34,6 +34,46 @@ export default function ComplaintsPage() {
   const [trackingBooking, setTrackingBooking] = useState(null);
   const [reviewBooking, setReviewBooking] = useState(null);
 
+  // Provider Complaint Investigation Modal (Admin Integration)
+  const [investigatingComplaint, setInvestigatingComplaint] = useState(null);
+  const [adminStatus, setAdminStatus] = useState("Under Review");
+  const [adminInvestigationNotes, setAdminInvestigationNotes] = useState("");
+  const [adminResolutionDetails, setAdminResolutionDetails] = useState("");
+  const [adminResponseText, setAdminResponseText] = useState("");
+  const [isSavingInvestigation, setIsSavingInvestigation] = useState(false);
+
+  const handleOpenInvestigation = (complaint) => {
+    setInvestigatingComplaint(complaint);
+    setAdminStatus(complaint.status || "Under Review");
+    setAdminInvestigationNotes(complaint.investigationNotes || "");
+    setAdminResolutionDetails(complaint.resolutionDetails || "");
+    setAdminResponseText(complaint.adminResponse || complaint.resolutionDetails || "");
+  };
+
+  const handleSaveInvestigation = async (e) => {
+    e.preventDefault();
+    if (!investigatingComplaint) return;
+    setIsSavingInvestigation(true);
+    try {
+      const payload = {
+        status: adminStatus,
+        investigationNotes: adminInvestigationNotes,
+        resolutionDetails: adminResolutionDetails,
+        adminResponse: adminResponseText || adminResolutionDetails,
+      };
+      await updateComplaint(investigatingComplaint.id, payload);
+      setComplaintList((prev) =>
+        prev.map((c) => (c.id === investigatingComplaint.id ? { ...c, ...payload } : c))
+      );
+      showToast(`Complaint #${investigatingComplaint.id} updated to ${adminStatus}!`);
+      setInvestigatingComplaint(null);
+    } catch (err) {
+      showToast(err.message || "Failed to update complaint", "error");
+    } finally {
+      setIsSavingInvestigation(false);
+    }
+  };
+
   const initialComplaint = {
     subject: "",
     propertyId: "",
@@ -175,7 +215,31 @@ export default function ComplaintsPage() {
     {
       key: "subject",
       label: "Grievance Subject",
-      render: (r) => <strong>{r.subject}</strong>,
+      render: (r) => (
+        <div>
+          <strong>{r.subject}</strong>
+          {(r.bookingId || r.serviceBookingId || r.providerName) && (
+            <div style={{ marginTop: "4px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#0369a1",
+                  background: "#e0f2fe",
+                  border: "1px solid #bae6fd",
+                  padding: "2px 8px",
+                  borderRadius: "9999px",
+                }}
+              >
+                🛠️ Provider: {r.providerName || "Service Partner"} (Booking #{r.bookingId || r.serviceBookingId})
+              </span>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: "priority",
@@ -251,6 +315,27 @@ export default function ComplaintsPage() {
                 }
               >
                 📍 Track Live GPS
+              </button>
+            )}
+
+            {(r.bookingId || r.serviceBookingId || r.providerName) && (
+              <button
+                type="button"
+                className="btn-primary"
+                style={{
+                  padding: "4px 10px",
+                  fontSize: "11px",
+                  background: "#0284c7",
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                }}
+                onClick={() => handleOpenInvestigation(r)}
+                title="Investigate provider complaint, review evidence & update resolution"
+              >
+                🔍 Investigate
               </button>
             )}
 
@@ -577,6 +662,217 @@ export default function ComplaintsPage() {
             showToast("⭐ Service review recorded into Property Maintenance History!");
           }}
         />
+      )}
+
+      {/* Provider Complaint Investigation & Resolution Modal (Admin/Landlord) */}
+      {investigatingComplaint && (
+        <div
+          className="modal-overlay"
+          onClick={() => !isSavingInvestigation && setInvestigatingComplaint(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(5px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+            padding: "20px",
+          }}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "680px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "#ffffff",
+              borderRadius: "14px",
+              boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.35)",
+              padding: "24px 28px",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+              <div>
+                <span style={{ fontSize: "11px", color: "#0284c7", fontWeight: 700, textTransform: "uppercase" }}>
+                  Admin Complaint Management
+                </span>
+                <h3 style={{ margin: "2px 0 0 0", fontSize: "19px", fontWeight: 800, color: "#0f172a" }}>
+                  Investigate Provider Complaint #{investigatingComplaint.id}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => setInvestigatingComplaint(null)}
+                style={{ fontSize: "20px", cursor: "pointer", border: "none", background: "none" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Booking Information Box */}
+            <div style={{ background: "#f8fafc", padding: "14px 18px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: "8px" }}>
+                📋 Service Booking Information
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", fontSize: "12.5px" }}>
+                <div>
+                  <span style={{ color: "#64748b" }}>Booking Reference:</span>{" "}
+                  <strong style={{ color: "#0284c7" }}>#{investigatingComplaint.bookingId || investigatingComplaint.serviceBookingId || "N/A"}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Category / Service:</span>{" "}
+                  <strong>{investigatingComplaint.category || "Home Services"}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Property &amp; Unit:</span>{" "}
+                  <strong>{investigatingComplaint.propertyName || investigatingComplaint.propName} ({investigatingComplaint.unit || "Flat"})</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Date Lodged:</span>{" "}
+                  <strong>{investigatingComplaint.date || "Recent"}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Tenant and Provider Information Box */}
+            <div style={{ background: "#f8fafc", padding: "14px 18px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: "8px" }}>
+                👥 Parties Involved
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", fontSize: "12.5px" }}>
+                <div>
+                  <span style={{ color: "#64748b" }}>Tenant:</span>{" "}
+                  <strong>{investigatingComplaint.tenantName}</strong> ({investigatingComplaint.tenantId || "TEN001"})
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Service Provider:</span>{" "}
+                  <strong style={{ color: "#0f172a" }}>{investigatingComplaint.providerName || "Assigned Partner"}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Technician:</span>{" "}
+                  <span>{investigatingComplaint.technicianName || "Not specified"}</span>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>Priority Level:</span>{" "}
+                  <span className={`pill ${investigatingComplaint.priority === "High" ? "overdue" : "pending"}`}>{investigatingComplaint.priority || "Medium"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Complaint Details & Subject */}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: "6px" }}>
+                Grievance Subject &amp; Description
+              </div>
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", padding: "10px 14px", borderRadius: "8px", fontSize: "13px", marginBottom: "8px" }}>
+                <strong>Subject:</strong> {investigatingComplaint.subject}
+              </div>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "12px 14px", borderRadius: "8px", fontSize: "13px", color: "#334155", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                {investigatingComplaint.description || investigatingComplaint.issue || "No description provided."}
+              </div>
+            </div>
+
+            {/* Review Evidence Attachment */}
+            <div style={{ marginBottom: "18px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: "6px" }}>
+                📸 Attached Evidence Proof
+              </div>
+              {investigatingComplaint.evidence || investigatingComplaint.attachment ? (
+                <div style={{ textAlign: "center", background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                  <img
+                    src={investigatingComplaint.evidence || investigatingComplaint.attachment}
+                    alt="Complaint Evidence"
+                    style={{ maxWidth: "100%", maxHeight: "240px", borderRadius: "8px", objectFit: "contain" }}
+                  />
+                </div>
+              ) : (
+                <div style={{ fontSize: "12.5px", color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>
+                  No photo/document evidence attached by resident.
+                </div>
+              )}
+            </div>
+
+            {/* Admin Investigation Form */}
+            <form onSubmit={handleSaveInvestigation}>
+              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a" }}>
+                    Update Complaint Status <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <select
+                    className="inp"
+                    value={adminStatus}
+                    onChange={(e) => setAdminStatus(e.target.value)}
+                    style={{ fontWeight: 600 }}
+                  >
+                    <option value="Submitted">Submitted</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a" }}>
+                    Investigation Notes (Internal Admin / Partner Review)
+                  </label>
+                  <textarea
+                    className="inp"
+                    rows="3"
+                    value={adminInvestigationNotes}
+                    onChange={(e) => setAdminInvestigationNotes(e.target.value)}
+                    placeholder="Enter notes from inquiry with service provider, technician explanation, inspection findings..."
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a" }}>
+                    Resolution Details &amp; Response (Shared with Resident)
+                  </label>
+                  <textarea
+                    className="inp"
+                    rows="3"
+                    value={adminResolutionDetails}
+                    onChange={(e) => {
+                      setAdminResolutionDetails(e.target.value);
+                      setAdminResponseText(e.target.value);
+                    }}
+                    placeholder="State resolution action taken: replacement technician assigned, refund initiated, corrective rework completed..."
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => setInvestigatingComplaint(null)}
+                    disabled={isSavingInvestigation}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isSavingInvestigation}
+                    style={{ background: "#0284c7" }}
+                  >
+                    {isSavingInvestigation ? "Saving..." : "Save Resolution & Update Status"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

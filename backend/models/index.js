@@ -24,6 +24,9 @@ const userSchema = new mongoose.Schema(
     entity_id: { type: String, default: null },
     entityId: { type: String, default: null },
     location: { type: String, default: "Tamil Nadu, India" },
+    phone: { type: String, default: "" },
+    avatar: { type: String, default: "" },
+    address: { type: String, default: "" },
   },
   defaultOptions
 );
@@ -36,11 +39,45 @@ const landlordSchema = new mongoose.Schema(
     email: { type: String, required: true },
     phone: { type: String, default: "" },
     location: { type: String, default: "" },
+    address: { type: String, default: "" },
+    avatar: { type: String, default: "" },
     status: { type: String, default: "Verified" },
+    verificationStatus: { type: String, default: "Verified" },
     propertiesCount: { type: Number, default: 0 },
     properties_count: { type: Number, default: 0 },
     totalUnits: { type: Number, default: 0 },
     total_units: { type: Number, default: 0 },
+    banking: {
+      accountHolderName: { type: String, default: "" },
+      bankName: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },
+      ifscCode: { type: String, default: "" },
+      branch: { type: String, default: "" },
+    },
+    settings: {
+      notificationPreferences: {
+        rentPayments: { type: Boolean, default: true },
+        maintenanceUpdates: { type: Boolean, default: true },
+        complaintAlerts: { type: Boolean, default: true },
+        bookingAlerts: { type: Boolean, default: true },
+        leaseExpiryAlerts: { type: Boolean, default: true },
+        emailNotifications: { type: Boolean, default: true },
+        inAppNotifications: { type: Boolean, default: true },
+        smsAlerts: { type: Boolean, default: false },
+      },
+      paymentPreferences: {
+        autoRentReminders: { type: Boolean, default: true },
+        reminderLeadDays: { type: Number, default: 3 },
+        gracePeriodDays: { type: Number, default: 5 },
+        lateFeeEnabled: { type: Boolean, default: false },
+        lateFeeAmount: { type: Number, default: 250 },
+      },
+      appearance: {
+        theme: { type: String, default: "light" },
+        primaryColor: { type: String, default: "#0284c7" },
+        language: { type: String, default: "en" },
+      },
+    },
   },
   defaultOptions
 );
@@ -57,6 +94,10 @@ const tenantSchema = new mongoose.Schema(
     leaseId: { type: String, default: null },
     lease_id: { type: String, default: null },
     location: { type: String, default: "" },
+    address: { type: String, default: "" },
+    emergencyContact: { type: String, default: "" },
+    emergencyPhone: { type: String, default: "" },
+    avatar: { type: String, default: "" },
     company: { type: String, default: "" },
     status: { type: String, default: "Active" },
   },
@@ -167,6 +208,62 @@ const leaseSchema = new mongoose.Schema(
         other: "Tenant",
       }),
     },
+    // Phase 2: Tenancy Agreement & Signature Synchronization
+    regNumber: { type: String, default: "" },
+    agreementDate: { type: String, default: "" },
+    agreementStatus: {
+      type: String,
+      enum: ["Draft", "Pending Signature", "Signed", "Active", "Archived", "Terminated"],
+      default: "Active",
+    },
+    signatureStatus: {
+      type: String,
+      enum: ["Unsigned", "Tenant Signed", "Landlord Signed", "Fully Signed"],
+      default: "Fully Signed",
+    },
+    agreementHistory: [
+      {
+        version: { type: Number, default: 1 },
+        updatedDate: { type: String, default: "" },
+        updatedBy: { type: String, default: "" },
+        reason: { type: String, default: "" },
+        previousRent: { type: Number, default: 0 },
+        previousEndDate: { type: String, default: "" },
+        documentUrl: { type: String, default: "" },
+      },
+    ],
+    // Phase 2: Renewals & Expiry Tracking
+    renewalStatus: {
+      type: String,
+      enum: ["Not Initiated", "Reminder Sent", "In Negotiation", "Renewed", "Declined"],
+      default: "Not Initiated",
+    },
+    renewalReminderDate: { type: String, default: "" },
+    renewalProposedRent: { type: Number, default: 0 },
+    renewalProposedMonths: { type: Number, default: 11 },
+    renewalNotes: { type: String, default: "" },
+    // Phase 2: Move-In & Move-Out Inspections
+    moveInInspection: {
+      inspectionDate: { type: String, default: "" },
+      condition: { type: String, enum: ["Excellent", "Good", "Fair", "Poor", ""], default: "" },
+      notes: { type: String, default: "" },
+      checklist: { type: Array, default: [] },
+      photos: { type: [String], default: [] },
+      inspectedBy: { type: String, default: "" },
+      status: { type: String, default: "Pending" },
+    },
+    moveOutInspection: {
+      inspectionDate: { type: String, default: "" },
+      condition: { type: String, enum: ["Excellent", "Good", "Fair", "Poor", ""], default: "" },
+      damageNotes: { type: String, default: "" },
+      checklist: { type: Array, default: [] },
+      photos: { type: [String], default: [] },
+      pendingDues: { type: Number, default: 0 },
+      estimatedDamageCost: { type: Number, default: 0 },
+      depositSettlementRef: { type: String, default: "" },
+      settlementStatus: { type: String, enum: ["Pending", "Settled", "Disputed", ""], default: "Pending" },
+      inspectedBy: { type: String, default: "" },
+    },
   },
   defaultOptions
 );
@@ -185,7 +282,25 @@ const paymentSchema = new mongoose.Schema(
     property_name: { type: String, default: "" },
     month: { type: String, default: "" },
     amount: { type: Number, default: 0 },
-    status: { type: String, default: "Paid" },
+    paidAmount: { type: Number, default: 0 },
+    remainingBalance: { type: Number, default: 0 },
+    paymentMethod: { type: String, default: "UPI" },
+    transactionRef: { type: String, default: "" },
+    notes: { type: String, default: "" },
+    paymentHistory: [
+      {
+        amount: { type: Number, default: 0 },
+        date: { type: String, default: "" },
+        method: { type: String, default: "UPI" },
+        reference: { type: String, default: "" },
+        recordedBy: { type: String, default: "" },
+      },
+    ],
+    status: {
+      type: String,
+      enum: ["Pending", "Partially Paid", "Paid", "Overdue", "Cancelled"],
+      default: "Paid",
+    },
     date: { type: String, default: "" },
     dueDate: { type: String, default: "" },
     due_date: { type: String, default: "" },
@@ -210,18 +325,47 @@ const maintenanceSchema = new mongoose.Schema(
     id: { type: String, required: true, unique: true },
     propertyId: { type: String, default: null },
     property_id: { type: String, default: null },
+    propertyName: { type: String, default: "" },
+    unit: { type: String, default: "" },
     tenantId: { type: String, default: "TEN001" },
     tenant_id: { type: String, default: "TEN001" },
+    tenantName: { type: String, default: "" },
+    tenantPhone: { type: String, default: "" },
     title: { type: String, default: "Maintenance Ticket" },
     description: { type: String, default: "" },
     category: { type: String, default: "General" },
     priority: { type: String, default: "Medium" },
-    status: { type: String, default: "Open" },
+    status: {
+      type: String,
+      enum: ["Open", "Submitted", "Reviewed", "Assigned", "In Progress", "Work Completed", "Completed", "Closed", "Rejected", "Cancelled"],
+      default: "Open",
+    },
     date: { type: String, default: "" },
     assignedTo: { type: String, default: null },
     assigned_to: { type: String, default: null },
+    providerId: { type: String, default: null },
+    providerName: { type: String, default: "" },
+    technicianName: { type: String, default: "" },
+    technicianPhone: { type: String, default: "" },
+    scheduledDate: { type: String, default: "" },
+    scheduledTimeSlot: { type: String, default: "" },
     estimatedCost: { type: Number, default: 0 },
     estimated_cost: { type: Number, default: 0 },
+    actualCost: { type: Number, default: 0 },
+    landlordNotes: { type: String, default: "" },
+    rejectionReason: { type: String, default: "" },
+    photos: { type: [String], default: [] },
+    completionPhotos: { type: [String], default: [] },
+    completionNotes: { type: String, default: "" },
+    expenseId: { type: String, default: null },
+    statusHistory: [
+      {
+        status: { type: String, default: "Open" },
+        date: { type: String, default: "" },
+        updatedBy: { type: String, default: "" },
+        notes: { type: String, default: "" },
+      },
+    ],
   },
   defaultOptions
 );
@@ -251,10 +395,26 @@ const complaintSchema = new mongoose.Schema(
     bookingId: { type: String, default: null },
     providerId: { type: String, default: null },
     providerName: { type: String, default: "" },
+    technicianId: { type: String, default: null },
+    technicianName: { type: String, default: "" },
+    assignedStaff: { type: String, default: "" },
     complaintType: { type: String, default: "Service Quality" },
     description: { type: String, default: "" },
     attachment: { type: String, default: "" },
+    evidence: { type: String, default: "" },
+    adminResponse: { type: String, default: "" },
+    investigationNotes: { type: String, default: "" },
+    resolutionDetails: { type: String, default: "" },
     landlordNotes: { type: String, default: "" },
+    maintenanceRequestId: { type: String, default: null },
+    statusHistory: [
+      {
+        status: { type: String, default: "Open" },
+        date: { type: String, default: "" },
+        updatedBy: { type: String, default: "" },
+        notes: { type: String, default: "" },
+      },
+    ],
   },
   defaultOptions
 );
@@ -267,6 +427,7 @@ const depositSchema = new mongoose.Schema(
     tenant_id: { type: String, default: null },
     propertyId: { type: String, default: null },
     property_id: { type: String, default: null },
+    leaseId: { type: String, default: null },
     amount: { type: Number, default: 0 },
     status: { type: String, default: "Held in Escrow" },
     dateReceived: { type: String, default: "" },
@@ -275,6 +436,25 @@ const depositSchema = new mongoose.Schema(
     return_status: { type: String, default: "Not Applicable" },
     refundAmount: { type: Number, default: 0 },
     refund_amount: { type: Number, default: 0 },
+    damageDeductions: { type: Number, default: 0 },
+    unpaidRentDeductions: { type: Number, default: 0 },
+    utilityDuesDeductions: { type: Number, default: 0 },
+    refundableAmount: { type: Number, default: 0 },
+    refundDate: { type: String, default: "" },
+    refundMethod: { type: String, default: "" },
+    refundTransactionRef: { type: String, default: "" },
+    refundStatus: { type: String, default: "Held in Escrow" },
+    inspectionRef: { type: String, default: "" },
+    settlementNotes: { type: String, default: "" },
+    transactionHistory: [
+      {
+        date: { type: String, default: "" },
+        type: { type: String, default: "Deposit Received" },
+        amount: { type: Number, default: 0 },
+        description: { type: String, default: "" },
+        reference: { type: String, default: "" },
+      },
+    ],
   },
   defaultOptions
 );
@@ -363,12 +543,18 @@ const expenseSchema = new mongoose.Schema(
     id: { type: String, required: true, unique: true },
     propertyId: { type: String, default: null },
     property_id: { type: String, default: null },
+    landlordId: { type: String, default: "LDL001" },
+    landlord_id: { type: String, default: "LDL001" },
     category: { type: String, default: "Maintenance" },
     amount: { type: Number, default: 0 },
     description: { type: String, default: "" },
     date: { type: String, default: "" },
     paidTo: { type: String, default: "" },
     paid_to: { type: String, default: "" },
+    paymentMethod: { type: String, default: "Bank Transfer" },
+    receiptUrl: { type: String, default: "" },
+    receiptDocId: { type: String, default: "" },
+    status: { type: String, default: "Paid" },
   },
   defaultOptions
 );
@@ -380,16 +566,49 @@ const documentSchema = new mongoose.Schema(
     name: { type: String, default: "Document" },
     title: { type: String, default: "Document" },
     type: { type: String, default: "PDF" },
+    category: { type: String, default: "Other" }, // Identity Proof, Address Proof, Property Ownership Proof, Tax Documents, Bank Documents, Lease Agreements, Other
+    documentNumber: { type: String, default: "" },
+    issueDate: { type: String, default: "" },
+    expiryDate: { type: String, default: "" },
+    isExpired: { type: Boolean, default: false },
+    version: { type: Number, default: 1 },
+    versionHistory: [
+      {
+        version: { type: Number, default: 1 },
+        fileUrl: { type: String, default: "" },
+        storagePath: { type: String, default: "" },
+        fileName: { type: String, default: "" },
+        fileSize: { type: Number, default: 0 },
+        uploadDate: { type: String, default: "" },
+        uploadedBy: { type: String, default: "" },
+        documentNumber: { type: String, default: "" },
+        expiryDate: { type: String, default: "" },
+        notes: { type: String, default: "" },
+      },
+    ],
     relatedTo: { type: String, default: "" },
     propertyId: { type: String, default: null },
     property_id: { type: String, default: null },
     tenantId: { type: String, default: null },
     tenant_id: { type: String, default: null },
+    landlordId: { type: String, default: null },
+    landlord_id: { type: String, default: null },
+    uploadedBy: { type: String, default: "" },
+    uploaderRole: { type: String, default: "" },
     url: { type: String, default: "" },
     uploadedOn: { type: String, default: "" },
     uploadedAt: { type: String, default: "" },
     uploaded_at: { type: String, default: "" },
-    status: { type: String, default: "Verified" },
+    status: { type: String, default: "Pending Verification" },
+    verificationStatus: { type: String, default: "Pending" },
+    verifiedBy: { type: String, default: "" },
+    verifiedAt: { type: String, default: "" },
+    rejectionReason: { type: String, default: "" },
+    fileName: { type: String, default: "" },
+    fileSize: { type: Number, default: 0 },
+    mimeType: { type: String, default: "application/pdf" },
+    storagePath: { type: String, default: "" },
+    fileData: { type: String, default: "" }, // Base64 stored content if retained inline
   },
   defaultOptions
 );
@@ -502,6 +721,32 @@ const favoriteSchema = new mongoose.Schema(
   },
   defaultOptions
 );
+
+// Database Indexes for Multi-Tenant Scoping, Role Filtering & Query Optimization
+propertySchema.index({ landlordId: 1, status: 1 });
+propertySchema.index({ landlord_id: 1 });
+leaseSchema.index({ landlordId: 1, status: 1 });
+leaseSchema.index({ propertyId: 1, status: 1 });
+leaseSchema.index({ tenantId: 1, status: 1 });
+paymentSchema.index({ propertyId: 1, status: 1 });
+paymentSchema.index({ tenantId: 1, status: 1 });
+paymentSchema.index({ leaseId: 1, status: 1 });
+paymentSchema.index({ leaseId: 1, month: 1 });
+depositSchema.index({ leaseId: 1 });
+maintenanceSchema.index({ propertyId: 1, status: 1 });
+maintenanceSchema.index({ tenantId: 1, status: 1 });
+maintenanceSchema.index({ assignedTo: 1, status: 1 });
+complaintSchema.index({ propertyId: 1, status: 1 });
+complaintSchema.index({ tenantId: 1, status: 1 });
+depositSchema.index({ propertyId: 1, status: 1 });
+depositSchema.index({ tenantId: 1 });
+utilityBillSchema.index({ landlordId: 1, status: 1 });
+utilityBillSchema.index({ propertyId: 1, status: 1 });
+utilityBillSchema.index({ tenantId: 1, status: 1 });
+expenseSchema.index({ propertyId: 1, date: -1 });
+documentSchema.index({ propertyId: 1, status: 1 });
+documentSchema.index({ tenantId: 1 });
+documentSchema.index({ relatedTo: 1 });
 
 export const User = mongoose.model("User", userSchema);
 export const Landlord = mongoose.model("Landlord", landlordSchema);
@@ -693,6 +938,9 @@ const serviceBookingSchema = new mongoose.Schema(
     cancellationReason: { type: String, default: "" },
     completionDate: { type: String, default: "" },
     completionNotes: { type: String, default: "" },
+    completionPhotos: { type: [String], default: [] },
+    actualCost: { type: Number, default: 0 },
+    expenseId: { type: String, default: null },
     rating: { type: Number, default: 0 },
     customerRating: { type: Number, default: 0 },
     reviewText: { type: String, default: "" },

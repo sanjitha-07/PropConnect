@@ -1,0 +1,1406 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/showcase/TheAureliaFloorPlan.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=1e3aa71c"; const useState = __vite__cjsImport3_react["useState"]; const useRef = __vite__cjsImport3_react["useRef"];
+export default function TheAureliaFloorPlan({ onSelectRoom = null }) {
+  _s();
+  const [zoom, setZoom] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hoveredRoom, setHoveredRoom] = useState(null);
+  const svgRef = useRef(null);
+  const handleZoomIn = () => setZoom((z) => Math.min(2.5, +(z + 0.25).toFixed(2)));
+  const handleZoomOut = () => setZoom((z) => Math.max(0.75, +(z - 0.25).toFixed(2)));
+  const handleResetZoom = () => setZoom(1);
+  const handleDownloadSVG = () => {
+    if (!svgRef.current) return;
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgRef.current);
+    if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "The_Aurelia_2BHK_Floor_Plan.svg";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(svgUrl);
+  };
+  const renderSVG = () => /* @__PURE__ */ jsxDEV(
+    "svg",
+    {
+      ref: svgRef,
+      viewBox: "0 0 1000 680",
+      width: "100%",
+      height: "100%",
+      style: {
+        display: "block",
+        transform: `scale(${zoom})`,
+        transformOrigin: "center center",
+        transition: "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+      },
+      xmlns: "http://www.w3.org/2000/svg",
+      children: [
+        /* @__PURE__ */ jsxDEV("defs", { children: [
+          /* @__PURE__ */ jsxDEV("pattern", { id: "wallHatch", width: "8", height: "8", patternTransform: "rotate(45 0 0)", patternUnits: "userSpaceOnUse", children: /* @__PURE__ */ jsxDEV("line", { x1: "0", y1: "0", x2: "0", y2: "8", stroke: "#44403c", strokeWidth: "2" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 73,
+            columnNumber: 11
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 72,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("pattern", { id: "balconyDeck", width: "12", height: "12", patternUnits: "userSpaceOnUse", children: /* @__PURE__ */ jsxDEV("line", { x1: "0", y1: "0", x2: "12", y2: "0", stroke: "#d6c7b2", strokeWidth: "2" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 76,
+            columnNumber: 11
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 75,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("filter", { id: "softShadow", x: "-10%", y: "-10%", width: "120%", height: "120%", children: /* @__PURE__ */ jsxDEV("feDropShadow", { dx: "0", dy: "3", stdDeviation: "4", floodColor: "#292524", floodOpacity: "0.12" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 79,
+            columnNumber: 11
+          }, this) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 78,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 70,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("rect", { width: "1000", height: "680", fill: "#fcfbfa" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 84,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("g", { stroke: "#f0ebe1", strokeWidth: "1", strokeDasharray: "4 8", children: [
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "60", x2: "940", y2: "60" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 88,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "200", x2: "940", y2: "200" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 89,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "360", x2: "940", y2: "360" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 90,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "520", x2: "940", y2: "520" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 91,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "620", x2: "940", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 92,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "60", y1: "60", x2: "60", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 93,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "60", x2: "220", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 94,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "460", y1: "60", x2: "460", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 95,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "640", y1: "60", x2: "640", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 96,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "940", y1: "60", x2: "940", y2: "620" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 97,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 87,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("foyer"),
+            onMouseEnter: () => setHoveredRoom("foyer"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "70",
+                  y: "70",
+                  width: "150",
+                  height: "140",
+                  fill: hoveredRoom === "foyer" ? "#fbf0df" : "#f7f2ea",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 112,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "130", textAnchor: "middle", fill: "#78716c", fontSize: "12", fontWeight: "700", children: "MAIN ENTRANCE" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 121,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "148", textAnchor: "middle", fill: "#a8a29e", fontSize: "11", fontWeight: "500", children: `6'0" × 5'0"` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 124,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "80", y: "80", width: "30", height: "60", rx: "3", fill: "#e7dfd5", stroke: "#d6c7b2", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 128,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 105,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("living"),
+            onMouseEnter: () => setHoveredRoom("living"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "220",
+                  y: "70",
+                  width: "420",
+                  height: "290",
+                  fill: hoveredRoom === "living" ? "#fbf5ea" : "#faf6f0",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 139,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV(
+                "path",
+                {
+                  d: "M 260 120 L 440 120 A 10 10 0 0 1 450 130 L 450 220 A 10 10 0 0 1 440 230 L 400 230 A 10 10 0 0 1 390 220 L 390 170 L 260 170 Z",
+                  fill: "#e9e0d2",
+                  stroke: "#cbb9a3",
+                  strokeWidth: "1.5",
+                  filter: "url(#softShadow)"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 149,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "290", y: "190", width: "80", height: "45", rx: "6", fill: "#dfd0bc", stroke: "#bda88e", strokeWidth: "1.5" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 157,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "520", y: "80", width: "100", height: "18", rx: "2", fill: "#d6c7b2", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 159,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("line", { x1: "535", y1: "89", x2: "605", y2: "89", stroke: "#78716c", strokeWidth: "2" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 160,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "430", y: "275", textAnchor: "middle", fill: "#292524", fontSize: "16", fontWeight: "800", children: "LIVING ROOM" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 162,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "430", y: "296", textAnchor: "middle", fill: "#78716c", fontSize: "12", fontWeight: "600", children: `18'0" × 13'6" (243 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 165,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 132,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("dining"),
+            onMouseEnter: () => setHoveredRoom("dining"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "220",
+                  y: "360",
+                  width: "240",
+                  height: "250",
+                  fill: hoveredRoom === "dining" ? "#fbf3e6" : "#f7f1e7",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 178,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "270", y: "420", width: "130", height: "75", rx: "6", fill: "#e2d6c3", stroke: "#bda88e", strokeWidth: "1.5" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 188,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "285", y: "402", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 190,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "322", y: "402", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 191,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "360", y: "402", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 192,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "285", y: "499", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 194,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "322", y: "499", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 195,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "360", y: "499", width: "25", height: "14", rx: "2", fill: "#d0beaa" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 196,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "340", y: "550", textAnchor: "middle", fill: "#292524", fontSize: "14", fontWeight: "800", children: "DINING AREA" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 198,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "340", y: "568", textAnchor: "middle", fill: "#78716c", fontSize: "11", fontWeight: "600", children: `12'0" × 9'6" (114 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 201,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 171,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("balcony"),
+            onMouseEnter: () => setHoveredRoom("balcony"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "70",
+                  y: "210",
+                  width: "150",
+                  height: "270",
+                  fill: "url(#balconyDeck)",
+                  stroke: "#d6c7b2",
+                  strokeWidth: "1.5"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 214,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "120", cy: "270", r: "16", fill: "#d6c7b2", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 224,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "170", cy: "270", r: "16", fill: "#d6c7b2", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 225,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "145", cy: "270", r: "9", fill: "#e7dfd5", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 226,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "95", cy: "445", r: "11", fill: "#c3d9b9", stroke: "#89a97d", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 229,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "95", cy: "445", r: "5", fill: "#78996b" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 230,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "195", cy: "445", r: "11", fill: "#c3d9b9", stroke: "#89a97d", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 231,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "195", cy: "445", r: "5", fill: "#78996b" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 232,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "340", textAnchor: "middle", fill: "#292524", fontSize: "13", fontWeight: "800", children: "BALCONY" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 234,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "358", textAnchor: "middle", fill: "#78716c", fontSize: "10.5", fontWeight: "600", children: `12'0" × 4'6" (54 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 237,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 207,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("kitchen"),
+            onMouseEnter: () => setHoveredRoom("kitchen"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "70",
+                  y: "480",
+                  width: "150",
+                  height: "130",
+                  fill: hoveredRoom === "kitchen" ? "#faf3e8" : "#f4eee4",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 250,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("path", { d: "M 70 480 L 160 480 L 160 520 L 110 520 L 110 610 L 70 610 Z", fill: "#e2d6c3", stroke: "#bda88e", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 260,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "76", y: "535", width: "28", height: "40", rx: "3", fill: "#cbd5e1", stroke: "#94a3b8", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 262,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "118", y: "486", width: "36", height: "24", rx: "2", fill: "#334155" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 264,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "127", cy: "498", r: "4", fill: "#64748b" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 265,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "145", cy: "498", r: "4", fill: "#64748b" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 266,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "565", textAnchor: "middle", fill: "#292524", fontSize: "13", fontWeight: "800", children: "KITCHEN" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 268,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "145", y: "582", textAnchor: "middle", fill: "#78716c", fontSize: "10.5", fontWeight: "600", children: `11'6" × 8'0" (92 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 271,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 243,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("master-bed"),
+            onMouseEnter: () => setHoveredRoom("master-bed"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "640",
+                  y: "70",
+                  width: "290",
+                  height: "280",
+                  fill: hoveredRoom === "master-bed" ? "#fdf8ee" : "#fdfbf7",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 284,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "700", y: "110", width: "140", height: "160", rx: "6", fill: "#e9e0d2", stroke: "#cbb9a3", strokeWidth: "1.5" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 294,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "710", y: "118", width: "55", height: "30", rx: "4", fill: "#f8fafc", stroke: "#d6c7b2", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 296,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "775", y: "118", width: "55", height: "30", rx: "4", fill: "#f8fafc", stroke: "#d6c7b2", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 297,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "668", y: "115", width: "26", height: "30", rx: "3", fill: "#dfd0bc", stroke: "#bda88e", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 299,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "846", y: "115", width: "26", height: "30", rx: "3", fill: "#dfd0bc", stroke: "#bda88e", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 300,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "900", y: "90", width: "26", height: "220", rx: "2", fill: "#d6c7b2", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 302,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "770", y: "305", textAnchor: "middle", fill: "#292524", fontSize: "15", fontWeight: "800", children: "MASTER BEDROOM" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 304,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "770", y: "324", textAnchor: "middle", fill: "#78716c", fontSize: "11", fontWeight: "600", children: `14'6" × 12'0" (174 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 307,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 277,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("bathroom"),
+            onMouseEnter: () => setHoveredRoom("master-bath"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "740",
+                  y: "350",
+                  width: "190",
+                  height: "130",
+                  fill: hoveredRoom === "master-bath" ? "#eef5fb" : "#f1f6fa",
+                  stroke: "#cbd5e1",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 320,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "850", y: "355", width: "75", height: "70", fill: "#e0f2fe", stroke: "#38bdf8", strokeDasharray: "3 3", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 330,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("circle", { cx: "887", cy: "390", r: "8", fill: "#38bdf8", opacity: "0.4" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 331,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("path", { d: "M 780 355 L 810 355 L 810 380 Q 795 395 780 380 Z", fill: "#ffffff", stroke: "#94a3b8", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 333,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "748", y: "420", width: "50", height: "25", rx: "3", fill: "#e2e8f0", stroke: "#94a3b8", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 335,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("ellipse", { cx: "773", cy: "432", rx: "14", ry: "7", fill: "#ffffff", stroke: "#64748b", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 336,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "815", y: "465", textAnchor: "middle", fill: "#334155", fontSize: "11.5", fontWeight: "700", children: `ATTACHED BATH (8'6" × 5'6")` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 338,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 313,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("bed-2"),
+            onMouseEnter: () => setHoveredRoom("bed-2"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "460",
+                  y: "360",
+                  width: "280",
+                  height: "250",
+                  fill: hoveredRoom === "bed-2" ? "#fbf5ec" : "#faf6f0",
+                  stroke: "#e7dfd5",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 351,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "520", y: "440", width: "120", height: "145", rx: "5", fill: "#e9e0d2", stroke: "#cbb9a3", strokeWidth: "1.5" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 361,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "530", y: "448", width: "45", height: "25", rx: "3", fill: "#f8fafc", stroke: "#d6c7b2", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 362,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "585", y: "448", width: "45", height: "25", rx: "3", fill: "#f8fafc", stroke: "#d6c7b2", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 363,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "660", y: "375", width: "65", height: "35", rx: "2", fill: "#dfd0bc", stroke: "#bda88e", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 365,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "470", y: "375", width: "40", height: "90", rx: "2", fill: "#d6c7b2", stroke: "#a89a85", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 367,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "600", y: "415", textAnchor: "middle", fill: "#292524", fontSize: "14", fontWeight: "800", children: "SECOND BEDROOM" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 369,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "600", y: "433", textAnchor: "middle", fill: "#78716c", fontSize: "11", fontWeight: "600", children: `12'0" × 11'0" (132 sq ft)` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 372,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 344,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "g",
+          {
+            className: "fp-room-group",
+            onClick: () => onSelectRoom && onSelectRoom("bathroom"),
+            onMouseEnter: () => setHoveredRoom("common-bath"),
+            onMouseLeave: () => setHoveredRoom(null),
+            style: { cursor: "pointer" },
+            children: [
+              /* @__PURE__ */ jsxDEV(
+                "rect",
+                {
+                  x: "740",
+                  y: "480",
+                  width: "190",
+                  height: "130",
+                  fill: hoveredRoom === "common-bath" ? "#eef5fb" : "#f1f6fa",
+                  stroke: "#cbd5e1",
+                  strokeWidth: "1"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 385,
+                  columnNumber: 9
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("rect", { x: "850", y: "535", width: "75", height: "70", fill: "#e0f2fe", stroke: "#38bdf8", strokeDasharray: "3 3", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 394,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("path", { d: "M 780 575 L 810 575 L 810 550 Q 795 535 780 550 Z", fill: "#ffffff", stroke: "#94a3b8", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 395,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("rect", { x: "748", y: "490", width: "50", height: "25", rx: "3", fill: "#e2e8f0", stroke: "#94a3b8", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 396,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("ellipse", { cx: "773", cy: "502", rx: "14", ry: "7", fill: "#ffffff", stroke: "#64748b", strokeWidth: "1" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 397,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("text", { x: "835", y: "525", textAnchor: "middle", fill: "#334155", fontSize: "11.5", fontWeight: "700", children: `COMMON BATH (8'0" × 5'0")` }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 399,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 378,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV("g", { stroke: "#292524", strokeWidth: "8", strokeLinecap: "square", fill: "none", children: [
+          /* @__PURE__ */ jsxDEV("polyline", { points: "70,60 930,60 930,610 70,610 70,60" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 409,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "60", x2: "220", y2: "210" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 412,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "210", x2: "70", y2: "210" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 413,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "480", x2: "70", y2: "480" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 414,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "640", y1: "60", x2: "640", y2: "350" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 415,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "640", y1: "350", x2: "930", y2: "350" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 416,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "460", y1: "360", x2: "460", y2: "610" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 417,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "740", y1: "350", x2: "740", y2: "610" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 418,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "740", y1: "480", x2: "930", y2: "480" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 419,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "360", x2: "460", y2: "360" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 420,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 407,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("g", { stroke: "#38bdf8", strokeWidth: "4", strokeLinecap: "round", children: [
+          /* @__PURE__ */ jsxDEV("line", { x1: "460", y1: "60", x2: "580", y2: "60" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 426,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "740", y1: "60", x2: "860", y2: "60" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 428,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "70", y1: "250", x2: "70", y2: "410", stroke: "#0284c7", strokeWidth: "3", strokeDasharray: "6 4" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 430,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "560", y1: "610", x2: "680", y2: "610" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 432,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "70", y1: "520", x2: "70", y2: "580" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 434,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 424,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("g", { stroke: "#a8a29e", strokeWidth: "1.5", strokeDasharray: "3 3", fill: "none", children: [
+          /* @__PURE__ */ jsxDEV("path", { d: "M 120 60 A 50 50 0 0 1 170 110" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 440,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "120", y1: "60", x2: "170", y2: "60", stroke: "#292524", strokeWidth: "2.5" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 441,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("path", { d: "M 640 280 A 45 45 0 0 1 685 325" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 444,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "640", y1: "280", x2: "640", y2: "325", stroke: "#292524", strokeWidth: "2.5" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 445,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("path", { d: "M 740 370 A 35 35 0 0 1 775 405" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 448,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("path", { d: "M 460 380 A 40 40 0 0 1 500 420" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 451,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("path", { d: "M 740 500 A 35 35 0 0 1 775 535" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 454,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("line", { x1: "220", y1: "230", x2: "220", y2: "310", stroke: "#0284c7", strokeWidth: "3" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 457,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 438,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("g", { transform: "translate(900, 110)", children: [
+          /* @__PURE__ */ jsxDEV("circle", { cx: "0", cy: "0", r: "24", fill: "#ffffff", stroke: "#cbd5e1", strokeWidth: "1.5" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 464,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("polygon", { points: "0,-20 6,0 0,-4 -6,0", fill: "#dc2626" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 466,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("polygon", { points: "0,20 6,0 0,4 -6,0", fill: "#475569" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 467,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("text", { x: "0", y: "-23", textAnchor: "middle", fill: "#dc2626", fontSize: "11", fontWeight: "800", children: "N" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 468,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 463,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("g", { transform: "translate(60, 625)", children: [
+          /* @__PURE__ */ jsxDEV("rect", { x: "0", y: "0", width: "880", height: "40", rx: "6", fill: "#f5f0e8", stroke: "#e7dfd5", strokeWidth: "1" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 477,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("text", { x: "20", y: "24", fill: "#292524", fontSize: "13", fontWeight: "800", letterSpacing: "0.02em", children: "THE AURELIA – PREMIUM 2BHK RESIDENCE" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 478,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("text", { x: "350", y: "24", fill: "#78716c", fontSize: "12", fontWeight: "600", children: "1,350 SQFT SUPER BUILT-UP | 1,050 SQFT CARPET" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 481,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("text", { x: "860", y: "24", textAnchor: "end", fill: "#b45309", fontSize: "11", fontWeight: "700", children: "⚠️ ILLUSTRATIVE DEMO FLOOR PLAN – NOT TO SCALE" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+            lineNumber: 485,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 476,
+          columnNumber: 7
+        }, this)
+      ]
+    },
+    void 0,
+    true,
+    {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+      lineNumber: 57,
+      columnNumber: 3
+    },
+    this
+  );
+  return /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-card", children: [
+    /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: "showcase-fp-viewport",
+        style: { cursor: "zoom-in", background: "#fcfbfa", position: "relative" },
+        onClick: () => setIsFullscreen(true),
+        title: "Click to expand fullscreen floor plan",
+        children: [
+          renderSVG(),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              className: "showcase-fp-controls",
+              onClick: (e) => e.stopPropagation(),
+              style: {
+                position: "absolute",
+                top: 14,
+                right: 14,
+                display: "flex",
+                gap: 6,
+                background: "rgba(255, 255, 255, 0.95)",
+                padding: "4px 8px",
+                borderRadius: 8,
+                border: "1px solid #e7dfd5",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                zIndex: 10
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "showcase-fp-ctrl-btn",
+                    onClick: handleZoomIn,
+                    title: "Zoom In (+)",
+                    children: "🔍+"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 520,
+                    columnNumber: 11
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "showcase-fp-ctrl-btn",
+                    onClick: handleZoomOut,
+                    title: "Zoom Out (-)",
+                    children: "🔍-"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 528,
+                    columnNumber: 11
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "showcase-fp-ctrl-btn",
+                    onClick: handleResetZoom,
+                    title: "Reset Zoom (100%)",
+                    children: "↺"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 536,
+                    columnNumber: 11
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "showcase-fp-ctrl-btn",
+                    onClick: handleDownloadSVG,
+                    title: "Download Floor Plan (SVG)",
+                    style: { color: "#0284c7" },
+                    children: "⬇️ Download"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 544,
+                    columnNumber: 11
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "showcase-fp-ctrl-btn",
+                    onClick: () => setIsFullscreen(true),
+                    title: "Fullscreen Modal View",
+                    children: "⛶"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 553,
+                    columnNumber: 11
+                  },
+                  this
+                )
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+              lineNumber: 503,
+              columnNumber: 9
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 494,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-specs-table", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Living Hall" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 567,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: `18'0" × 13'6" (243 sqft)` }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 568,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 566,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Master Suite" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 571,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: `14'6" × 12'0" (174 sqft)` }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 572,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 570,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Second Bedroom" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 575,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: `12'0" × 11'0" (132 sqft)` }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 576,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 574,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Kitchen & Utility" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 579,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: `11'6" × 8'0" (92 sqft)` }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 580,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 578,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Dining & Balcony" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 583,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: "168 sqft Combined" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 584,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 582,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "showcase-fp-spec-item", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Carpet Efficiency" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 587,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: "78% (1,050 sqft Usable)" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+          lineNumber: 588,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 586,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+      lineNumber: 565,
+      columnNumber: 7
+    }, this),
+    isFullscreen && /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: "showcase-lightbox-backdrop",
+        onClick: () => setIsFullscreen(false),
+        style: { zIndex: 999999 },
+        children: [
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              className: "showcase-lightbox-header",
+              onClick: (e) => e.stopPropagation(),
+              style: { background: "#292524", color: "#fdfbf7" },
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("span", { style: { fontWeight: 800, fontSize: 16 }, children: "📐 The Aurelia 2BHK Architectural Floor Plan" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 605,
+                    columnNumber: 15
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { style: { fontSize: 12, marginLeft: 12, color: "#fde68a" }, children: "(Illustrative Demo Blueprint – Not to Scale)" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                    lineNumber: 608,
+                    columnNumber: 15
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 604,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: 10, alignItems: "center" }, children: [
+                  /* @__PURE__ */ jsxDEV(
+                    "button",
+                    {
+                      type: "button",
+                      className: "showcase-action-btn",
+                      style: { padding: "6px 12px", fontSize: 12 },
+                      onClick: handleDownloadSVG,
+                      children: "⬇️ Download SVG"
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                      lineNumber: 613,
+                      columnNumber: 15
+                    },
+                    this
+                  ),
+                  /* @__PURE__ */ jsxDEV(
+                    "button",
+                    {
+                      type: "button",
+                      className: "lightbox-close-btn",
+                      onClick: () => setIsFullscreen(false),
+                      children: "✕"
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                      lineNumber: 621,
+                      columnNumber: 15
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                  lineNumber: 612,
+                  columnNumber: 13
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+              lineNumber: 599,
+              columnNumber: 11
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              className: "showcase-lightbox-stage",
+              onClick: (e) => e.stopPropagation(),
+              style: { background: "#fcfbfa", padding: 20 },
+              children: /* @__PURE__ */ jsxDEV("div", { style: { maxWidth: "90vw", maxHeight: "82vh", width: "100%", height: "100%" }, children: renderSVG() }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+                lineNumber: 636,
+                columnNumber: 13
+              }, this)
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+              lineNumber: 631,
+              columnNumber: 11
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+        lineNumber: 594,
+        columnNumber: 7
+      },
+      this
+    )
+  ] }, void 0, true, {
+    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx",
+    lineNumber: 493,
+    columnNumber: 5
+  }, this);
+}
+_s(TheAureliaFloorPlan, "W/a3ty8RwSJaMk6rhxR+3nRQq/k=");
+_c = TheAureliaFloorPlan;
+var _c;
+$RefreshReg$(_c, "TheAureliaFloorPlan");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/showcase/TheAureliaFloorPlan.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBcURVOzs7Ozs7Ozs7Ozs7Ozs7OztBQXJEVixTQUFTQSxVQUFVQyxjQUFjO0FBUWpDLHdCQUF3QkMsb0JBQW9CLEVBQUVDLGVBQWUsS0FBSyxHQUFHO0FBQUFDLEtBQUE7QUFDbkUsUUFBTSxDQUFDQyxNQUFNQyxPQUFPLElBQUlOLFNBQVMsQ0FBQztBQUNsQyxRQUFNLENBQUNPLGNBQWNDLGVBQWUsSUFBSVIsU0FBUyxLQUFLO0FBQ3RELFFBQU0sQ0FBQ1MsYUFBYUMsY0FBYyxJQUFJVixTQUFTLElBQUk7QUFDbkQsUUFBTVcsU0FBU1YsT0FBTyxJQUFJO0FBRTFCLFFBQU1XLGVBQWVBLE1BQU1OLFFBQVEsQ0FBQ08sTUFBTUMsS0FBS0MsSUFBSSxLQUFLLEVBQUVGLElBQUksTUFBTUcsUUFBUSxDQUFDLENBQUMsQ0FBQztBQUMvRSxRQUFNQyxnQkFBZ0JBLE1BQU1YLFFBQVEsQ0FBQ08sTUFBTUMsS0FBS0ksSUFBSSxNQUFNLEVBQUVMLElBQUksTUFBTUcsUUFBUSxDQUFDLENBQUMsQ0FBQztBQUNqRixRQUFNRyxrQkFBa0JBLE1BQU1iLFFBQVEsQ0FBQztBQUV2QyxRQUFNYyxvQkFBb0JBLE1BQU07QUFDOUIsUUFBSSxDQUFDVCxPQUFPVSxRQUFTO0FBQ3JCLFVBQU1DLGFBQWEsSUFBSUMsY0FBYztBQUNyQyxRQUFJQyxTQUFTRixXQUFXRyxrQkFBa0JkLE9BQU9VLE9BQU87QUFDeEQsUUFBSSxDQUFDRyxPQUFPRSxNQUFNLG9EQUFvRCxHQUFHO0FBQ3ZFRixlQUFTQSxPQUFPRyxRQUFRLFNBQVMseUNBQXlDO0FBQUEsSUFDNUU7QUFDQSxVQUFNQyxVQUFVLElBQUlDLEtBQUssQ0FBQ0wsTUFBTSxHQUFHLEVBQUVNLE1BQU0sOEJBQThCLENBQUM7QUFDMUUsVUFBTUMsU0FBU0MsSUFBSUMsZ0JBQWdCTCxPQUFPO0FBQzFDLFVBQU1NLGVBQWVDLFNBQVNDLGNBQWMsR0FBRztBQUMvQ0YsaUJBQWFHLE9BQU9OO0FBQ3BCRyxpQkFBYUksV0FBVztBQUN4QkgsYUFBU0ksS0FBS0MsWUFBWU4sWUFBWTtBQUN0Q0EsaUJBQWFPLE1BQU07QUFDbkJOLGFBQVNJLEtBQUtHLFlBQVlSLFlBQVk7QUFDdENGLFFBQUlXLGdCQUFnQlosTUFBTTtBQUFBLEVBQzVCO0FBRUEsUUFBTWEsWUFBWUEsTUFDaEI7QUFBQSxJQUFDO0FBQUE7QUFBQSxNQUNDLEtBQUtqQztBQUFBQSxNQUNMLFNBQVE7QUFBQSxNQUNSLE9BQU07QUFBQSxNQUNOLFFBQU87QUFBQSxNQUNQLE9BQU87QUFBQSxRQUNMa0MsU0FBUztBQUFBLFFBQ1RDLFdBQVcsU0FBU3pDLElBQUk7QUFBQSxRQUN4QjBDLGlCQUFpQjtBQUFBLFFBQ2pCQyxZQUFZO0FBQUEsTUFDZDtBQUFBLE1BQ0EsT0FBTTtBQUFBLE1BRU47QUFBQSwrQkFBQyxVQUVDO0FBQUEsaUNBQUMsYUFBUSxJQUFHLGFBQVksT0FBTSxLQUFJLFFBQU8sS0FBSSxrQkFBaUIsa0JBQWlCLGNBQWEsa0JBQzFGLGlDQUFDLFVBQUssSUFBRyxLQUFJLElBQUcsS0FBSSxJQUFHLEtBQUksSUFBRyxLQUFJLFFBQU8sV0FBVSxhQUFZLE9BQS9EO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWtFLEtBRHBFO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBRUE7QUFBQSxVQUNBLHVCQUFDLGFBQVEsSUFBRyxlQUFjLE9BQU0sTUFBSyxRQUFPLE1BQUssY0FBYSxrQkFDNUQsaUNBQUMsVUFBSyxJQUFHLEtBQUksSUFBRyxLQUFJLElBQUcsTUFBSyxJQUFHLEtBQUksUUFBTyxXQUFVLGFBQVksT0FBaEU7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBbUUsS0FEckU7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLFVBQ0EsdUJBQUMsWUFBTyxJQUFHLGNBQWEsR0FBRSxRQUFPLEdBQUUsUUFBTyxPQUFNLFFBQU8sUUFBTyxRQUM1RCxpQ0FBQyxrQkFBYSxJQUFHLEtBQUksSUFBRyxLQUFJLGNBQWEsS0FBSSxZQUFXLFdBQVUsY0FBYSxVQUEvRTtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFxRixLQUR2RjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUVBO0FBQUEsYUFWRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBV0E7QUFBQSxRQUdBLHVCQUFDLFVBQUssT0FBTSxRQUFPLFFBQU8sT0FBTSxNQUFLLGFBQXJDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBOEM7QUFBQSxRQUc5Qyx1QkFBQyxPQUFFLFFBQU8sV0FBVSxhQUFZLEtBQUksaUJBQWdCLE9BQ2xEO0FBQUEsaUNBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFFBQWxDO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXNDO0FBQUEsVUFDdEMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxNQUFLLElBQUcsTUFBSyxJQUFHLFNBQWpDO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXNDO0FBQUEsVUFDdEMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFNBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsYUFWMUM7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVdBO0FBQUEsUUFPQTtBQUFBLFVBQUM7QUFBQTtBQUFBLFlBQ0MsV0FBVTtBQUFBLFlBQ1YsU0FBUyxNQUFNN0MsZ0JBQWdCQSxhQUFhLE9BQU87QUFBQSxZQUNuRCxjQUFjLE1BQU1PLGVBQWUsT0FBTztBQUFBLFlBQzFDLGNBQWMsTUFBTUEsZUFBZSxJQUFJO0FBQUEsWUFDdkMsT0FBTyxFQUFFdUMsUUFBUSxVQUFVO0FBQUEsWUFFM0I7QUFBQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxHQUFFO0FBQUEsa0JBQ0YsR0FBRTtBQUFBLGtCQUNGLE9BQU07QUFBQSxrQkFDTixRQUFPO0FBQUEsa0JBQ1AsTUFBTXhDLGdCQUFnQixVQUFVLFlBQVk7QUFBQSxrQkFDNUMsUUFBTztBQUFBLGtCQUNQLGFBQVk7QUFBQTtBQUFBLGdCQVBkO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxjQU9pQjtBQUFBLGNBRWpCLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxZQUFXLFVBQVMsTUFBSyxXQUFVLFVBQVMsTUFBSyxZQUFXLE9BQUssNkJBQXZGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQSxjQUNBLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxZQUFXLFVBQVMsTUFBSyxXQUFVLFVBQVMsTUFBSyxZQUFXLE9BQUssMkJBQXZGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQSxjQUVBLHVCQUFDLFVBQUssR0FBRSxNQUFLLEdBQUUsTUFBSyxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBOUY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBaUc7QUFBQTtBQUFBO0FBQUEsVUF2Qm5HO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQXdCQTtBQUFBLFFBR0E7QUFBQSxVQUFDO0FBQUE7QUFBQSxZQUNDLFdBQVU7QUFBQSxZQUNWLFNBQVMsTUFBTU4sZ0JBQWdCQSxhQUFhLFFBQVE7QUFBQSxZQUNwRCxjQUFjLE1BQU1PLGVBQWUsUUFBUTtBQUFBLFlBQzNDLGNBQWMsTUFBTUEsZUFBZSxJQUFJO0FBQUEsWUFDdkMsT0FBTyxFQUFFdUMsUUFBUSxVQUFVO0FBQUEsWUFFM0I7QUFBQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxHQUFFO0FBQUEsa0JBQ0YsR0FBRTtBQUFBLGtCQUNGLE9BQU07QUFBQSxrQkFDTixRQUFPO0FBQUEsa0JBQ1AsTUFBTXhDLGdCQUFnQixXQUFXLFlBQVk7QUFBQSxrQkFDN0MsUUFBTztBQUFBLGtCQUNQLGFBQVk7QUFBQTtBQUFBLGdCQVBkO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxjQU9pQjtBQUFBLGNBR2pCO0FBQUEsZ0JBQUM7QUFBQTtBQUFBLGtCQUNDLEdBQUU7QUFBQSxrQkFDRixNQUFLO0FBQUEsa0JBQ0wsUUFBTztBQUFBLGtCQUNQLGFBQVk7QUFBQSxrQkFDWixRQUFPO0FBQUE7QUFBQSxnQkFMVDtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsY0FLMkI7QUFBQSxjQUczQix1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLFNBQWhHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXFHO0FBQUEsY0FFckcsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxNQUFLLE9BQU0sT0FBTSxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUFoRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGNBQ25HLHVCQUFDLFVBQUssSUFBRyxPQUFNLElBQUcsTUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLFFBQU8sV0FBVSxhQUFZLE9BQXJFO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXdFO0FBQUEsY0FFeEUsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSywyQkFBdkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBLGNBQ0EsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSyx5Q0FBdkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBO0FBQUE7QUFBQSxVQW5DRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUFvQ0E7QUFBQSxRQUdBO0FBQUEsVUFBQztBQUFBO0FBQUEsWUFDQyxXQUFVO0FBQUEsWUFDVixTQUFTLE1BQU1OLGdCQUFnQkEsYUFBYSxRQUFRO0FBQUEsWUFDcEQsY0FBYyxNQUFNTyxlQUFlLFFBQVE7QUFBQSxZQUMzQyxjQUFjLE1BQU1BLGVBQWUsSUFBSTtBQUFBLFlBQ3ZDLE9BQU8sRUFBRXVDLFFBQVEsVUFBVTtBQUFBLFlBRTNCO0FBQUE7QUFBQSxnQkFBQztBQUFBO0FBQUEsa0JBQ0MsR0FBRTtBQUFBLGtCQUNGLEdBQUU7QUFBQSxrQkFDRixPQUFNO0FBQUEsa0JBQ04sUUFBTztBQUFBLGtCQUNQLE1BQU14QyxnQkFBZ0IsV0FBVyxZQUFZO0FBQUEsa0JBQzdDLFFBQU87QUFBQSxrQkFDUCxhQUFZO0FBQUE7QUFBQSxnQkFQZDtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsY0FPaUI7QUFBQSxjQUdqQix1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxPQUFNLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLFNBQWpHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXNHO0FBQUEsY0FFdEcsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssYUFBekQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBa0U7QUFBQSxjQUNsRSx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxhQUF6RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFrRTtBQUFBLGNBQ2xFLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLGFBQXpEO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQWtFO0FBQUEsY0FFbEUsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssYUFBekQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBa0U7QUFBQSxjQUNsRSx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxhQUF6RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFrRTtBQUFBLGNBQ2xFLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLGFBQXpEO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQWtFO0FBQUEsY0FFbEUsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSywyQkFBdkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBLGNBQ0EsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSyx3Q0FBdkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBO0FBQUE7QUFBQSxVQWhDRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUFpQ0E7QUFBQSxRQUdBO0FBQUEsVUFBQztBQUFBO0FBQUEsWUFDQyxXQUFVO0FBQUEsWUFDVixTQUFTLE1BQU1OLGdCQUFnQkEsYUFBYSxTQUFTO0FBQUEsWUFDckQsY0FBYyxNQUFNTyxlQUFlLFNBQVM7QUFBQSxZQUM1QyxjQUFjLE1BQU1BLGVBQWUsSUFBSTtBQUFBLFlBQ3ZDLE9BQU8sRUFBRXVDLFFBQVEsVUFBVTtBQUFBLFlBRTNCO0FBQUE7QUFBQSxnQkFBQztBQUFBO0FBQUEsa0JBQ0MsR0FBRTtBQUFBLGtCQUNGLEdBQUU7QUFBQSxrQkFDRixPQUFNO0FBQUEsa0JBQ04sUUFBTztBQUFBLGtCQUNQLE1BQUs7QUFBQSxrQkFDTCxRQUFPO0FBQUEsa0JBQ1AsYUFBWTtBQUFBO0FBQUEsZ0JBUGQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBT21CO0FBQUEsY0FHbkIsdUJBQUMsWUFBTyxJQUFHLE9BQU0sSUFBRyxPQUFNLEdBQUUsTUFBSyxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBN0U7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBZ0Y7QUFBQSxjQUNoRix1QkFBQyxZQUFPLElBQUcsT0FBTSxJQUFHLE9BQU0sR0FBRSxNQUFLLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUE3RTtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFnRjtBQUFBLGNBQ2hGLHVCQUFDLFlBQU8sSUFBRyxPQUFNLElBQUcsT0FBTSxHQUFFLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQTVFO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQStFO0FBQUEsY0FHL0UsdUJBQUMsWUFBTyxJQUFHLE1BQUssSUFBRyxPQUFNLEdBQUUsTUFBSyxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBNUU7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBK0U7QUFBQSxjQUMvRSx1QkFBQyxZQUFPLElBQUcsTUFBSyxJQUFHLE9BQU0sR0FBRSxLQUFJLE1BQUssYUFBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBNkM7QUFBQSxjQUM3Qyx1QkFBQyxZQUFPLElBQUcsT0FBTSxJQUFHLE9BQU0sR0FBRSxNQUFLLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUE3RTtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFnRjtBQUFBLGNBQ2hGLHVCQUFDLFlBQU8sSUFBRyxPQUFNLElBQUcsT0FBTSxHQUFFLEtBQUksTUFBSyxhQUFyQztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUE4QztBQUFBLGNBRTlDLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxZQUFXLFVBQVMsTUFBSyxXQUFVLFVBQVMsTUFBSyxZQUFXLE9BQUssdUJBQXZGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQSxjQUNBLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxZQUFXLFVBQVMsTUFBSyxXQUFVLFVBQVMsUUFBTyxZQUFXLE9BQUssdUNBQXpGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQTtBQUFBO0FBQUEsVUFoQ0Y7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFFBaUNBO0FBQUEsUUFHQTtBQUFBLFVBQUM7QUFBQTtBQUFBLFlBQ0MsV0FBVTtBQUFBLFlBQ1YsU0FBUyxNQUFNOUMsZ0JBQWdCQSxhQUFhLFNBQVM7QUFBQSxZQUNyRCxjQUFjLE1BQU1PLGVBQWUsU0FBUztBQUFBLFlBQzVDLGNBQWMsTUFBTUEsZUFBZSxJQUFJO0FBQUEsWUFDdkMsT0FBTyxFQUFFdUMsUUFBUSxVQUFVO0FBQUEsWUFFM0I7QUFBQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxHQUFFO0FBQUEsa0JBQ0YsR0FBRTtBQUFBLGtCQUNGLE9BQU07QUFBQSxrQkFDTixRQUFPO0FBQUEsa0JBQ1AsTUFBTXhDLGdCQUFnQixZQUFZLFlBQVk7QUFBQSxrQkFDOUMsUUFBTztBQUFBLGtCQUNQLGFBQVk7QUFBQTtBQUFBLGdCQVBkO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxjQU9pQjtBQUFBLGNBR2pCLHVCQUFDLFVBQUssR0FBRSwrREFBOEQsTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQWxIO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXFIO0FBQUEsY0FFckgsdUJBQUMsVUFBSyxHQUFFLE1BQUssR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUEvRjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFrRztBQUFBLGNBRWxHLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLGFBQXpEO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQWtFO0FBQUEsY0FDbEUsdUJBQUMsWUFBTyxJQUFHLE9BQU0sSUFBRyxPQUFNLEdBQUUsS0FBSSxNQUFLLGFBQXJDO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQThDO0FBQUEsY0FDOUMsdUJBQUMsWUFBTyxJQUFHLE9BQU0sSUFBRyxPQUFNLEdBQUUsS0FBSSxNQUFLLGFBQXJDO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQThDO0FBQUEsY0FFOUMsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSyx1QkFBdkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBLGNBQ0EsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxRQUFPLFlBQVcsT0FBSyx1Q0FBekY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBO0FBQUE7QUFBQSxVQTlCRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUErQkE7QUFBQSxRQUdBO0FBQUEsVUFBQztBQUFBO0FBQUEsWUFDQyxXQUFVO0FBQUEsWUFDVixTQUFTLE1BQU1OLGdCQUFnQkEsYUFBYSxZQUFZO0FBQUEsWUFDeEQsY0FBYyxNQUFNTyxlQUFlLFlBQVk7QUFBQSxZQUMvQyxjQUFjLE1BQU1BLGVBQWUsSUFBSTtBQUFBLFlBQ3ZDLE9BQU8sRUFBRXVDLFFBQVEsVUFBVTtBQUFBLFlBRTNCO0FBQUE7QUFBQSxnQkFBQztBQUFBO0FBQUEsa0JBQ0MsR0FBRTtBQUFBLGtCQUNGLEdBQUU7QUFBQSxrQkFDRixPQUFNO0FBQUEsa0JBQ04sUUFBTztBQUFBLGtCQUNQLE1BQU14QyxnQkFBZ0IsZUFBZSxZQUFZO0FBQUEsa0JBQ2pELFFBQU87QUFBQSxrQkFDUCxhQUFZO0FBQUE7QUFBQSxnQkFQZDtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsY0FPaUI7QUFBQSxjQUdqQix1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxPQUFNLFFBQU8sT0FBTSxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLFNBQWxHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXVHO0FBQUEsY0FFdkcsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUFoRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGNBQ25HLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBaEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBbUc7QUFBQSxjQUVuRyx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQWhHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQW1HO0FBQUEsY0FDbkcsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUFoRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGNBRW5HLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsTUFBSyxPQUFNLE1BQUssUUFBTyxPQUFNLElBQUcsS0FBSSxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBaEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBbUc7QUFBQSxjQUVuRyx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sWUFBVyxVQUFTLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLDhCQUF2RjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUEsY0FDQSx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sWUFBVyxVQUFTLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLHlDQUF2RjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUE7QUFBQTtBQUFBLFVBaENGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQWlDQTtBQUFBLFFBR0E7QUFBQSxVQUFDO0FBQUE7QUFBQSxZQUNDLFdBQVU7QUFBQSxZQUNWLFNBQVMsTUFBTU4sZ0JBQWdCQSxhQUFhLFVBQVU7QUFBQSxZQUN0RCxjQUFjLE1BQU1PLGVBQWUsYUFBYTtBQUFBLFlBQ2hELGNBQWMsTUFBTUEsZUFBZSxJQUFJO0FBQUEsWUFDdkMsT0FBTyxFQUFFdUMsUUFBUSxVQUFVO0FBQUEsWUFFM0I7QUFBQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxHQUFFO0FBQUEsa0JBQ0YsR0FBRTtBQUFBLGtCQUNGLE9BQU07QUFBQSxrQkFDTixRQUFPO0FBQUEsa0JBQ1AsTUFBTXhDLGdCQUFnQixnQkFBZ0IsWUFBWTtBQUFBLGtCQUNsRCxRQUFPO0FBQUEsa0JBQ1AsYUFBWTtBQUFBO0FBQUEsZ0JBUGQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBT2lCO0FBQUEsY0FHakIsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssTUFBSyxXQUFVLFFBQU8sV0FBVSxpQkFBZ0IsT0FBTSxhQUFZLE9BQS9HO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQWtIO0FBQUEsY0FDbEgsdUJBQUMsWUFBTyxJQUFHLE9BQU0sSUFBRyxPQUFNLEdBQUUsS0FBSSxNQUFLLFdBQVUsU0FBUSxTQUF2RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUE0RDtBQUFBLGNBRTVELHVCQUFDLFVBQUssR0FBRSxxREFBb0QsTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQXhHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQTJHO0FBQUEsY0FFM0csdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUFoRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGNBQ25HLHVCQUFDLGFBQVEsSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUF0RjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUF5RjtBQUFBLGNBRXpGLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxZQUFXLFVBQVMsTUFBSyxXQUFVLFVBQVMsUUFBTyxZQUFXLE9BQUssMkNBQXpGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQTtBQUFBO0FBQUEsVUEzQkY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFFBNEJBO0FBQUEsUUFHQTtBQUFBLFVBQUM7QUFBQTtBQUFBLFlBQ0MsV0FBVTtBQUFBLFlBQ1YsU0FBUyxNQUFNTixnQkFBZ0JBLGFBQWEsT0FBTztBQUFBLFlBQ25ELGNBQWMsTUFBTU8sZUFBZSxPQUFPO0FBQUEsWUFDMUMsY0FBYyxNQUFNQSxlQUFlLElBQUk7QUFBQSxZQUN2QyxPQUFPLEVBQUV1QyxRQUFRLFVBQVU7QUFBQSxZQUUzQjtBQUFBO0FBQUEsZ0JBQUM7QUFBQTtBQUFBLGtCQUNDLEdBQUU7QUFBQSxrQkFDRixHQUFFO0FBQUEsa0JBQ0YsT0FBTTtBQUFBLGtCQUNOLFFBQU87QUFBQSxrQkFDUCxNQUFNeEMsZ0JBQWdCLFVBQVUsWUFBWTtBQUFBLGtCQUM1QyxRQUFPO0FBQUEsa0JBQ1AsYUFBWTtBQUFBO0FBQUEsZ0JBUGQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBT2lCO0FBQUEsY0FHakIsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sT0FBTSxRQUFPLE9BQU0sSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxTQUFsRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUF1RztBQUFBLGNBQ3ZHLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBaEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBbUc7QUFBQSxjQUNuRyx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQWhHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQW1HO0FBQUEsY0FFbkcsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssSUFBRyxLQUFJLE1BQUssV0FBVSxRQUFPLFdBQVUsYUFBWSxPQUFoRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGNBRW5HLHVCQUFDLFVBQUssR0FBRSxPQUFNLEdBQUUsT0FBTSxPQUFNLE1BQUssUUFBTyxNQUFLLElBQUcsS0FBSSxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBaEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBbUc7QUFBQSxjQUVuRyx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sWUFBVyxVQUFTLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLDhCQUF2RjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUEsY0FDQSx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sWUFBVyxVQUFTLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLHlDQUF2RjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUE7QUFBQTtBQUFBLFVBOUJGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQStCQTtBQUFBLFFBR0E7QUFBQSxVQUFDO0FBQUE7QUFBQSxZQUNDLFdBQVU7QUFBQSxZQUNWLFNBQVMsTUFBTU4sZ0JBQWdCQSxhQUFhLFVBQVU7QUFBQSxZQUN0RCxjQUFjLE1BQU1PLGVBQWUsYUFBYTtBQUFBLFlBQ2hELGNBQWMsTUFBTUEsZUFBZSxJQUFJO0FBQUEsWUFDdkMsT0FBTyxFQUFFdUMsUUFBUSxVQUFVO0FBQUEsWUFFM0I7QUFBQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxHQUFFO0FBQUEsa0JBQ0YsR0FBRTtBQUFBLGtCQUNGLE9BQU07QUFBQSxrQkFDTixRQUFPO0FBQUEsa0JBQ1AsTUFBTXhDLGdCQUFnQixnQkFBZ0IsWUFBWTtBQUFBLGtCQUNsRCxRQUFPO0FBQUEsa0JBQ1AsYUFBWTtBQUFBO0FBQUEsZ0JBUGQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBT2lCO0FBQUEsY0FFakIsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLE9BQU0sTUFBSyxRQUFPLE1BQUssTUFBSyxXQUFVLFFBQU8sV0FBVSxpQkFBZ0IsT0FBTSxhQUFZLE9BQS9HO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQWtIO0FBQUEsY0FDbEgsdUJBQUMsVUFBSyxHQUFFLHFEQUFvRCxNQUFLLFdBQVUsUUFBTyxXQUFVLGFBQVksT0FBeEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBMkc7QUFBQSxjQUMzRyx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE9BQU0sT0FBTSxNQUFLLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQWhHO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQW1HO0FBQUEsY0FDbkcsdUJBQUMsYUFBUSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQXRGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXlGO0FBQUEsY0FFekYsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxRQUFPLFlBQVcsT0FBSyx5Q0FBekY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBO0FBQUE7QUFBQSxVQXZCRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUF3QkE7QUFBQSxRQUtBLHVCQUFDLE9BQUUsUUFBTyxXQUFVLGFBQVksS0FBSSxlQUFjLFVBQVMsTUFBSyxRQUU5RDtBQUFBLGlDQUFDLGNBQVMsUUFBTyx1Q0FBakI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBb0Q7QUFBQSxVQUdwRCx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsU0FBbkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBd0M7QUFBQSxVQUN4Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsU0FBbkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBd0M7QUFBQSxVQUN4Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsU0FBbkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBd0M7QUFBQSxVQUN4Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsU0FBbkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBd0M7QUFBQSxVQUN4Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUN6Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUN6Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUN6Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUN6Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxhQWIzQztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBY0E7QUFBQSxRQUdBLHVCQUFDLE9BQUUsUUFBTyxXQUFVLGFBQVksS0FBSSxlQUFjLFNBRWhEO0FBQUEsaUNBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFFBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXVDO0FBQUEsVUFFdkMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLFFBQW5DO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXVDO0FBQUEsVUFFdkMsdUJBQUMsVUFBSyxJQUFHLE1BQUssSUFBRyxPQUFNLElBQUcsTUFBSyxJQUFHLE9BQU0sUUFBTyxXQUFVLGFBQVksS0FBSSxpQkFBZ0IsU0FBekY7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBOEY7QUFBQSxVQUU5Rix1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsU0FBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUV6Qyx1QkFBQyxVQUFLLElBQUcsTUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsU0FBbEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBdUM7QUFBQSxhQVZ6QztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBV0E7QUFBQSxRQUdBLHVCQUFDLE9BQUUsUUFBTyxXQUFVLGFBQVksT0FBTSxpQkFBZ0IsT0FBTSxNQUFLLFFBRS9EO0FBQUEsaUNBQUMsVUFBSyxHQUFFLG9DQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQXdDO0FBQUEsVUFDeEMsdUJBQUMsVUFBSyxJQUFHLE9BQU0sSUFBRyxNQUFLLElBQUcsT0FBTSxJQUFHLE1BQUssUUFBTyxXQUFVLGFBQVksU0FBckU7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBMEU7QUFBQSxVQUcxRSx1QkFBQyxVQUFLLEdBQUUscUNBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBeUM7QUFBQSxVQUN6Qyx1QkFBQyxVQUFLLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLElBQUcsT0FBTSxRQUFPLFdBQVUsYUFBWSxTQUF2RTtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUE0RTtBQUFBLFVBRzVFLHVCQUFDLFVBQUssR0FBRSxxQ0FBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF5QztBQUFBLFVBR3pDLHVCQUFDLFVBQUssR0FBRSxxQ0FBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF5QztBQUFBLFVBR3pDLHVCQUFDLFVBQUssR0FBRSxxQ0FBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF5QztBQUFBLFVBR3pDLHVCQUFDLFVBQUssSUFBRyxPQUFNLElBQUcsT0FBTSxJQUFHLE9BQU0sSUFBRyxPQUFNLFFBQU8sV0FBVSxhQUFZLE9BQXZFO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQTBFO0FBQUEsYUFuQjVFO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFvQkE7QUFBQSxRQUtBLHVCQUFDLE9BQUUsV0FBVSx1QkFDWDtBQUFBLGlDQUFDLFlBQU8sSUFBRyxLQUFJLElBQUcsS0FBSSxHQUFFLE1BQUssTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLFNBQXpFO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQThFO0FBQUEsVUFFOUUsdUJBQUMsYUFBUSxRQUFPLHVCQUFzQixNQUFLLGFBQTNDO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQW9EO0FBQUEsVUFDcEQsdUJBQUMsYUFBUSxRQUFPLHFCQUFvQixNQUFLLGFBQXpDO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWtEO0FBQUEsVUFDbEQsdUJBQUMsVUFBSyxHQUFFLEtBQUksR0FBRSxPQUFNLFlBQVcsVUFBUyxNQUFLLFdBQVUsVUFBUyxNQUFLLFlBQVcsT0FBSyxpQkFBckY7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLGFBUEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVFBO0FBQUEsUUFLQSx1QkFBQyxPQUFFLFdBQVUsc0JBQ1g7QUFBQSxpQ0FBQyxVQUFLLEdBQUUsS0FBSSxHQUFFLEtBQUksT0FBTSxPQUFNLFFBQU8sTUFBSyxJQUFHLEtBQUksTUFBSyxXQUFVLFFBQU8sV0FBVSxhQUFZLE9BQTdGO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWdHO0FBQUEsVUFDaEcsdUJBQUMsVUFBSyxHQUFFLE1BQUssR0FBRSxNQUFLLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFNLGVBQWMsVUFBUSxvREFBeEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLFVBQ0EsdUJBQUMsVUFBSyxHQUFFLE9BQU0sR0FBRSxNQUFLLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLDZEQUFsRTtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUVBO0FBQUEsVUFFQSx1QkFBQyxVQUFLLEdBQUUsT0FBTSxHQUFFLE1BQUssWUFBVyxPQUFNLE1BQUssV0FBVSxVQUFTLE1BQUssWUFBVyxPQUFLLDhEQUFuRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUVBO0FBQUEsYUFYRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBWUE7QUFBQTtBQUFBO0FBQUEsSUEvYUY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEVBZ2JBO0FBR0YsU0FDRSx1QkFBQyxTQUFJLFdBQVUsb0JBQ2I7QUFBQTtBQUFBLE1BQUM7QUFBQTtBQUFBLFFBQ0MsV0FBVTtBQUFBLFFBQ1YsT0FBTyxFQUFFd0MsUUFBUSxXQUFXQyxZQUFZLFdBQVdDLFVBQVUsV0FBVztBQUFBLFFBQ3hFLFNBQVMsTUFBTTNDLGdCQUFnQixJQUFJO0FBQUEsUUFDbkMsT0FBTTtBQUFBLFFBRUxvQztBQUFBQSxvQkFBVTtBQUFBLFVBR1g7QUFBQSxZQUFDO0FBQUE7QUFBQSxjQUNDLFdBQVU7QUFBQSxjQUNWLFNBQVMsQ0FBQ1EsTUFBTUEsRUFBRUMsZ0JBQWdCO0FBQUEsY0FDbEMsT0FBTztBQUFBLGdCQUNMRixVQUFVO0FBQUEsZ0JBQ1ZHLEtBQUs7QUFBQSxnQkFDTEMsT0FBTztBQUFBLGdCQUNQVixTQUFTO0FBQUEsZ0JBQ1RXLEtBQUs7QUFBQSxnQkFDTE4sWUFBWTtBQUFBLGdCQUNaTyxTQUFTO0FBQUEsZ0JBQ1RDLGNBQWM7QUFBQSxnQkFDZEMsUUFBUTtBQUFBLGdCQUNSQyxXQUFXO0FBQUEsZ0JBQ1hDLFFBQVE7QUFBQSxjQUNWO0FBQUEsY0FFQTtBQUFBO0FBQUEsa0JBQUM7QUFBQTtBQUFBLG9CQUNDLE1BQUs7QUFBQSxvQkFDTCxXQUFVO0FBQUEsb0JBQ1YsU0FBU2pEO0FBQUFBLG9CQUNULE9BQU07QUFBQSxvQkFBYTtBQUFBO0FBQUEsa0JBSnJCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxnQkFPQTtBQUFBLGdCQUNBO0FBQUEsa0JBQUM7QUFBQTtBQUFBLG9CQUNDLE1BQUs7QUFBQSxvQkFDTCxXQUFVO0FBQUEsb0JBQ1YsU0FBU0s7QUFBQUEsb0JBQ1QsT0FBTTtBQUFBLG9CQUFjO0FBQUE7QUFBQSxrQkFKdEI7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGdCQU9BO0FBQUEsZ0JBQ0E7QUFBQSxrQkFBQztBQUFBO0FBQUEsb0JBQ0MsTUFBSztBQUFBLG9CQUNMLFdBQVU7QUFBQSxvQkFDVixTQUFTRTtBQUFBQSxvQkFDVCxPQUFNO0FBQUEsb0JBQW1CO0FBQUE7QUFBQSxrQkFKM0I7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGdCQU9BO0FBQUEsZ0JBQ0E7QUFBQSxrQkFBQztBQUFBO0FBQUEsb0JBQ0MsTUFBSztBQUFBLG9CQUNMLFdBQVU7QUFBQSxvQkFDVixTQUFTQztBQUFBQSxvQkFDVCxPQUFNO0FBQUEsb0JBQ04sT0FBTyxFQUFFMEMsT0FBTyxVQUFVO0FBQUEsb0JBQUU7QUFBQTtBQUFBLGtCQUw5QjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsZ0JBUUE7QUFBQSxnQkFDQTtBQUFBLGtCQUFDO0FBQUE7QUFBQSxvQkFDQyxNQUFLO0FBQUEsb0JBQ0wsV0FBVTtBQUFBLG9CQUNWLFNBQVMsTUFBTXRELGdCQUFnQixJQUFJO0FBQUEsb0JBQ25DLE9BQU07QUFBQSxvQkFBdUI7QUFBQTtBQUFBLGtCQUovQjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsZ0JBT0E7QUFBQTtBQUFBO0FBQUEsWUF6REY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFVBMERBO0FBQUE7QUFBQTtBQUFBLE1BbkVGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxJQW9FQTtBQUFBLElBR0EsdUJBQUMsU0FBSSxXQUFVLDJCQUNiO0FBQUEsNkJBQUMsU0FBSSxXQUFVLHlCQUNiO0FBQUEsK0JBQUMsVUFBSywyQkFBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQWlCO0FBQUEsUUFDakIsdUJBQUMsWUFBTyx3Q0FBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQW9EO0FBQUEsV0FGdEQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUdBO0FBQUEsTUFDQSx1QkFBQyxTQUFJLFdBQVUseUJBQ2I7QUFBQSwrQkFBQyxVQUFLLDRCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBa0I7QUFBQSxRQUNsQix1QkFBQyxZQUFPLHdDQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBb0Q7QUFBQSxXQUZ0RDtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxNQUNBLHVCQUFDLFNBQUksV0FBVSx5QkFDYjtBQUFBLCtCQUFDLFVBQUssOEJBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFvQjtBQUFBLFFBQ3BCLHVCQUFDLFlBQU8sd0NBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFvRDtBQUFBLFdBRnREO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLE1BQ0EsdUJBQUMsU0FBSSxXQUFVLHlCQUNiO0FBQUEsK0JBQUMsVUFBSyxpQ0FBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQTJCO0FBQUEsUUFDM0IsdUJBQUMsWUFBTyxzQ0FBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQWtEO0FBQUEsV0FGcEQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUdBO0FBQUEsTUFDQSx1QkFBQyxTQUFJLFdBQVUseUJBQ2I7QUFBQSwrQkFBQyxVQUFLLGdDQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBMEI7QUFBQSxRQUMxQix1QkFBQyxZQUFPLGlDQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBeUI7QUFBQSxXQUYzQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxNQUNBLHVCQUFDLFNBQUksV0FBVSx5QkFDYjtBQUFBLCtCQUFDLFVBQUssaUNBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUF1QjtBQUFBLFFBQ3ZCLHVCQUFDLFlBQU8sdUNBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUErQjtBQUFBLFdBRmpDO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLFNBeEJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0F5QkE7QUFBQSxJQUdDRCxnQkFDQztBQUFBLE1BQUM7QUFBQTtBQUFBLFFBQ0MsV0FBVTtBQUFBLFFBQ1YsU0FBUyxNQUFNQyxnQkFBZ0IsS0FBSztBQUFBLFFBQ3BDLE9BQU8sRUFBRXFELFFBQVEsT0FBTztBQUFBLFFBRXhCO0FBQUE7QUFBQSxZQUFDO0FBQUE7QUFBQSxjQUNDLFdBQVU7QUFBQSxjQUNWLFNBQVMsQ0FBQ1QsTUFBTUEsRUFBRUMsZ0JBQWdCO0FBQUEsY0FDbEMsT0FBTyxFQUFFSCxZQUFZLFdBQVdZLE9BQU8sVUFBVTtBQUFBLGNBRWpEO0FBQUEsdUNBQUMsU0FDQztBQUFBLHlDQUFDLFVBQUssT0FBTyxFQUFFQyxZQUFZLEtBQUtDLFVBQVUsR0FBRyxHQUFFLDREQUEvQztBQUFBO0FBQUE7QUFBQTtBQUFBLHlCQUVBO0FBQUEsa0JBQ0EsdUJBQUMsVUFBSyxPQUFPLEVBQUVBLFVBQVUsSUFBSUMsWUFBWSxJQUFJSCxPQUFPLFVBQVUsR0FBRSw0REFBaEU7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFFQTtBQUFBLHFCQU5GO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBT0E7QUFBQSxnQkFDQSx1QkFBQyxTQUFJLE9BQU8sRUFBRWpCLFNBQVMsUUFBUVcsS0FBSyxJQUFJVSxZQUFZLFNBQVMsR0FDM0Q7QUFBQTtBQUFBLG9CQUFDO0FBQUE7QUFBQSxzQkFDQyxNQUFLO0FBQUEsc0JBQ0wsV0FBVTtBQUFBLHNCQUNWLE9BQU8sRUFBRVQsU0FBUyxZQUFZTyxVQUFVLEdBQUc7QUFBQSxzQkFDM0MsU0FBUzVDO0FBQUFBLHNCQUFrQjtBQUFBO0FBQUEsb0JBSjdCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxrQkFPQTtBQUFBLGtCQUNBO0FBQUEsb0JBQUM7QUFBQTtBQUFBLHNCQUNDLE1BQUs7QUFBQSxzQkFDTCxXQUFVO0FBQUEsc0JBQ1YsU0FBUyxNQUFNWixnQkFBZ0IsS0FBSztBQUFBLHNCQUFFO0FBQUE7QUFBQSxvQkFIeEM7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGtCQU1BO0FBQUEscUJBZkY7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFnQkE7QUFBQTtBQUFBO0FBQUEsWUE3QkY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFVBOEJBO0FBQUEsVUFFQTtBQUFBLFlBQUM7QUFBQTtBQUFBLGNBQ0MsV0FBVTtBQUFBLGNBQ1YsU0FBUyxDQUFDNEMsTUFBTUEsRUFBRUMsZ0JBQWdCO0FBQUEsY0FDbEMsT0FBTyxFQUFFSCxZQUFZLFdBQVdPLFNBQVMsR0FBRztBQUFBLGNBRTVDLGlDQUFDLFNBQUksT0FBTyxFQUFFVSxVQUFVLFFBQVFDLFdBQVcsUUFBUUMsT0FBTyxRQUFRQyxRQUFRLE9BQU8sR0FDOUUxQixvQkFBVSxLQURiO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQTtBQUFBLFlBUEY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFVBUUE7QUFBQTtBQUFBO0FBQUEsTUE3Q0Y7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLElBOENBO0FBQUEsT0FuSko7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQXFKQTtBQUVKO0FBQUN4QyxHQXhtQnVCRixxQkFBbUI7QUFBQSxLQUFuQkE7QUFBbUIsSUFBQXFFO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbInVzZVN0YXRlIiwidXNlUmVmIiwiVGhlQXVyZWxpYUZsb29yUGxhbiIsIm9uU2VsZWN0Um9vbSIsIl9zIiwiem9vbSIsInNldFpvb20iLCJpc0Z1bGxzY3JlZW4iLCJzZXRJc0Z1bGxzY3JlZW4iLCJob3ZlcmVkUm9vbSIsInNldEhvdmVyZWRSb29tIiwic3ZnUmVmIiwiaGFuZGxlWm9vbUluIiwieiIsIk1hdGgiLCJtaW4iLCJ0b0ZpeGVkIiwiaGFuZGxlWm9vbU91dCIsIm1heCIsImhhbmRsZVJlc2V0Wm9vbSIsImhhbmRsZURvd25sb2FkU1ZHIiwiY3VycmVudCIsInNlcmlhbGl6ZXIiLCJYTUxTZXJpYWxpemVyIiwic291cmNlIiwic2VyaWFsaXplVG9TdHJpbmciLCJtYXRjaCIsInJlcGxhY2UiLCJzdmdCbG9iIiwiQmxvYiIsInR5cGUiLCJzdmdVcmwiLCJVUkwiLCJjcmVhdGVPYmplY3RVUkwiLCJkb3dubG9hZExpbmsiLCJkb2N1bWVudCIsImNyZWF0ZUVsZW1lbnQiLCJocmVmIiwiZG93bmxvYWQiLCJib2R5IiwiYXBwZW5kQ2hpbGQiLCJjbGljayIsInJlbW92ZUNoaWxkIiwicmV2b2tlT2JqZWN0VVJMIiwicmVuZGVyU1ZHIiwiZGlzcGxheSIsInRyYW5zZm9ybSIsInRyYW5zZm9ybU9yaWdpbiIsInRyYW5zaXRpb24iLCJjdXJzb3IiLCJiYWNrZ3JvdW5kIiwicG9zaXRpb24iLCJlIiwic3RvcFByb3BhZ2F0aW9uIiwidG9wIiwicmlnaHQiLCJnYXAiLCJwYWRkaW5nIiwiYm9yZGVyUmFkaXVzIiwiYm9yZGVyIiwiYm94U2hhZG93IiwiekluZGV4IiwiY29sb3IiLCJmb250V2VpZ2h0IiwiZm9udFNpemUiLCJtYXJnaW5MZWZ0IiwiYWxpZ25JdGVtcyIsIm1heFdpZHRoIiwibWF4SGVpZ2h0Iiwid2lkdGgiLCJoZWlnaHQiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJUaGVBdXJlbGlhRmxvb3JQbGFuLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VTdGF0ZSwgdXNlUmVmIH0gZnJvbSBcInJlYWN0XCI7XG5cbi8qKlxuICogVGhlQXVyZWxpYUZsb29yUGxhbiBDb21wb25lbnRcbiAqIEFyY2hpdGVjdHVyYWwgMkQgdG9wLWRvd24gZmxvb3IgcGxhbiBmb3IgVGhlIEF1cmVsaWEg4oCTIFByZW1pdW0gMkJISyBBcGFydG1lbnQuXG4gKiBSZW5kZXJlZCB1c2luZyBhIHNjYWxhYmxlIHZlY3RvciBncmFwaGljIHdpdGggaW50ZXJhY3RpdmUgem9vbSwgZnVsbHNjcmVlbiBtb2RhbCxcbiAqIHJvb20gaGlnaGxpZ2h0aW5nLCBhbmQgaW5zdGFudCBTVkcgZG93bmxvYWQuXG4gKi9cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFRoZUF1cmVsaWFGbG9vclBsYW4oeyBvblNlbGVjdFJvb20gPSBudWxsIH0pIHtcbiAgY29uc3QgW3pvb20sIHNldFpvb21dID0gdXNlU3RhdGUoMSk7XG4gIGNvbnN0IFtpc0Z1bGxzY3JlZW4sIHNldElzRnVsbHNjcmVlbl0gPSB1c2VTdGF0ZShmYWxzZSk7XG4gIGNvbnN0IFtob3ZlcmVkUm9vbSwgc2V0SG92ZXJlZFJvb21dID0gdXNlU3RhdGUobnVsbCk7XG4gIGNvbnN0IHN2Z1JlZiA9IHVzZVJlZihudWxsKTtcblxuICBjb25zdCBoYW5kbGVab29tSW4gPSAoKSA9PiBzZXRab29tKCh6KSA9PiBNYXRoLm1pbigyLjUsICsoeiArIDAuMjUpLnRvRml4ZWQoMikpKTtcbiAgY29uc3QgaGFuZGxlWm9vbU91dCA9ICgpID0+IHNldFpvb20oKHopID0+IE1hdGgubWF4KDAuNzUsICsoeiAtIDAuMjUpLnRvRml4ZWQoMikpKTtcbiAgY29uc3QgaGFuZGxlUmVzZXRab29tID0gKCkgPT4gc2V0Wm9vbSgxKTtcblxuICBjb25zdCBoYW5kbGVEb3dubG9hZFNWRyA9ICgpID0+IHtcbiAgICBpZiAoIXN2Z1JlZi5jdXJyZW50KSByZXR1cm47XG4gICAgY29uc3Qgc2VyaWFsaXplciA9IG5ldyBYTUxTZXJpYWxpemVyKCk7XG4gICAgbGV0IHNvdXJjZSA9IHNlcmlhbGl6ZXIuc2VyaWFsaXplVG9TdHJpbmcoc3ZnUmVmLmN1cnJlbnQpO1xuICAgIGlmICghc291cmNlLm1hdGNoKC9ePHN2Z1tePl0reG1sbnM9XCJodHRwOlxcL1xcL3d3d1xcLnczXFwub3JnXFwvMjAwMFxcL3N2Z1wiLykpIHtcbiAgICAgIHNvdXJjZSA9IHNvdXJjZS5yZXBsYWNlKC9ePHN2Zy8sICc8c3ZnIHhtbG5zPVwiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdcIicpO1xuICAgIH1cbiAgICBjb25zdCBzdmdCbG9iID0gbmV3IEJsb2IoW3NvdXJjZV0sIHsgdHlwZTogXCJpbWFnZS9zdmcreG1sO2NoYXJzZXQ9dXRmLThcIiB9KTtcbiAgICBjb25zdCBzdmdVcmwgPSBVUkwuY3JlYXRlT2JqZWN0VVJMKHN2Z0Jsb2IpO1xuICAgIGNvbnN0IGRvd25sb2FkTGluayA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoXCJhXCIpO1xuICAgIGRvd25sb2FkTGluay5ocmVmID0gc3ZnVXJsO1xuICAgIGRvd25sb2FkTGluay5kb3dubG9hZCA9IFwiVGhlX0F1cmVsaWFfMkJIS19GbG9vcl9QbGFuLnN2Z1wiO1xuICAgIGRvY3VtZW50LmJvZHkuYXBwZW5kQ2hpbGQoZG93bmxvYWRMaW5rKTtcbiAgICBkb3dubG9hZExpbmsuY2xpY2soKTtcbiAgICBkb2N1bWVudC5ib2R5LnJlbW92ZUNoaWxkKGRvd25sb2FkTGluayk7XG4gICAgVVJMLnJldm9rZU9iamVjdFVSTChzdmdVcmwpO1xuICB9O1xuXG4gIGNvbnN0IHJlbmRlclNWRyA9ICgpID0+IChcbiAgICA8c3ZnXG4gICAgICByZWY9e3N2Z1JlZn1cbiAgICAgIHZpZXdCb3g9XCIwIDAgMTAwMCA2ODBcIlxuICAgICAgd2lkdGg9XCIxMDAlXCJcbiAgICAgIGhlaWdodD1cIjEwMCVcIlxuICAgICAgc3R5bGU9e3tcbiAgICAgICAgZGlzcGxheTogXCJibG9ja1wiLFxuICAgICAgICB0cmFuc2Zvcm06IGBzY2FsZSgke3pvb219KWAsXG4gICAgICAgIHRyYW5zZm9ybU9yaWdpbjogXCJjZW50ZXIgY2VudGVyXCIsXG4gICAgICAgIHRyYW5zaXRpb246IFwidHJhbnNmb3JtIDAuMnMgY3ViaWMtYmV6aWVyKDAuMTYsIDEsIDAuMywgMSlcIixcbiAgICAgIH19XG4gICAgICB4bWxucz1cImh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnXCJcbiAgICA+XG4gICAgICA8ZGVmcz5cbiAgICAgICAgey8qIFN1YnRsZSBhcmNoaXRlY3R1cmFsIGhhdGNoaW5nIHBhdHRlcm4gKi99XG4gICAgICAgIDxwYXR0ZXJuIGlkPVwid2FsbEhhdGNoXCIgd2lkdGg9XCI4XCIgaGVpZ2h0PVwiOFwiIHBhdHRlcm5UcmFuc2Zvcm09XCJyb3RhdGUoNDUgMCAwKVwiIHBhdHRlcm5Vbml0cz1cInVzZXJTcGFjZU9uVXNlXCI+XG4gICAgICAgICAgPGxpbmUgeDE9XCIwXCIgeTE9XCIwXCIgeDI9XCIwXCIgeTI9XCI4XCIgc3Ryb2tlPVwiIzQ0NDAzY1wiIHN0cm9rZVdpZHRoPVwiMlwiIC8+XG4gICAgICAgIDwvcGF0dGVybj5cbiAgICAgICAgPHBhdHRlcm4gaWQ9XCJiYWxjb255RGVja1wiIHdpZHRoPVwiMTJcIiBoZWlnaHQ9XCIxMlwiIHBhdHRlcm5Vbml0cz1cInVzZXJTcGFjZU9uVXNlXCI+XG4gICAgICAgICAgPGxpbmUgeDE9XCIwXCIgeTE9XCIwXCIgeDI9XCIxMlwiIHkyPVwiMFwiIHN0cm9rZT1cIiNkNmM3YjJcIiBzdHJva2VXaWR0aD1cIjJcIiAvPlxuICAgICAgICA8L3BhdHRlcm4+XG4gICAgICAgIDxmaWx0ZXIgaWQ9XCJzb2Z0U2hhZG93XCIgeD1cIi0xMCVcIiB5PVwiLTEwJVwiIHdpZHRoPVwiMTIwJVwiIGhlaWdodD1cIjEyMCVcIj5cbiAgICAgICAgICA8ZmVEcm9wU2hhZG93IGR4PVwiMFwiIGR5PVwiM1wiIHN0ZERldmlhdGlvbj1cIjRcIiBmbG9vZENvbG9yPVwiIzI5MjUyNFwiIGZsb29kT3BhY2l0eT1cIjAuMTJcIiAvPlxuICAgICAgICA8L2ZpbHRlcj5cbiAgICAgIDwvZGVmcz5cblxuICAgICAgey8qIEJsdWVwcmludCBTaGVldCBCYWNrZ3JvdW5kICovfVxuICAgICAgPHJlY3Qgd2lkdGg9XCIxMDAwXCIgaGVpZ2h0PVwiNjgwXCIgZmlsbD1cIiNmY2ZiZmFcIiAvPlxuXG4gICAgICB7LyogR3JpZCBHdWlkZSBNYXJrcyAqL31cbiAgICAgIDxnIHN0cm9rZT1cIiNmMGViZTFcIiBzdHJva2VXaWR0aD1cIjFcIiBzdHJva2VEYXNoYXJyYXk9XCI0IDhcIj5cbiAgICAgICAgPGxpbmUgeDE9XCI2MFwiIHkxPVwiNjBcIiB4Mj1cIjk0MFwiIHkyPVwiNjBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjYwXCIgeTE9XCIyMDBcIiB4Mj1cIjk0MFwiIHkyPVwiMjAwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI2MFwiIHkxPVwiMzYwXCIgeDI9XCI5NDBcIiB5Mj1cIjM2MFwiIC8+XG4gICAgICAgIDxsaW5lIHgxPVwiNjBcIiB5MT1cIjUyMFwiIHgyPVwiOTQwXCIgeTI9XCI1MjBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjYwXCIgeTE9XCI2MjBcIiB4Mj1cIjk0MFwiIHkyPVwiNjIwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI2MFwiIHkxPVwiNjBcIiB4Mj1cIjYwXCIgeTI9XCI2MjBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjIyMFwiIHkxPVwiNjBcIiB4Mj1cIjIyMFwiIHkyPVwiNjIwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI0NjBcIiB5MT1cIjYwXCIgeDI9XCI0NjBcIiB5Mj1cIjYyMFwiIC8+XG4gICAgICAgIDxsaW5lIHgxPVwiNjQwXCIgeTE9XCI2MFwiIHgyPVwiNjQwXCIgeTI9XCI2MjBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjk0MFwiIHkxPVwiNjBcIiB4Mj1cIjk0MFwiIHkyPVwiNjIwXCIgLz5cbiAgICAgIDwvZz5cblxuICAgICAgey8qID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09ICovfVxuICAgICAgey8qIFJPT00gWk9ORVMgJiBGTE9PUiBGSUxMUyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICovfVxuICAgICAgey8qID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09ICovfVxuXG4gICAgICB7LyogMS4gTWFpbiBFbnRyYW5jZSAmIEZveWVyIChUb3AtTGVmdCkgKi99XG4gICAgICA8Z1xuICAgICAgICBjbGFzc05hbWU9XCJmcC1yb29tLWdyb3VwXCJcbiAgICAgICAgb25DbGljaz17KCkgPT4gb25TZWxlY3RSb29tICYmIG9uU2VsZWN0Um9vbShcImZveWVyXCIpfVxuICAgICAgICBvbk1vdXNlRW50ZXI9eygpID0+IHNldEhvdmVyZWRSb29tKFwiZm95ZXJcIil9XG4gICAgICAgIG9uTW91c2VMZWF2ZT17KCkgPT4gc2V0SG92ZXJlZFJvb20obnVsbCl9XG4gICAgICAgIHN0eWxlPXt7IGN1cnNvcjogXCJwb2ludGVyXCIgfX1cbiAgICAgID5cbiAgICAgICAgPHJlY3RcbiAgICAgICAgICB4PVwiNzBcIlxuICAgICAgICAgIHk9XCI3MFwiXG4gICAgICAgICAgd2lkdGg9XCIxNTBcIlxuICAgICAgICAgIGhlaWdodD1cIjE0MFwiXG4gICAgICAgICAgZmlsbD17aG92ZXJlZFJvb20gPT09IFwiZm95ZXJcIiA/IFwiI2ZiZjBkZlwiIDogXCIjZjdmMmVhXCJ9XG4gICAgICAgICAgc3Ryb2tlPVwiI2U3ZGZkNVwiXG4gICAgICAgICAgc3Ryb2tlV2lkdGg9XCIxXCJcbiAgICAgICAgLz5cbiAgICAgICAgPHRleHQgeD1cIjE0NVwiIHk9XCIxMzBcIiB0ZXh0QW5jaG9yPVwibWlkZGxlXCIgZmlsbD1cIiM3ODcxNmNcIiBmb250U2l6ZT1cIjEyXCIgZm9udFdlaWdodD1cIjcwMFwiPlxuICAgICAgICAgIE1BSU4gRU5UUkFOQ0VcbiAgICAgICAgPC90ZXh0PlxuICAgICAgICA8dGV4dCB4PVwiMTQ1XCIgeT1cIjE0OFwiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiI2E4YTI5ZVwiIGZvbnRTaXplPVwiMTFcIiBmb250V2VpZ2h0PVwiNTAwXCI+XG4gICAgICAgICAgNiZhcG9zOzAmcXVvdDsgw5cgNSZhcG9zOzAmcXVvdDtcbiAgICAgICAgPC90ZXh0PlxuICAgICAgICB7LyogRW50cnkgQ29uc29sZSAvIEJlbmNoICovfVxuICAgICAgICA8cmVjdCB4PVwiODBcIiB5PVwiODBcIiB3aWR0aD1cIjMwXCIgaGVpZ2h0PVwiNjBcIiByeD1cIjNcIiBmaWxsPVwiI2U3ZGZkNVwiIHN0cm9rZT1cIiNkNmM3YjJcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgPC9nPlxuXG4gICAgICB7LyogMi4gTGl2aW5nIEhhbGwgKFRvcC1DZW50ZXIpICovfVxuICAgICAgPGdcbiAgICAgICAgY2xhc3NOYW1lPVwiZnAtcm9vbS1ncm91cFwiXG4gICAgICAgIG9uQ2xpY2s9eygpID0+IG9uU2VsZWN0Um9vbSAmJiBvblNlbGVjdFJvb20oXCJsaXZpbmdcIil9XG4gICAgICAgIG9uTW91c2VFbnRlcj17KCkgPT4gc2V0SG92ZXJlZFJvb20oXCJsaXZpbmdcIil9XG4gICAgICAgIG9uTW91c2VMZWF2ZT17KCkgPT4gc2V0SG92ZXJlZFJvb20obnVsbCl9XG4gICAgICAgIHN0eWxlPXt7IGN1cnNvcjogXCJwb2ludGVyXCIgfX1cbiAgICAgID5cbiAgICAgICAgPHJlY3RcbiAgICAgICAgICB4PVwiMjIwXCJcbiAgICAgICAgICB5PVwiNzBcIlxuICAgICAgICAgIHdpZHRoPVwiNDIwXCJcbiAgICAgICAgICBoZWlnaHQ9XCIyOTBcIlxuICAgICAgICAgIGZpbGw9e2hvdmVyZWRSb29tID09PSBcImxpdmluZ1wiID8gXCIjZmJmNWVhXCIgOiBcIiNmYWY2ZjBcIn1cbiAgICAgICAgICBzdHJva2U9XCIjZTdkZmQ1XCJcbiAgICAgICAgICBzdHJva2VXaWR0aD1cIjFcIlxuICAgICAgICAvPlxuICAgICAgICB7LyogTGl2aW5nIFJvb20gRnVybml0dXJlOiBMLVNvZmEgKi99XG4gICAgICAgIDxwYXRoXG4gICAgICAgICAgZD1cIk0gMjYwIDEyMCBMIDQ0MCAxMjAgQSAxMCAxMCAwIDAgMSA0NTAgMTMwIEwgNDUwIDIyMCBBIDEwIDEwIDAgMCAxIDQ0MCAyMzAgTCA0MDAgMjMwIEEgMTAgMTAgMCAwIDEgMzkwIDIyMCBMIDM5MCAxNzAgTCAyNjAgMTcwIFpcIlxuICAgICAgICAgIGZpbGw9XCIjZTllMGQyXCJcbiAgICAgICAgICBzdHJva2U9XCIjY2JiOWEzXCJcbiAgICAgICAgICBzdHJva2VXaWR0aD1cIjEuNVwiXG4gICAgICAgICAgZmlsdGVyPVwidXJsKCNzb2Z0U2hhZG93KVwiXG4gICAgICAgIC8+XG4gICAgICAgIHsvKiBDb2ZmZWUgVGFibGUgKi99XG4gICAgICAgIDxyZWN0IHg9XCIyOTBcIiB5PVwiMTkwXCIgd2lkdGg9XCI4MFwiIGhlaWdodD1cIjQ1XCIgcng9XCI2XCIgZmlsbD1cIiNkZmQwYmNcIiBzdHJva2U9XCIjYmRhODhlXCIgc3Ryb2tlV2lkdGg9XCIxLjVcIiAvPlxuICAgICAgICB7LyogVFYgVW5pdCBDb25zb2xlICovfVxuICAgICAgICA8cmVjdCB4PVwiNTIwXCIgeT1cIjgwXCIgd2lkdGg9XCIxMDBcIiBoZWlnaHQ9XCIxOFwiIHJ4PVwiMlwiIGZpbGw9XCIjZDZjN2IyXCIgc3Ryb2tlPVwiI2E4OWE4NVwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIDxsaW5lIHgxPVwiNTM1XCIgeTE9XCI4OVwiIHgyPVwiNjA1XCIgeTI9XCI4OVwiIHN0cm9rZT1cIiM3ODcxNmNcIiBzdHJva2VXaWR0aD1cIjJcIiAvPlxuXG4gICAgICAgIDx0ZXh0IHg9XCI0MzBcIiB5PVwiMjc1XCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjMjkyNTI0XCIgZm9udFNpemU9XCIxNlwiIGZvbnRXZWlnaHQ9XCI4MDBcIj5cbiAgICAgICAgICBMSVZJTkcgUk9PTVxuICAgICAgICA8L3RleHQ+XG4gICAgICAgIDx0ZXh0IHg9XCI0MzBcIiB5PVwiMjk2XCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjNzg3MTZjXCIgZm9udFNpemU9XCIxMlwiIGZvbnRXZWlnaHQ9XCI2MDBcIj5cbiAgICAgICAgICAxOCZhcG9zOzAmcXVvdDsgw5cgMTMmYXBvczs2JnF1b3Q7ICgyNDMgc3EgZnQpXG4gICAgICAgIDwvdGV4dD5cbiAgICAgIDwvZz5cblxuICAgICAgey8qIDMuIERpbmluZyBBcmVhIChDZW50ZXItQm90dG9tKSAqL31cbiAgICAgIDxnXG4gICAgICAgIGNsYXNzTmFtZT1cImZwLXJvb20tZ3JvdXBcIlxuICAgICAgICBvbkNsaWNrPXsoKSA9PiBvblNlbGVjdFJvb20gJiYgb25TZWxlY3RSb29tKFwiZGluaW5nXCIpfVxuICAgICAgICBvbk1vdXNlRW50ZXI9eygpID0+IHNldEhvdmVyZWRSb29tKFwiZGluaW5nXCIpfVxuICAgICAgICBvbk1vdXNlTGVhdmU9eygpID0+IHNldEhvdmVyZWRSb29tKG51bGwpfVxuICAgICAgICBzdHlsZT17eyBjdXJzb3I6IFwicG9pbnRlclwiIH19XG4gICAgICA+XG4gICAgICAgIDxyZWN0XG4gICAgICAgICAgeD1cIjIyMFwiXG4gICAgICAgICAgeT1cIjM2MFwiXG4gICAgICAgICAgd2lkdGg9XCIyNDBcIlxuICAgICAgICAgIGhlaWdodD1cIjI1MFwiXG4gICAgICAgICAgZmlsbD17aG92ZXJlZFJvb20gPT09IFwiZGluaW5nXCIgPyBcIiNmYmYzZTZcIiA6IFwiI2Y3ZjFlN1wifVxuICAgICAgICAgIHN0cm9rZT1cIiNlN2RmZDVcIlxuICAgICAgICAgIHN0cm9rZVdpZHRoPVwiMVwiXG4gICAgICAgIC8+XG4gICAgICAgIHsvKiBEaW5pbmcgVGFibGUgJiA2IENoYWlycyAqL31cbiAgICAgICAgPHJlY3QgeD1cIjI3MFwiIHk9XCI0MjBcIiB3aWR0aD1cIjEzMFwiIGhlaWdodD1cIjc1XCIgcng9XCI2XCIgZmlsbD1cIiNlMmQ2YzNcIiBzdHJva2U9XCIjYmRhODhlXCIgc3Ryb2tlV2lkdGg9XCIxLjVcIiAvPlxuICAgICAgICB7LyogVG9wIDMgY2hhaXJzICovfVxuICAgICAgICA8cmVjdCB4PVwiMjg1XCIgeT1cIjQwMlwiIHdpZHRoPVwiMjVcIiBoZWlnaHQ9XCIxNFwiIHJ4PVwiMlwiIGZpbGw9XCIjZDBiZWFhXCIgLz5cbiAgICAgICAgPHJlY3QgeD1cIjMyMlwiIHk9XCI0MDJcIiB3aWR0aD1cIjI1XCIgaGVpZ2h0PVwiMTRcIiByeD1cIjJcIiBmaWxsPVwiI2QwYmVhYVwiIC8+XG4gICAgICAgIDxyZWN0IHg9XCIzNjBcIiB5PVwiNDAyXCIgd2lkdGg9XCIyNVwiIGhlaWdodD1cIjE0XCIgcng9XCIyXCIgZmlsbD1cIiNkMGJlYWFcIiAvPlxuICAgICAgICB7LyogQm90dG9tIDMgY2hhaXJzICovfVxuICAgICAgICA8cmVjdCB4PVwiMjg1XCIgeT1cIjQ5OVwiIHdpZHRoPVwiMjVcIiBoZWlnaHQ9XCIxNFwiIHJ4PVwiMlwiIGZpbGw9XCIjZDBiZWFhXCIgLz5cbiAgICAgICAgPHJlY3QgeD1cIjMyMlwiIHk9XCI0OTlcIiB3aWR0aD1cIjI1XCIgaGVpZ2h0PVwiMTRcIiByeD1cIjJcIiBmaWxsPVwiI2QwYmVhYVwiIC8+XG4gICAgICAgIDxyZWN0IHg9XCIzNjBcIiB5PVwiNDk5XCIgd2lkdGg9XCIyNVwiIGhlaWdodD1cIjE0XCIgcng9XCIyXCIgZmlsbD1cIiNkMGJlYWFcIiAvPlxuXG4gICAgICAgIDx0ZXh0IHg9XCIzNDBcIiB5PVwiNTUwXCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjMjkyNTI0XCIgZm9udFNpemU9XCIxNFwiIGZvbnRXZWlnaHQ9XCI4MDBcIj5cbiAgICAgICAgICBESU5JTkcgQVJFQVxuICAgICAgICA8L3RleHQ+XG4gICAgICAgIDx0ZXh0IHg9XCIzNDBcIiB5PVwiNTY4XCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjNzg3MTZjXCIgZm9udFNpemU9XCIxMVwiIGZvbnRXZWlnaHQ9XCI2MDBcIj5cbiAgICAgICAgICAxMiZhcG9zOzAmcXVvdDsgw5cgOSZhcG9zOzYmcXVvdDsgKDExNCBzcSBmdClcbiAgICAgICAgPC90ZXh0PlxuICAgICAgPC9nPlxuXG4gICAgICB7LyogNC4gUHJpdmF0ZSBCYWxjb255IChMZWZ0IG9mIExpdmluZykgKi99XG4gICAgICA8Z1xuICAgICAgICBjbGFzc05hbWU9XCJmcC1yb29tLWdyb3VwXCJcbiAgICAgICAgb25DbGljaz17KCkgPT4gb25TZWxlY3RSb29tICYmIG9uU2VsZWN0Um9vbShcImJhbGNvbnlcIil9XG4gICAgICAgIG9uTW91c2VFbnRlcj17KCkgPT4gc2V0SG92ZXJlZFJvb20oXCJiYWxjb255XCIpfVxuICAgICAgICBvbk1vdXNlTGVhdmU9eygpID0+IHNldEhvdmVyZWRSb29tKG51bGwpfVxuICAgICAgICBzdHlsZT17eyBjdXJzb3I6IFwicG9pbnRlclwiIH19XG4gICAgICA+XG4gICAgICAgIDxyZWN0XG4gICAgICAgICAgeD1cIjcwXCJcbiAgICAgICAgICB5PVwiMjEwXCJcbiAgICAgICAgICB3aWR0aD1cIjE1MFwiXG4gICAgICAgICAgaGVpZ2h0PVwiMjcwXCJcbiAgICAgICAgICBmaWxsPVwidXJsKCNiYWxjb255RGVjaylcIlxuICAgICAgICAgIHN0cm9rZT1cIiNkNmM3YjJcIlxuICAgICAgICAgIHN0cm9rZVdpZHRoPVwiMS41XCJcbiAgICAgICAgLz5cbiAgICAgICAgey8qIEJhbGNvbnkgRnVybml0dXJlOiAyIEFybWNoYWlycyArIFNtYWxsIFRhYmxlICovfVxuICAgICAgICA8Y2lyY2xlIGN4PVwiMTIwXCIgY3k9XCIyNzBcIiByPVwiMTZcIiBmaWxsPVwiI2Q2YzdiMlwiIHN0cm9rZT1cIiNhODlhODVcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICA8Y2lyY2xlIGN4PVwiMTcwXCIgY3k9XCIyNzBcIiByPVwiMTZcIiBmaWxsPVwiI2Q2YzdiMlwiIHN0cm9rZT1cIiNhODlhODVcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICA8Y2lyY2xlIGN4PVwiMTQ1XCIgY3k9XCIyNzBcIiByPVwiOVwiIGZpbGw9XCIjZTdkZmQ1XCIgc3Ryb2tlPVwiI2E4OWE4NVwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG5cbiAgICAgICAgey8qIFBvdHRlZCBQbGFudCBTeW1ib2xzICovfVxuICAgICAgICA8Y2lyY2xlIGN4PVwiOTVcIiBjeT1cIjQ0NVwiIHI9XCIxMVwiIGZpbGw9XCIjYzNkOWI5XCIgc3Ryb2tlPVwiIzg5YTk3ZFwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIDxjaXJjbGUgY3g9XCI5NVwiIGN5PVwiNDQ1XCIgcj1cIjVcIiBmaWxsPVwiIzc4OTk2YlwiIC8+XG4gICAgICAgIDxjaXJjbGUgY3g9XCIxOTVcIiBjeT1cIjQ0NVwiIHI9XCIxMVwiIGZpbGw9XCIjYzNkOWI5XCIgc3Ryb2tlPVwiIzg5YTk3ZFwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIDxjaXJjbGUgY3g9XCIxOTVcIiBjeT1cIjQ0NVwiIHI9XCI1XCIgZmlsbD1cIiM3ODk5NmJcIiAvPlxuXG4gICAgICAgIDx0ZXh0IHg9XCIxNDVcIiB5PVwiMzQwXCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjMjkyNTI0XCIgZm9udFNpemU9XCIxM1wiIGZvbnRXZWlnaHQ9XCI4MDBcIj5cbiAgICAgICAgICBCQUxDT05ZXG4gICAgICAgIDwvdGV4dD5cbiAgICAgICAgPHRleHQgeD1cIjE0NVwiIHk9XCIzNThcIiB0ZXh0QW5jaG9yPVwibWlkZGxlXCIgZmlsbD1cIiM3ODcxNmNcIiBmb250U2l6ZT1cIjEwLjVcIiBmb250V2VpZ2h0PVwiNjAwXCI+XG4gICAgICAgICAgMTImYXBvczswJnF1b3Q7IMOXIDQmYXBvczs2JnF1b3Q7ICg1NCBzcSBmdClcbiAgICAgICAgPC90ZXh0PlxuICAgICAgPC9nPlxuXG4gICAgICB7LyogNS4gTW9kdWxhciBLaXRjaGVuICYgVXRpbGl0eSAoQm90dG9tLUxlZnQpICovfVxuICAgICAgPGdcbiAgICAgICAgY2xhc3NOYW1lPVwiZnAtcm9vbS1ncm91cFwiXG4gICAgICAgIG9uQ2xpY2s9eygpID0+IG9uU2VsZWN0Um9vbSAmJiBvblNlbGVjdFJvb20oXCJraXRjaGVuXCIpfVxuICAgICAgICBvbk1vdXNlRW50ZXI9eygpID0+IHNldEhvdmVyZWRSb29tKFwia2l0Y2hlblwiKX1cbiAgICAgICAgb25Nb3VzZUxlYXZlPXsoKSA9PiBzZXRIb3ZlcmVkUm9vbShudWxsKX1cbiAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiBcInBvaW50ZXJcIiB9fVxuICAgICAgPlxuICAgICAgICA8cmVjdFxuICAgICAgICAgIHg9XCI3MFwiXG4gICAgICAgICAgeT1cIjQ4MFwiXG4gICAgICAgICAgd2lkdGg9XCIxNTBcIlxuICAgICAgICAgIGhlaWdodD1cIjEzMFwiXG4gICAgICAgICAgZmlsbD17aG92ZXJlZFJvb20gPT09IFwia2l0Y2hlblwiID8gXCIjZmFmM2U4XCIgOiBcIiNmNGVlZTRcIn1cbiAgICAgICAgICBzdHJva2U9XCIjZTdkZmQ1XCJcbiAgICAgICAgICBzdHJva2VXaWR0aD1cIjFcIlxuICAgICAgICAvPlxuICAgICAgICB7LyogTC1Db3VudGVydG9wICovfVxuICAgICAgICA8cGF0aCBkPVwiTSA3MCA0ODAgTCAxNjAgNDgwIEwgMTYwIDUyMCBMIDExMCA1MjAgTCAxMTAgNjEwIEwgNzAgNjEwIFpcIiBmaWxsPVwiI2UyZDZjM1wiIHN0cm9rZT1cIiNiZGE4OGVcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICB7LyogRG91YmxlIFNpbmsgKi99XG4gICAgICAgIDxyZWN0IHg9XCI3NlwiIHk9XCI1MzVcIiB3aWR0aD1cIjI4XCIgaGVpZ2h0PVwiNDBcIiByeD1cIjNcIiBmaWxsPVwiI2NiZDVlMVwiIHN0cm9rZT1cIiM5NGEzYjhcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICB7LyogU3RvdmUgd2l0aCAzIGJ1cm5lcnMgKi99XG4gICAgICAgIDxyZWN0IHg9XCIxMThcIiB5PVwiNDg2XCIgd2lkdGg9XCIzNlwiIGhlaWdodD1cIjI0XCIgcng9XCIyXCIgZmlsbD1cIiMzMzQxNTVcIiAvPlxuICAgICAgICA8Y2lyY2xlIGN4PVwiMTI3XCIgY3k9XCI0OThcIiByPVwiNFwiIGZpbGw9XCIjNjQ3NDhiXCIgLz5cbiAgICAgICAgPGNpcmNsZSBjeD1cIjE0NVwiIGN5PVwiNDk4XCIgcj1cIjRcIiBmaWxsPVwiIzY0NzQ4YlwiIC8+XG5cbiAgICAgICAgPHRleHQgeD1cIjE0NVwiIHk9XCI1NjVcIiB0ZXh0QW5jaG9yPVwibWlkZGxlXCIgZmlsbD1cIiMyOTI1MjRcIiBmb250U2l6ZT1cIjEzXCIgZm9udFdlaWdodD1cIjgwMFwiPlxuICAgICAgICAgIEtJVENIRU5cbiAgICAgICAgPC90ZXh0PlxuICAgICAgICA8dGV4dCB4PVwiMTQ1XCIgeT1cIjU4MlwiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiIzc4NzE2Y1wiIGZvbnRTaXplPVwiMTAuNVwiIGZvbnRXZWlnaHQ9XCI2MDBcIj5cbiAgICAgICAgICAxMSZhcG9zOzYmcXVvdDsgw5cgOCZhcG9zOzAmcXVvdDsgKDkyIHNxIGZ0KVxuICAgICAgICA8L3RleHQ+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiA2LiBNYXN0ZXIgQmVkcm9vbSAoVG9wLVJpZ2h0KSAqL31cbiAgICAgIDxnXG4gICAgICAgIGNsYXNzTmFtZT1cImZwLXJvb20tZ3JvdXBcIlxuICAgICAgICBvbkNsaWNrPXsoKSA9PiBvblNlbGVjdFJvb20gJiYgb25TZWxlY3RSb29tKFwibWFzdGVyLWJlZFwiKX1cbiAgICAgICAgb25Nb3VzZUVudGVyPXsoKSA9PiBzZXRIb3ZlcmVkUm9vbShcIm1hc3Rlci1iZWRcIil9XG4gICAgICAgIG9uTW91c2VMZWF2ZT17KCkgPT4gc2V0SG92ZXJlZFJvb20obnVsbCl9XG4gICAgICAgIHN0eWxlPXt7IGN1cnNvcjogXCJwb2ludGVyXCIgfX1cbiAgICAgID5cbiAgICAgICAgPHJlY3RcbiAgICAgICAgICB4PVwiNjQwXCJcbiAgICAgICAgICB5PVwiNzBcIlxuICAgICAgICAgIHdpZHRoPVwiMjkwXCJcbiAgICAgICAgICBoZWlnaHQ9XCIyODBcIlxuICAgICAgICAgIGZpbGw9e2hvdmVyZWRSb29tID09PSBcIm1hc3Rlci1iZWRcIiA/IFwiI2ZkZjhlZVwiIDogXCIjZmRmYmY3XCJ9XG4gICAgICAgICAgc3Ryb2tlPVwiI2U3ZGZkNVwiXG4gICAgICAgICAgc3Ryb2tlV2lkdGg9XCIxXCJcbiAgICAgICAgLz5cbiAgICAgICAgey8qIEtpbmcgQmVkICovfVxuICAgICAgICA8cmVjdCB4PVwiNzAwXCIgeT1cIjExMFwiIHdpZHRoPVwiMTQwXCIgaGVpZ2h0PVwiMTYwXCIgcng9XCI2XCIgZmlsbD1cIiNlOWUwZDJcIiBzdHJva2U9XCIjY2JiOWEzXCIgc3Ryb2tlV2lkdGg9XCIxLjVcIiAvPlxuICAgICAgICB7LyogUGlsbG93cyAqL31cbiAgICAgICAgPHJlY3QgeD1cIjcxMFwiIHk9XCIxMThcIiB3aWR0aD1cIjU1XCIgaGVpZ2h0PVwiMzBcIiByeD1cIjRcIiBmaWxsPVwiI2Y4ZmFmY1wiIHN0cm9rZT1cIiNkNmM3YjJcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICA8cmVjdCB4PVwiNzc1XCIgeT1cIjExOFwiIHdpZHRoPVwiNTVcIiBoZWlnaHQ9XCIzMFwiIHJ4PVwiNFwiIGZpbGw9XCIjZjhmYWZjXCIgc3Ryb2tlPVwiI2Q2YzdiMlwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIHsvKiBOaWdodHN0YW5kcyAqL31cbiAgICAgICAgPHJlY3QgeD1cIjY2OFwiIHk9XCIxMTVcIiB3aWR0aD1cIjI2XCIgaGVpZ2h0PVwiMzBcIiByeD1cIjNcIiBmaWxsPVwiI2RmZDBiY1wiIHN0cm9rZT1cIiNiZGE4OGVcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICA8cmVjdCB4PVwiODQ2XCIgeT1cIjExNVwiIHdpZHRoPVwiMjZcIiBoZWlnaHQ9XCIzMFwiIHJ4PVwiM1wiIGZpbGw9XCIjZGZkMGJjXCIgc3Ryb2tlPVwiI2JkYTg4ZVwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIHsvKiBGdWxsLXdpZHRoIFdhcmRyb2JlIG9uIFJpZ2h0IFdhbGwgKi99XG4gICAgICAgIDxyZWN0IHg9XCI5MDBcIiB5PVwiOTBcIiB3aWR0aD1cIjI2XCIgaGVpZ2h0PVwiMjIwXCIgcng9XCIyXCIgZmlsbD1cIiNkNmM3YjJcIiBzdHJva2U9XCIjYTg5YTg1XCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cblxuICAgICAgICA8dGV4dCB4PVwiNzcwXCIgeT1cIjMwNVwiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiIzI5MjUyNFwiIGZvbnRTaXplPVwiMTVcIiBmb250V2VpZ2h0PVwiODAwXCI+XG4gICAgICAgICAgTUFTVEVSIEJFRFJPT01cbiAgICAgICAgPC90ZXh0PlxuICAgICAgICA8dGV4dCB4PVwiNzcwXCIgeT1cIjMyNFwiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiIzc4NzE2Y1wiIGZvbnRTaXplPVwiMTFcIiBmb250V2VpZ2h0PVwiNjAwXCI+XG4gICAgICAgICAgMTQmYXBvczs2JnF1b3Q7IMOXIDEyJmFwb3M7MCZxdW90OyAoMTc0IHNxIGZ0KVxuICAgICAgICA8L3RleHQ+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiA3LiBNYXN0ZXIgQXR0YWNoZWQgQmF0aHJvb20gKFJpZ2h0LUNlbnRlcikgKi99XG4gICAgICA8Z1xuICAgICAgICBjbGFzc05hbWU9XCJmcC1yb29tLWdyb3VwXCJcbiAgICAgICAgb25DbGljaz17KCkgPT4gb25TZWxlY3RSb29tICYmIG9uU2VsZWN0Um9vbShcImJhdGhyb29tXCIpfVxuICAgICAgICBvbk1vdXNlRW50ZXI9eygpID0+IHNldEhvdmVyZWRSb29tKFwibWFzdGVyLWJhdGhcIil9XG4gICAgICAgIG9uTW91c2VMZWF2ZT17KCkgPT4gc2V0SG92ZXJlZFJvb20obnVsbCl9XG4gICAgICAgIHN0eWxlPXt7IGN1cnNvcjogXCJwb2ludGVyXCIgfX1cbiAgICAgID5cbiAgICAgICAgPHJlY3RcbiAgICAgICAgICB4PVwiNzQwXCJcbiAgICAgICAgICB5PVwiMzUwXCJcbiAgICAgICAgICB3aWR0aD1cIjE5MFwiXG4gICAgICAgICAgaGVpZ2h0PVwiMTMwXCJcbiAgICAgICAgICBmaWxsPXtob3ZlcmVkUm9vbSA9PT0gXCJtYXN0ZXItYmF0aFwiID8gXCIjZWVmNWZiXCIgOiBcIiNmMWY2ZmFcIn1cbiAgICAgICAgICBzdHJva2U9XCIjY2JkNWUxXCJcbiAgICAgICAgICBzdHJva2VXaWR0aD1cIjFcIlxuICAgICAgICAvPlxuICAgICAgICB7LyogV2Fsay1pbiBTaG93ZXIgQ3ViaWNsZSB3aXRoIEdsYXNzIExpbmUgKi99XG4gICAgICAgIDxyZWN0IHg9XCI4NTBcIiB5PVwiMzU1XCIgd2lkdGg9XCI3NVwiIGhlaWdodD1cIjcwXCIgZmlsbD1cIiNlMGYyZmVcIiBzdHJva2U9XCIjMzhiZGY4XCIgc3Ryb2tlRGFzaGFycmF5PVwiMyAzXCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cbiAgICAgICAgPGNpcmNsZSBjeD1cIjg4N1wiIGN5PVwiMzkwXCIgcj1cIjhcIiBmaWxsPVwiIzM4YmRmOFwiIG9wYWNpdHk9XCIwLjRcIiAvPlxuICAgICAgICB7LyogV0MgQ29tbW9kZSAqL31cbiAgICAgICAgPHBhdGggZD1cIk0gNzgwIDM1NSBMIDgxMCAzNTUgTCA4MTAgMzgwIFEgNzk1IDM5NSA3ODAgMzgwIFpcIiBmaWxsPVwiI2ZmZmZmZlwiIHN0cm9rZT1cIiM5NGEzYjhcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICB7LyogVmFuaXR5IFNpbmsgKi99XG4gICAgICAgIDxyZWN0IHg9XCI3NDhcIiB5PVwiNDIwXCIgd2lkdGg9XCI1MFwiIGhlaWdodD1cIjI1XCIgcng9XCIzXCIgZmlsbD1cIiNlMmU4ZjBcIiBzdHJva2U9XCIjOTRhM2I4XCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cbiAgICAgICAgPGVsbGlwc2UgY3g9XCI3NzNcIiBjeT1cIjQzMlwiIHJ4PVwiMTRcIiByeT1cIjdcIiBmaWxsPVwiI2ZmZmZmZlwiIHN0cm9rZT1cIiM2NDc0OGJcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuXG4gICAgICAgIDx0ZXh0IHg9XCI4MTVcIiB5PVwiNDY1XCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjMzM0MTU1XCIgZm9udFNpemU9XCIxMS41XCIgZm9udFdlaWdodD1cIjcwMFwiPlxuICAgICAgICAgIEFUVEFDSEVEIEJBVEggKDgmYXBvczs2JnF1b3Q7IMOXIDUmYXBvczs2JnF1b3Q7KVxuICAgICAgICA8L3RleHQ+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiA4LiBTZWNvbmQgQmVkcm9vbSAoQm90dG9tLVJpZ2h0KSAqL31cbiAgICAgIDxnXG4gICAgICAgIGNsYXNzTmFtZT1cImZwLXJvb20tZ3JvdXBcIlxuICAgICAgICBvbkNsaWNrPXsoKSA9PiBvblNlbGVjdFJvb20gJiYgb25TZWxlY3RSb29tKFwiYmVkLTJcIil9XG4gICAgICAgIG9uTW91c2VFbnRlcj17KCkgPT4gc2V0SG92ZXJlZFJvb20oXCJiZWQtMlwiKX1cbiAgICAgICAgb25Nb3VzZUxlYXZlPXsoKSA9PiBzZXRIb3ZlcmVkUm9vbShudWxsKX1cbiAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiBcInBvaW50ZXJcIiB9fVxuICAgICAgPlxuICAgICAgICA8cmVjdFxuICAgICAgICAgIHg9XCI0NjBcIlxuICAgICAgICAgIHk9XCIzNjBcIlxuICAgICAgICAgIHdpZHRoPVwiMjgwXCJcbiAgICAgICAgICBoZWlnaHQ9XCIyNTBcIlxuICAgICAgICAgIGZpbGw9e2hvdmVyZWRSb29tID09PSBcImJlZC0yXCIgPyBcIiNmYmY1ZWNcIiA6IFwiI2ZhZjZmMFwifVxuICAgICAgICAgIHN0cm9rZT1cIiNlN2RmZDVcIlxuICAgICAgICAgIHN0cm9rZVdpZHRoPVwiMVwiXG4gICAgICAgIC8+XG4gICAgICAgIHsvKiBRdWVlbiBCZWQgKi99XG4gICAgICAgIDxyZWN0IHg9XCI1MjBcIiB5PVwiNDQwXCIgd2lkdGg9XCIxMjBcIiBoZWlnaHQ9XCIxNDVcIiByeD1cIjVcIiBmaWxsPVwiI2U5ZTBkMlwiIHN0cm9rZT1cIiNjYmI5YTNcIiBzdHJva2VXaWR0aD1cIjEuNVwiIC8+XG4gICAgICAgIDxyZWN0IHg9XCI1MzBcIiB5PVwiNDQ4XCIgd2lkdGg9XCI0NVwiIGhlaWdodD1cIjI1XCIgcng9XCIzXCIgZmlsbD1cIiNmOGZhZmNcIiBzdHJva2U9XCIjZDZjN2IyXCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cbiAgICAgICAgPHJlY3QgeD1cIjU4NVwiIHk9XCI0NDhcIiB3aWR0aD1cIjQ1XCIgaGVpZ2h0PVwiMjVcIiByeD1cIjNcIiBmaWxsPVwiI2Y4ZmFmY1wiIHN0cm9rZT1cIiNkNmM3YjJcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICB7LyogU3R1ZHkgRGVzayB3aXRoIExhcHRvcCAqL31cbiAgICAgICAgPHJlY3QgeD1cIjY2MFwiIHk9XCIzNzVcIiB3aWR0aD1cIjY1XCIgaGVpZ2h0PVwiMzVcIiByeD1cIjJcIiBmaWxsPVwiI2RmZDBiY1wiIHN0cm9rZT1cIiNiZGE4OGVcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICB7LyogV2FyZHJvYmUgKi99XG4gICAgICAgIDxyZWN0IHg9XCI0NzBcIiB5PVwiMzc1XCIgd2lkdGg9XCI0MFwiIGhlaWdodD1cIjkwXCIgcng9XCIyXCIgZmlsbD1cIiNkNmM3YjJcIiBzdHJva2U9XCIjYTg5YTg1XCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cblxuICAgICAgICA8dGV4dCB4PVwiNjAwXCIgeT1cIjQxNVwiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiIzI5MjUyNFwiIGZvbnRTaXplPVwiMTRcIiBmb250V2VpZ2h0PVwiODAwXCI+XG4gICAgICAgICAgU0VDT05EIEJFRFJPT01cbiAgICAgICAgPC90ZXh0PlxuICAgICAgICA8dGV4dCB4PVwiNjAwXCIgeT1cIjQzM1wiIHRleHRBbmNob3I9XCJtaWRkbGVcIiBmaWxsPVwiIzc4NzE2Y1wiIGZvbnRTaXplPVwiMTFcIiBmb250V2VpZ2h0PVwiNjAwXCI+XG4gICAgICAgICAgMTImYXBvczswJnF1b3Q7IMOXIDExJmFwb3M7MCZxdW90OyAoMTMyIHNxIGZ0KVxuICAgICAgICA8L3RleHQ+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiA5LiBDb21tb24gQmF0aHJvb20gKEJvdHRvbS1DZW50ZXIpICovfVxuICAgICAgPGdcbiAgICAgICAgY2xhc3NOYW1lPVwiZnAtcm9vbS1ncm91cFwiXG4gICAgICAgIG9uQ2xpY2s9eygpID0+IG9uU2VsZWN0Um9vbSAmJiBvblNlbGVjdFJvb20oXCJiYXRocm9vbVwiKX1cbiAgICAgICAgb25Nb3VzZUVudGVyPXsoKSA9PiBzZXRIb3ZlcmVkUm9vbShcImNvbW1vbi1iYXRoXCIpfVxuICAgICAgICBvbk1vdXNlTGVhdmU9eygpID0+IHNldEhvdmVyZWRSb29tKG51bGwpfVxuICAgICAgICBzdHlsZT17eyBjdXJzb3I6IFwicG9pbnRlclwiIH19XG4gICAgICA+XG4gICAgICAgIDxyZWN0XG4gICAgICAgICAgeD1cIjc0MFwiXG4gICAgICAgICAgeT1cIjQ4MFwiXG4gICAgICAgICAgd2lkdGg9XCIxOTBcIlxuICAgICAgICAgIGhlaWdodD1cIjEzMFwiXG4gICAgICAgICAgZmlsbD17aG92ZXJlZFJvb20gPT09IFwiY29tbW9uLWJhdGhcIiA/IFwiI2VlZjVmYlwiIDogXCIjZjFmNmZhXCJ9XG4gICAgICAgICAgc3Ryb2tlPVwiI2NiZDVlMVwiXG4gICAgICAgICAgc3Ryb2tlV2lkdGg9XCIxXCJcbiAgICAgICAgLz5cbiAgICAgICAgPHJlY3QgeD1cIjg1MFwiIHk9XCI1MzVcIiB3aWR0aD1cIjc1XCIgaGVpZ2h0PVwiNzBcIiBmaWxsPVwiI2UwZjJmZVwiIHN0cm9rZT1cIiMzOGJkZjhcIiBzdHJva2VEYXNoYXJyYXk9XCIzIDNcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuICAgICAgICA8cGF0aCBkPVwiTSA3ODAgNTc1IEwgODEwIDU3NSBMIDgxMCA1NTAgUSA3OTUgNTM1IDc4MCA1NTAgWlwiIGZpbGw9XCIjZmZmZmZmXCIgc3Ryb2tlPVwiIzk0YTNiOFwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIDxyZWN0IHg9XCI3NDhcIiB5PVwiNDkwXCIgd2lkdGg9XCI1MFwiIGhlaWdodD1cIjI1XCIgcng9XCIzXCIgZmlsbD1cIiNlMmU4ZjBcIiBzdHJva2U9XCIjOTRhM2I4XCIgc3Ryb2tlV2lkdGg9XCIxXCIgLz5cbiAgICAgICAgPGVsbGlwc2UgY3g9XCI3NzNcIiBjeT1cIjUwMlwiIHJ4PVwiMTRcIiByeT1cIjdcIiBmaWxsPVwiI2ZmZmZmZlwiIHN0cm9rZT1cIiM2NDc0OGJcIiBzdHJva2VXaWR0aD1cIjFcIiAvPlxuXG4gICAgICAgIDx0ZXh0IHg9XCI4MzVcIiB5PVwiNTI1XCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjMzM0MTU1XCIgZm9udFNpemU9XCIxMS41XCIgZm9udFdlaWdodD1cIjcwMFwiPlxuICAgICAgICAgIENPTU1PTiBCQVRIICg4JmFwb3M7MCZxdW90OyDDlyA1JmFwb3M7MCZxdW90OylcbiAgICAgICAgPC90ZXh0PlxuICAgICAgPC9nPlxuXG4gICAgICB7LyogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0gKi99XG4gICAgICB7LyogVEhJQ0sgU1RSVUNUVVJBTCBXQUxMUyAmIERPT1JXQVlTIChBUkNISVRFQ1RVUkFMIEJMQUNLKSAgICAgICAgICAgKi99XG4gICAgICB7LyogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0gKi99XG4gICAgICA8ZyBzdHJva2U9XCIjMjkyNTI0XCIgc3Ryb2tlV2lkdGg9XCI4XCIgc3Ryb2tlTGluZWNhcD1cInNxdWFyZVwiIGZpbGw9XCJub25lXCI+XG4gICAgICAgIHsvKiBFeHRlcmlvciBCb3VuZGFyeSBXYWxscyAqL31cbiAgICAgICAgPHBvbHlsaW5lIHBvaW50cz1cIjcwLDYwIDkzMCw2MCA5MzAsNjEwIDcwLDYxMCA3MCw2MFwiIC8+XG5cbiAgICAgICAgey8qIEludGVyaW9yIERpdmlkaW5nIFdhbGxzICovfVxuICAgICAgICA8bGluZSB4MT1cIjIyMFwiIHkxPVwiNjBcIiB4Mj1cIjIyMFwiIHkyPVwiMjEwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCIyMjBcIiB5MT1cIjIxMFwiIHgyPVwiNzBcIiB5Mj1cIjIxMFwiIC8+XG4gICAgICAgIDxsaW5lIHgxPVwiMjIwXCIgeTE9XCI0ODBcIiB4Mj1cIjcwXCIgeTI9XCI0ODBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjY0MFwiIHkxPVwiNjBcIiB4Mj1cIjY0MFwiIHkyPVwiMzUwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI2NDBcIiB5MT1cIjM1MFwiIHgyPVwiOTMwXCIgeTI9XCIzNTBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjQ2MFwiIHkxPVwiMzYwXCIgeDI9XCI0NjBcIiB5Mj1cIjYxMFwiIC8+XG4gICAgICAgIDxsaW5lIHgxPVwiNzQwXCIgeTE9XCIzNTBcIiB4Mj1cIjc0MFwiIHkyPVwiNjEwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI3NDBcIiB5MT1cIjQ4MFwiIHgyPVwiOTMwXCIgeTI9XCI0ODBcIiAvPlxuICAgICAgICA8bGluZSB4MT1cIjIyMFwiIHkxPVwiMzYwXCIgeDI9XCI0NjBcIiB5Mj1cIjM2MFwiIC8+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiBXaW5kb3cgU3ltYm9scyAoQmx1ZSBHbGFzcyBMYXllcikgKi99XG4gICAgICA8ZyBzdHJva2U9XCIjMzhiZGY4XCIgc3Ryb2tlV2lkdGg9XCI0XCIgc3Ryb2tlTGluZWNhcD1cInJvdW5kXCI+XG4gICAgICAgIHsvKiBMaXZpbmcgUm9vbSBMYXJnZSBEb3VibGUgV2luZG93ICovfVxuICAgICAgICA8bGluZSB4MT1cIjQ2MFwiIHkxPVwiNjBcIiB4Mj1cIjU4MFwiIHkyPVwiNjBcIiAvPlxuICAgICAgICB7LyogTWFzdGVyIEJlZHJvb20gV2luZG93ICovfVxuICAgICAgICA8bGluZSB4MT1cIjc0MFwiIHkxPVwiNjBcIiB4Mj1cIjg2MFwiIHkyPVwiNjBcIiAvPlxuICAgICAgICB7LyogQmFsY29ueSBSYWlsaW5nIFdpbmRvdyBBY2Nlc3MgKi99XG4gICAgICAgIDxsaW5lIHgxPVwiNzBcIiB5MT1cIjI1MFwiIHgyPVwiNzBcIiB5Mj1cIjQxMFwiIHN0cm9rZT1cIiMwMjg0YzdcIiBzdHJva2VXaWR0aD1cIjNcIiBzdHJva2VEYXNoYXJyYXk9XCI2IDRcIiAvPlxuICAgICAgICB7LyogU2Vjb25kIEJlZHJvb20gV2luZG93ICovfVxuICAgICAgICA8bGluZSB4MT1cIjU2MFwiIHkxPVwiNjEwXCIgeDI9XCI2ODBcIiB5Mj1cIjYxMFwiIC8+XG4gICAgICAgIHsvKiBLaXRjaGVuIFdpbmRvdyAqL31cbiAgICAgICAgPGxpbmUgeDE9XCI3MFwiIHkxPVwiNTIwXCIgeDI9XCI3MFwiIHkyPVwiNTgwXCIgLz5cbiAgICAgIDwvZz5cblxuICAgICAgey8qIERvb3IgU3dpbmcgQXJjcyAoVGhpbiBkYXNoZWQgbGluZXMgaW5kaWNhdGluZyBhcmNoaXRlY3R1cmFsIHN3aW5nKSAqL31cbiAgICAgIDxnIHN0cm9rZT1cIiNhOGEyOWVcIiBzdHJva2VXaWR0aD1cIjEuNVwiIHN0cm9rZURhc2hhcnJheT1cIjMgM1wiIGZpbGw9XCJub25lXCI+XG4gICAgICAgIHsvKiBNYWluIEVudHJhbmNlIERvb3IgQXJjICovfVxuICAgICAgICA8cGF0aCBkPVwiTSAxMjAgNjAgQSA1MCA1MCAwIDAgMSAxNzAgMTEwXCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCIxMjBcIiB5MT1cIjYwXCIgeDI9XCIxNzBcIiB5Mj1cIjYwXCIgc3Ryb2tlPVwiIzI5MjUyNFwiIHN0cm9rZVdpZHRoPVwiMi41XCIgLz5cblxuICAgICAgICB7LyogTWFzdGVyIEJlZHJvb20gRG9vciBBcmMgKi99XG4gICAgICAgIDxwYXRoIGQ9XCJNIDY0MCAyODAgQSA0NSA0NSAwIDAgMSA2ODUgMzI1XCIgLz5cbiAgICAgICAgPGxpbmUgeDE9XCI2NDBcIiB5MT1cIjI4MFwiIHgyPVwiNjQwXCIgeTI9XCIzMjVcIiBzdHJva2U9XCIjMjkyNTI0XCIgc3Ryb2tlV2lkdGg9XCIyLjVcIiAvPlxuXG4gICAgICAgIHsvKiBNYXN0ZXIgQmF0aCBEb29yIEFyYyAqL31cbiAgICAgICAgPHBhdGggZD1cIk0gNzQwIDM3MCBBIDM1IDM1IDAgMCAxIDc3NSA0MDVcIiAvPlxuXG4gICAgICAgIHsvKiBTZWNvbmQgQmVkcm9vbSBEb29yIEFyYyAqL31cbiAgICAgICAgPHBhdGggZD1cIk0gNDYwIDM4MCBBIDQwIDQwIDAgMCAxIDUwMCA0MjBcIiAvPlxuXG4gICAgICAgIHsvKiBDb21tb24gQmF0aCBEb29yIEFyYyAqL31cbiAgICAgICAgPHBhdGggZD1cIk0gNzQwIDUwMCBBIDM1IDM1IDAgMCAxIDc3NSA1MzVcIiAvPlxuXG4gICAgICAgIHsvKiBCYWxjb255IFNsaWRpbmcgRG9vcnMgKERvdWJsZSBwYXJhbGxlbCBsaW5lcykgKi99XG4gICAgICAgIDxsaW5lIHgxPVwiMjIwXCIgeTE9XCIyMzBcIiB4Mj1cIjIyMFwiIHkyPVwiMzEwXCIgc3Ryb2tlPVwiIzAyODRjN1wiIHN0cm9rZVdpZHRoPVwiM1wiIC8+XG4gICAgICA8L2c+XG5cbiAgICAgIHsvKiA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSAqL31cbiAgICAgIHsvKiBBUkNISVRFQ1RVUkFMIENPTVBBU1MgUk9TRSAoTk9SVEggQVJST1cpICAgICAgICAgICAgICAgICAgICAgICAgICAqL31cbiAgICAgIHsvKiA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSAqL31cbiAgICAgIDxnIHRyYW5zZm9ybT1cInRyYW5zbGF0ZSg5MDAsIDExMClcIj5cbiAgICAgICAgPGNpcmNsZSBjeD1cIjBcIiBjeT1cIjBcIiByPVwiMjRcIiBmaWxsPVwiI2ZmZmZmZlwiIHN0cm9rZT1cIiNjYmQ1ZTFcIiBzdHJva2VXaWR0aD1cIjEuNVwiIC8+XG4gICAgICAgIHsvKiBOb3J0aCBQb2ludGVyICovfVxuICAgICAgICA8cG9seWdvbiBwb2ludHM9XCIwLC0yMCA2LDAgMCwtNCAtNiwwXCIgZmlsbD1cIiNkYzI2MjZcIiAvPlxuICAgICAgICA8cG9seWdvbiBwb2ludHM9XCIwLDIwIDYsMCAwLDQgLTYsMFwiIGZpbGw9XCIjNDc1NTY5XCIgLz5cbiAgICAgICAgPHRleHQgeD1cIjBcIiB5PVwiLTIzXCIgdGV4dEFuY2hvcj1cIm1pZGRsZVwiIGZpbGw9XCIjZGMyNjI2XCIgZm9udFNpemU9XCIxMVwiIGZvbnRXZWlnaHQ9XCI4MDBcIj5cbiAgICAgICAgICBOXG4gICAgICAgIDwvdGV4dD5cbiAgICAgIDwvZz5cblxuICAgICAgey8qID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09ICovfVxuICAgICAgey8qIFRJVExFIEJMT0NLICYgU0NBTEUgQkFOTkVSIChNQU5EQVRPUlkgREVNTyBESVNDTEFJTUVSKSAgICAgICAgICAgICAqL31cbiAgICAgIHsvKiA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSAqL31cbiAgICAgIDxnIHRyYW5zZm9ybT1cInRyYW5zbGF0ZSg2MCwgNjI1KVwiPlxuICAgICAgICA8cmVjdCB4PVwiMFwiIHk9XCIwXCIgd2lkdGg9XCI4ODBcIiBoZWlnaHQ9XCI0MFwiIHJ4PVwiNlwiIGZpbGw9XCIjZjVmMGU4XCIgc3Ryb2tlPVwiI2U3ZGZkNVwiIHN0cm9rZVdpZHRoPVwiMVwiIC8+XG4gICAgICAgIDx0ZXh0IHg9XCIyMFwiIHk9XCIyNFwiIGZpbGw9XCIjMjkyNTI0XCIgZm9udFNpemU9XCIxM1wiIGZvbnRXZWlnaHQ9XCI4MDBcIiBsZXR0ZXJTcGFjaW5nPVwiMC4wMmVtXCI+XG4gICAgICAgICAgVEhFIEFVUkVMSUEg4oCTIFBSRU1JVU0gMkJISyBSRVNJREVOQ0VcbiAgICAgICAgPC90ZXh0PlxuICAgICAgICA8dGV4dCB4PVwiMzUwXCIgeT1cIjI0XCIgZmlsbD1cIiM3ODcxNmNcIiBmb250U2l6ZT1cIjEyXCIgZm9udFdlaWdodD1cIjYwMFwiPlxuICAgICAgICAgIDEsMzUwIFNRRlQgU1VQRVIgQlVJTFQtVVAgfCAxLDA1MCBTUUZUIENBUlBFVFxuICAgICAgICA8L3RleHQ+XG4gICAgICAgIHsvKiBNYW5kYXRvcnkgTGFiZWwgZnJvbSB1c2VyIHJlcXVpcmVtZW50cyAqL31cbiAgICAgICAgPHRleHQgeD1cIjg2MFwiIHk9XCIyNFwiIHRleHRBbmNob3I9XCJlbmRcIiBmaWxsPVwiI2I0NTMwOVwiIGZvbnRTaXplPVwiMTFcIiBmb250V2VpZ2h0PVwiNzAwXCI+XG4gICAgICAgICAg4pqg77iPIElMTFVTVFJBVElWRSBERU1PIEZMT09SIFBMQU4g4oCTIE5PVCBUTyBTQ0FMRVxuICAgICAgICA8L3RleHQ+XG4gICAgICA8L2c+XG4gICAgPC9zdmc+XG4gICk7XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT1cInNob3djYXNlLWZwLWNhcmRcIj5cbiAgICAgIDxkaXZcbiAgICAgICAgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtdmlld3BvcnRcIlxuICAgICAgICBzdHlsZT17eyBjdXJzb3I6IFwiem9vbS1pblwiLCBiYWNrZ3JvdW5kOiBcIiNmY2ZiZmFcIiwgcG9zaXRpb246IFwicmVsYXRpdmVcIiB9fVxuICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRJc0Z1bGxzY3JlZW4odHJ1ZSl9XG4gICAgICAgIHRpdGxlPVwiQ2xpY2sgdG8gZXhwYW5kIGZ1bGxzY3JlZW4gZmxvb3IgcGxhblwiXG4gICAgICA+XG4gICAgICAgIHtyZW5kZXJTVkcoKX1cblxuICAgICAgICB7LyogSW50ZXJhY3RpdmUgRmxvYXRpbmcgQWN0aW9uIENvbnRyb2xzICovfVxuICAgICAgICA8ZGl2XG4gICAgICAgICAgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtY29udHJvbHNcIlxuICAgICAgICAgIG9uQ2xpY2s9eyhlKSA9PiBlLnN0b3BQcm9wYWdhdGlvbigpfVxuICAgICAgICAgIHN0eWxlPXt7XG4gICAgICAgICAgICBwb3NpdGlvbjogXCJhYnNvbHV0ZVwiLFxuICAgICAgICAgICAgdG9wOiAxNCxcbiAgICAgICAgICAgIHJpZ2h0OiAxNCxcbiAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxuICAgICAgICAgICAgZ2FwOiA2LFxuICAgICAgICAgICAgYmFja2dyb3VuZDogXCJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuOTUpXCIsXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjRweCA4cHhcIixcbiAgICAgICAgICAgIGJvcmRlclJhZGl1czogOCxcbiAgICAgICAgICAgIGJvcmRlcjogXCIxcHggc29saWQgI2U3ZGZkNVwiLFxuICAgICAgICAgICAgYm94U2hhZG93OiBcIjAgMnB4IDhweCByZ2JhKDAsMCwwLDAuMDgpXCIsXG4gICAgICAgICAgICB6SW5kZXg6IDEwLFxuICAgICAgICAgIH19XG4gICAgICAgID5cbiAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgIGNsYXNzTmFtZT1cInNob3djYXNlLWZwLWN0cmwtYnRuXCJcbiAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZVpvb21Jbn1cbiAgICAgICAgICAgIHRpdGxlPVwiWm9vbSBJbiAoKylcIlxuICAgICAgICAgID5cbiAgICAgICAgICAgIPCflI0rXG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJzaG93Y2FzZS1mcC1jdHJsLWJ0blwiXG4gICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVab29tT3V0fVxuICAgICAgICAgICAgdGl0bGU9XCJab29tIE91dCAoLSlcIlxuICAgICAgICAgID5cbiAgICAgICAgICAgIPCflI0tXG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJzaG93Y2FzZS1mcC1jdHJsLWJ0blwiXG4gICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVSZXNldFpvb219XG4gICAgICAgICAgICB0aXRsZT1cIlJlc2V0IFpvb20gKDEwMCUpXCJcbiAgICAgICAgICA+XG4gICAgICAgICAgICDihrpcbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgIGNsYXNzTmFtZT1cInNob3djYXNlLWZwLWN0cmwtYnRuXCJcbiAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZURvd25sb2FkU1ZHfVxuICAgICAgICAgICAgdGl0bGU9XCJEb3dubG9hZCBGbG9vciBQbGFuIChTVkcpXCJcbiAgICAgICAgICAgIHN0eWxlPXt7IGNvbG9yOiBcIiMwMjg0YzdcIiB9fVxuICAgICAgICAgID5cbiAgICAgICAgICAgIOKsh++4jyBEb3dubG9hZFxuICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgIDxidXR0b25cbiAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtY3RybC1idG5cIlxuICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0SXNGdWxsc2NyZWVuKHRydWUpfVxuICAgICAgICAgICAgdGl0bGU9XCJGdWxsc2NyZWVuIE1vZGFsIFZpZXdcIlxuICAgICAgICAgID5cbiAgICAgICAgICAgIOKbtlxuICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICB7LyogUm9vbSBEaW1lbnNpb25zICYgQXJjaGl0ZWN0dXJhbCBTcGVjaWZpY2F0aW9uIEJyZWFrZG93biAqL31cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtc3BlY3MtdGFibGVcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzaG93Y2FzZS1mcC1zcGVjLWl0ZW1cIj5cbiAgICAgICAgICA8c3Bhbj5MaXZpbmcgSGFsbDwvc3Bhbj5cbiAgICAgICAgICA8c3Ryb25nPjE4JmFwb3M7MCZxdW90OyDDlyAxMyZhcG9zOzYmcXVvdDsgKDI0MyBzcWZ0KTwvc3Ryb25nPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzaG93Y2FzZS1mcC1zcGVjLWl0ZW1cIj5cbiAgICAgICAgICA8c3Bhbj5NYXN0ZXIgU3VpdGU8L3NwYW4+XG4gICAgICAgICAgPHN0cm9uZz4xNCZhcG9zOzYmcXVvdDsgw5cgMTImYXBvczswJnF1b3Q7ICgxNzQgc3FmdCk8L3N0cm9uZz5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtc3BlYy1pdGVtXCI+XG4gICAgICAgICAgPHNwYW4+U2Vjb25kIEJlZHJvb208L3NwYW4+XG4gICAgICAgICAgPHN0cm9uZz4xMiZhcG9zOzAmcXVvdDsgw5cgMTEmYXBvczswJnF1b3Q7ICgxMzIgc3FmdCk8L3N0cm9uZz5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2hvd2Nhc2UtZnAtc3BlYy1pdGVtXCI+XG4gICAgICAgICAgPHNwYW4+S2l0Y2hlbiAmYW1wOyBVdGlsaXR5PC9zcGFuPlxuICAgICAgICAgIDxzdHJvbmc+MTEmYXBvczs2JnF1b3Q7IMOXIDgmYXBvczswJnF1b3Q7ICg5MiBzcWZ0KTwvc3Ryb25nPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzaG93Y2FzZS1mcC1zcGVjLWl0ZW1cIj5cbiAgICAgICAgICA8c3Bhbj5EaW5pbmcgJmFtcDsgQmFsY29ueTwvc3Bhbj5cbiAgICAgICAgICA8c3Ryb25nPjE2OCBzcWZ0IENvbWJpbmVkPC9zdHJvbmc+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNob3djYXNlLWZwLXNwZWMtaXRlbVwiPlxuICAgICAgICAgIDxzcGFuPkNhcnBldCBFZmZpY2llbmN5PC9zcGFuPlxuICAgICAgICAgIDxzdHJvbmc+NzglICgxLDA1MCBzcWZ0IFVzYWJsZSk8L3N0cm9uZz5cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L2Rpdj5cblxuICAgICAgey8qIEZ1bGxzY3JlZW4gSW50ZXJhY3RpdmUgTW9kYWwgKi99XG4gICAgICB7aXNGdWxsc2NyZWVuICYmIChcbiAgICAgICAgPGRpdlxuICAgICAgICAgIGNsYXNzTmFtZT1cInNob3djYXNlLWxpZ2h0Ym94LWJhY2tkcm9wXCJcbiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRJc0Z1bGxzY3JlZW4oZmFsc2UpfVxuICAgICAgICAgIHN0eWxlPXt7IHpJbmRleDogOTk5OTk5IH19XG4gICAgICAgID5cbiAgICAgICAgICA8ZGl2XG4gICAgICAgICAgICBjbGFzc05hbWU9XCJzaG93Y2FzZS1saWdodGJveC1oZWFkZXJcIlxuICAgICAgICAgICAgb25DbGljaz17KGUpID0+IGUuc3RvcFByb3BhZ2F0aW9uKCl9XG4gICAgICAgICAgICBzdHlsZT17eyBiYWNrZ3JvdW5kOiBcIiMyOTI1MjRcIiwgY29sb3I6IFwiI2ZkZmJmN1wiIH19XG4gICAgICAgICAgPlxuICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFdlaWdodDogODAwLCBmb250U2l6ZTogMTYgfX0+XG4gICAgICAgICAgICAgICAg8J+TkCBUaGUgQXVyZWxpYSAyQkhLIEFyY2hpdGVjdHVyYWwgRmxvb3IgUGxhblxuICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOiAxMiwgbWFyZ2luTGVmdDogMTIsIGNvbG9yOiBcIiNmZGU2OGFcIiB9fT5cbiAgICAgICAgICAgICAgICAoSWxsdXN0cmF0aXZlIERlbW8gQmx1ZXByaW50IOKAkyBOb3QgdG8gU2NhbGUpXG4gICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiAxMCwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiB9fT5cbiAgICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cInNob3djYXNlLWFjdGlvbi1idG5cIlxuICAgICAgICAgICAgICAgIHN0eWxlPXt7IHBhZGRpbmc6IFwiNnB4IDEycHhcIiwgZm9udFNpemU6IDEyIH19XG4gICAgICAgICAgICAgICAgb25DbGljaz17aGFuZGxlRG93bmxvYWRTVkd9XG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICDirIfvuI8gRG93bmxvYWQgU1ZHXG4gICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwibGlnaHRib3gtY2xvc2UtYnRuXCJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRJc0Z1bGxzY3JlZW4oZmFsc2UpfVxuICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAg4pyVXG4gICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICA8ZGl2XG4gICAgICAgICAgICBjbGFzc05hbWU9XCJzaG93Y2FzZS1saWdodGJveC1zdGFnZVwiXG4gICAgICAgICAgICBvbkNsaWNrPXsoZSkgPT4gZS5zdG9wUHJvcGFnYXRpb24oKX1cbiAgICAgICAgICAgIHN0eWxlPXt7IGJhY2tncm91bmQ6IFwiI2ZjZmJmYVwiLCBwYWRkaW5nOiAyMCB9fVxuICAgICAgICAgID5cbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWF4V2lkdGg6IFwiOTB2d1wiLCBtYXhIZWlnaHQ6IFwiODJ2aFwiLCB3aWR0aDogXCIxMDAlXCIsIGhlaWdodDogXCIxMDAlXCIgfX0+XG4gICAgICAgICAgICAgIHtyZW5kZXJTVkcoKX1cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L2Rpdj5cbiAgICAgICl9XG4gICAgPC9kaXY+XG4gICk7XG59XG4iXSwiZmlsZSI6IkM6L1VzZXJzL1NpdmEvRG93bmxvYWRzL1Byb3BDb25uZWN0L2Zyb250ZW5kL3NyYy9jb21wb25lbnRzL3Nob3djYXNlL1RoZUF1cmVsaWFGbG9vclBsYW4uanN4In0=

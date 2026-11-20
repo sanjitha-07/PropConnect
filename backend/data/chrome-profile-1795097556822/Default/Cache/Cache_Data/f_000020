@@ -1,0 +1,1520 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/shared/HomeServicesPortal.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=1e3aa71c"; const useState = __vite__cjsImport3_react["useState"]; const useEffect = __vite__cjsImport3_react["useEffect"]; const useContext = __vite__cjsImport3_react["useContext"];
+import { useNavigate } from "/node_modules/.vite/deps/react-router-dom.js?v=1e3aa71c";
+import { AuthContext } from "/src/context/AuthContext.jsx";
+import { SettingsContext } from "/src/context/SettingsContext.jsx";
+import PageHero from "/src/components/PageHero.jsx";
+import {
+  fetchServiceCategories,
+  fetchProviderAvailability,
+  createServiceBooking,
+  fetchProperties,
+  fetchTenants
+} from "/src/utils/apiClient.js";
+import "/src/components/services/HomeServicesStyles.css";
+export default function HomeServicesPortal() {
+  _s();
+  const { user } = useContext(AuthContext);
+  const { t, formatCurrency } = useContext(SettingsContext);
+  const navigate = useNavigate();
+  const userRole = user?.role || "tenant";
+  const userId = user?.entityId || user?.entity_id || user?.id || (userRole === "landlord" ? "LDL001" : "TEN001");
+  const [categories, setCategories] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedService, setSelectedService] = useState("");
+  const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    return "2026-10-10";
+  });
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("10:00 AM");
+  const [availabilityData, setAvailabilityData] = useState({
+    providers: [],
+    totalAvailable: 0,
+    totalBooked: 0
+  });
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [toast, setToast] = useState(null);
+  const TIME_SLOTS = [
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "02:00 PM",
+    "03:00 PM",
+    "04:00 PM",
+    "05:00 PM"
+  ];
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4e3);
+  };
+  useEffect(() => {
+    async function loadInitial() {
+      try {
+        const [cats, propsList] = await Promise.all(
+          [
+            fetchServiceCategories(),
+            fetchProperties()
+          ]
+        );
+        setCategories(cats || []);
+        if (cats && cats.length > 0) {
+          const cleaningCat = cats.find((c) => c.name.toLowerCase().includes("cleaning")) || cats[0];
+          setSelectedCategory(cleaningCat);
+          if (cleaningCat.services && cleaningCat.services.length > 0) {
+            setSelectedService(cleaningCat.services[0]);
+          }
+        }
+        const validProps = propsList || [];
+        setProperties(validProps);
+        if (userRole === "landlord") {
+          const landlordProps = validProps.filter(
+            (p) => p.landlordId === userId || p.landlord_id === userId
+          );
+          if (landlordProps.length > 0) {
+            setSelectedPropertyId(landlordProps[0].id);
+          } else if (validProps.length > 0) {
+            setSelectedPropertyId(validProps[0].id);
+          }
+        } else if (userRole === "tenant") {
+          setSelectedPropertyId("TN101");
+        }
+      } catch (err) {
+        console.error("Initial load error:", err);
+      }
+    }
+    loadInitial();
+  }, [userRole, userId]);
+  useEffect(() => {
+    if (!selectedCategory || !selectedDate || !selectedTimeSlot) return;
+    let isMounted = true;
+    async function checkAvailability() {
+      setLoadingAvailability(true);
+      setErrorMessage("");
+      try {
+        const res = await fetchProviderAvailability(
+          selectedCategory.name,
+          selectedDate,
+          selectedTimeSlot
+        );
+        if (isMounted) {
+          setAvailabilityData(res || { providers: [], totalAvailable: 0, totalBooked: 0 });
+          if (selectedProvider) {
+            const stillAvail = res?.providers?.find(
+              (p) => p.id === selectedProvider.id && p.isAvailable
+            );
+            if (!stillAvail) {
+              setSelectedProvider(null);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Check availability error:", err);
+      } finally {
+        if (isMounted) setLoadingAvailability(false);
+      }
+    }
+    checkAvailability();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCategory, selectedDate, selectedTimeSlot]);
+  const handleSelectCategory = (cat) => {
+    setSelectedCategory(cat);
+    if (cat.services && cat.services.length > 0) {
+      setSelectedService(cat.services[0]);
+    } else {
+      setSelectedService("");
+    }
+    setSelectedProvider(null);
+  };
+  const handleSelectProvider = (prov) => {
+    if (!prov.isAvailable) {
+      showToast(`⚠️ ${prov.name} is already booked for ${selectedDate} at ${selectedTimeSlot}. Please select an available provider.`);
+      return;
+    }
+    setSelectedProvider(prov);
+  };
+  const handleConfirmBooking = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
+    if (!selectedCategory) {
+      setErrorMessage("Please select a service category.");
+      return;
+    }
+    if (!selectedProvider) {
+      setErrorMessage("Please select an available service provider.");
+      return;
+    }
+    if (!selectedDate || !selectedTimeSlot) {
+      setErrorMessage("Please select both a date and a time slot.");
+      return;
+    }
+    const selectedProp = properties.find((p) => p.id === selectedPropertyId);
+    const propName = selectedProp?.name || "Sai Kala Apartments - Flat 302";
+    const propUnit = selectedProp?.unit || "Flat B-204";
+    const bookingPayload = {
+      serviceCategory: selectedCategory.name,
+      serviceName: selectedService || `${selectedCategory.name} Service`,
+      serviceDescription: description || selectedService || "Standard home maintenance request",
+      providerId: selectedProvider.id,
+      date: selectedDate,
+      timeSlot: selectedTimeSlot,
+      propertyId: selectedPropertyId || "TN101",
+      propertyName: propName,
+      unit: propUnit,
+      notes,
+      amount: selectedProvider.price || selectedCategory.basePrice || 499,
+      userRole
+    };
+    setSubmitting(true);
+    try {
+      const created = await createServiceBooking(bookingPayload);
+      setBookingSuccess(created);
+      showToast(`✅ Booking ${created.bookingNumber || created.id} confirmed successfully!`);
+      const updatedAvail = await fetchProviderAvailability(
+        selectedCategory.name,
+        selectedDate,
+        selectedTimeSlot
+      );
+      setAvailabilityData(updatedAvail);
+    } catch (err) {
+      console.error("Booking error:", err);
+      setErrorMessage(
+        err.message || "Double Booking Prevented! This provider was just booked for this slot. Please choose another available provider."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const currentProp = properties.find((p) => p.id === selectedPropertyId);
+  return /* @__PURE__ */ jsxDEV("div", { className: "home-services-container", children: [
+    toast && /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        style: {
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          background: "#0f172a",
+          color: "#ffffff",
+          padding: "14px 22px",
+          borderRadius: 12,
+          zIndex: 1e4,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+          fontSize: 13.5,
+          fontWeight: 600
+        },
+        children: toast
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 261,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV(
+      PageHero,
+      {
+        title: "PropConnect — Home Service Portal",
+        subtitle: userRole === "tenant" ? "Directly book verified on-demand home maintenance technicians for your rental flat, or escalate major property complaints to your landlord." : "Arrange verified cleaning, plumbing, electrical, carpentry, AC repair, and maintenance services across all your managed properties."
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 281,
+        columnNumber: 7
+      },
+      this
+    ),
+    userRole === "tenant" && /* @__PURE__ */ jsxDEV("div", { className: "problem-choice-banner", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "problem-choice-left", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "problem-choice-icon", children: "🛠️" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 294,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("h3", { className: "problem-choice-title", children: "Have a Problem in Your Flat?" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 296,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "problem-choice-subtitle", children: [
+            "For ",
+            /* @__PURE__ */ jsxDEV("strong", { children: "minor & common repairs" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 298,
+              columnNumber: 21
+            }, this),
+            " (cleaning, leakages, switch repairs, AC issues), book a verified home service below. For ",
+            /* @__PURE__ */ jsxDEV("strong", { children: "major landlord responsibilities" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 299,
+              columnNumber: 21
+            }, this),
+            " (seepage, structural issues, agreement terms), raise a formal complaint."
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 297,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 295,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 293,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "problem-choice-actions", children: [
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn-choice-complaint",
+            onClick: () => navigate("/tenant/complaints"),
+            children: "📝 Raise Complaint to Landlord"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 304,
+            columnNumber: 13
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn-choice-service",
+            onClick: () => {
+              document.getElementById("booking-workflow-section")?.scrollIntoView({ behavior: "smooth" });
+            },
+            children: "⚡ Book Home Service"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 311,
+            columnNumber: 13
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 303,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+      lineNumber: 292,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { id: "booking-workflow-section", className: "card", style: { padding: "28px" }, children: [
+      errorMessage && /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          style: {
+            background: "#fef2f2",
+            border: "1.5px solid #fecaca",
+            color: "#b91c1c",
+            padding: "14px 18px",
+            borderRadius: 12,
+            marginBottom: 20,
+            fontSize: 14,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 10
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("span", { children: "⚠️" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 343,
+              columnNumber: 13
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: errorMessage }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 344,
+              columnNumber: 13
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 328,
+          columnNumber: 9
+        },
+        this
+      ),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "28px" }, children: [
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: "8px" }, children: [
+          /* @__PURE__ */ jsxDEV("span", { style: { width: 24, height: 24, borderRadius: "50%", background: "#0284c7", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }, children: "1" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 351,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }, children: userRole === "landlord" ? "Select Managed Property" : "Your Rented Property" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 354,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 350,
+          columnNumber: 11
+        }, this),
+        userRole === "landlord" ? /* @__PURE__ */ jsxDEV("div", { style: { maxWidth: 480 }, children: [
+          /* @__PURE__ */ jsxDEV(
+            "select",
+            {
+              className: "input-select",
+              value: selectedPropertyId,
+              onChange: (e) => setSelectedPropertyId(e.target.value),
+              style: { width: "100%", padding: "10px 14px", borderRadius: 10, fontSize: 14 },
+              children: properties.map(
+                (p) => /* @__PURE__ */ jsxDEV("option", { value: p.id, children: [
+                  p.name,
+                  " — ",
+                  p.unit || "Flat",
+                  " (",
+                  p.locality || p.city || "Chennai",
+                  ")"
+                ] }, p.id, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 368,
+                  columnNumber: 15
+                }, this)
+              )
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 361,
+              columnNumber: 15
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 12, color: "#64748b", marginTop: 6 }, children: [
+            "Selected Property: ",
+            /* @__PURE__ */ jsxDEV("strong", { children: currentProp?.name }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 374,
+              columnNumber: 36
+            }, this),
+            " • Unit: ",
+            /* @__PURE__ */ jsxDEV("strong", { children: currentProp?.unit || "Unit 1" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 374,
+              columnNumber: 81
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 373,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 360,
+          columnNumber: 11
+        }, this) : /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            style: {
+              background: "#f8fafc",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "14px 18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 12
+            },
+            children: [
+              /* @__PURE__ */ jsxDEV("span", { style: { fontSize: 20 }, children: "🏢" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 389,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 13.5, fontWeight: 700, color: "#0f172a" }, children: currentProp?.name || "Sai Kala Apartments - Flat 302" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 391,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 12, color: "#64748b" }, children: [
+                  "Unit: ",
+                  /* @__PURE__ */ jsxDEV("strong", { children: currentProp?.unit || "Flat B-204" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 395,
+                    columnNumber: 25
+                  }, this),
+                  " • Tenant: ",
+                  /* @__PURE__ */ jsxDEV("strong", { children: user?.name || "Divya Priya" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 395,
+                    columnNumber: 88
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 394,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 390,
+                columnNumber: 15
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 378,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 349,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "28px" }, children: [
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: "14px" }, children: [
+          /* @__PURE__ */ jsxDEV("span", { style: { width: 24, height: 24, borderRadius: "50%", background: "#0284c7", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }, children: "2" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 405,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }, children: "Select Service Category" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 408,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 404,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "category-grid", children: categories.map((cat) => {
+          const isSelected = selectedCategory?.id === cat.id || selectedCategory?.name === cat.name;
+          return /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              className: `category-card ${isSelected ? "selected" : ""}`,
+              onClick: () => handleSelectCategory(cat),
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "category-card-top", children: [
+                  /* @__PURE__ */ jsxDEV("div", { className: "category-icon-wrapper", children: [
+                    cat.name.includes("Cleaning") && "✨",
+                    cat.name.includes("Plumbing") && "🚰",
+                    cat.name.includes("Electrical") && "⚡",
+                    cat.name.includes("Carpentry") && "🪚",
+                    cat.name.includes("AC") && "❄️",
+                    cat.name.includes("Painting") && "🎨",
+                    cat.name.includes("Pest") && "🛡️",
+                    cat.name.includes("Appliance") && "🔧"
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 423,
+                    columnNumber: 21
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "category-badge-price", children: [
+                    "From ",
+                    formatCurrency ? formatCurrency(cat.basePrice) : `₹${cat.basePrice}`
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 433,
+                    columnNumber: 21
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 422,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("h4", { className: "category-name", children: cat.name }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 437,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("p", { className: "category-desc", children: cat.description }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 438,
+                  columnNumber: 19
+                }, this)
+              ]
+            },
+            cat.id,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 417,
+              columnNumber: 17
+            },
+            this
+          );
+        }) }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 413,
+          columnNumber: 11
+        }, this),
+        selectedCategory && selectedCategory.services && selectedCategory.services.length > 0 && /* @__PURE__ */ jsxDEV("div", { style: { marginTop: "16px" }, children: [
+          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 6 }, children: [
+            "Common Services for ",
+            selectedCategory.name,
+            ":"
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 447,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "service-chips-wrapper", children: selectedCategory.services.map(
+            (svc) => /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                type: "button",
+                className: `service-chip ${selectedService === svc ? "selected" : ""}`,
+                onClick: () => setSelectedService(svc),
+                children: [
+                  selectedService === svc && "✓ ",
+                  svc
+                ]
+              },
+              svc,
+              true,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 452,
+                columnNumber: 15
+              },
+              this
+            )
+          ) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 450,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 446,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { marginTop: "16px", maxWidth: 640 }, children: [
+          /* @__PURE__ */ jsxDEV("label", { style: { display: "block", fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }, children: "Problem / Service Details (Optional)" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 468,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "textarea",
+            {
+              className: "input-textarea",
+              rows: 2,
+              placeholder: "e.g., Bedroom fan regulator not working, or bathroom tile deep descaling required...",
+              value: description,
+              onChange: (e) => setDescription(e.target.value),
+              style: { width: "100%", padding: "10px 14px", borderRadius: 10, fontSize: 13.5 }
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 471,
+              columnNumber: 13
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 467,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 403,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "28px" }, children: [
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: "14px" }, children: [
+          /* @__PURE__ */ jsxDEV("span", { style: { width: 24, height: 24, borderRadius: "50%", background: "#0284c7", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }, children: "3" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 485,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }, children: "Select Appointment Date & Time Slot" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 488,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 484,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }, children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("label", { style: { display: "block", fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }, children: "Date:" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 495,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV(
+              "input",
+              {
+                type: "date",
+                className: "input-text",
+                value: selectedDate,
+                onChange: (e) => setSelectedDate(e.target.value),
+                style: { padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600 }
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 498,
+                columnNumber: 15
+              },
+              this
+            )
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 494,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: 8 }, children: [
+            /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                type: "button",
+                className: `btn ${selectedDate === "2026-10-10" ? "btn-primary" : "btn-secondary"}`,
+                onClick: () => setSelectedDate("2026-10-10"),
+                style: { fontSize: 13, padding: "9px 14px" },
+                children: "10 October 2026 (Demo Day)"
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 508,
+                columnNumber: 15
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                type: "button",
+                className: `btn ${selectedDate === (/* @__PURE__ */ new Date()).toISOString().split("T")[0] ? "btn-primary" : "btn-secondary"}`,
+                onClick: () => setSelectedDate((/* @__PURE__ */ new Date()).toISOString().split("T")[0]),
+                style: { fontSize: 13, padding: "9px 14px" },
+                children: "Today"
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 516,
+                columnNumber: 15
+              },
+              this
+            )
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 507,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 493,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { marginTop: "16px" }, children: [
+          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }, children: "Available Time Slots:" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 529,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "slots-grid", children: TIME_SLOTS.map((slot) => {
+            const isSelected = selectedTimeSlot === slot;
+            return /* @__PURE__ */ jsxDEV(
+              "button",
+              {
+                type: "button",
+                className: `slot-btn ${isSelected ? "selected" : ""}`,
+                onClick: () => setSelectedTimeSlot(slot),
+                children: slot
+              },
+              slot,
+              false,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 536,
+                columnNumber: 19
+              },
+              this
+            );
+          }) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 532,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 528,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 483,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "28px" }, children: [
+        /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: "14px" }, children: [
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: 10 }, children: [
+            /* @__PURE__ */ jsxDEV("span", { style: { width: 24, height: 24, borderRadius: "50%", background: "#0284c7", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }, children: "4" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 554,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: 17, fontWeight: 700, color: "#0f172a" }, children: "Select Available Service Provider" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 557,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 553,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 13, color: "#64748b" }, children: [
+            "Slot: ",
+            /* @__PURE__ */ jsxDEV("strong", { children: selectedDate }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 563,
+              columnNumber: 21
+            }, this),
+            " at ",
+            /* @__PURE__ */ jsxDEV("strong", { children: selectedTimeSlot }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 563,
+              columnNumber: 56
+            }, this),
+            " •",
+            " ",
+            /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 700 }, children: [
+              availabilityData.totalAvailable,
+              " Available"
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 564,
+              columnNumber: 15
+            }, this),
+            " ",
+            "/",
+            " ",
+            /* @__PURE__ */ jsxDEV("span", { style: { color: "#dc2626", fontWeight: 700 }, children: [
+              availabilityData.totalBooked,
+              " Booked"
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 568,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 562,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 552,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            style: {
+              background: "#f1f5f9",
+              borderRadius: 10,
+              padding: "10px 16px",
+              marginBottom: 16,
+              fontSize: 12.5,
+              color: "#475569",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            },
+            children: [
+              /* @__PURE__ */ jsxDEV("span", { children: "🛡️" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 588,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: [
+                /* @__PURE__ */ jsxDEV("strong", { children: "Double-Booking Prevention Active:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 590,
+                  columnNumber: 15
+                }, this),
+                " System cross-references confirmed bookings and technician schedules in real time. Only providers marked ",
+                /* @__PURE__ */ jsxDEV("strong", { children: "Available" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 590,
+                  columnNumber: 170
+                }, this),
+                " can be booked."
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 589,
+                columnNumber: 13
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 575,
+            columnNumber: 11
+          },
+          this
+        ),
+        loadingAvailability ? /* @__PURE__ */ jsxDEV("div", { style: { padding: "24px", textAlign: "center", color: "#64748b" }, children: "Checking real-time provider schedules…" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 595,
+          columnNumber: 11
+        }, this) : availabilityData.providers.length === 0 ? /* @__PURE__ */ jsxDEV("div", { className: "slot-unavailable-alert", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "slot-unavailable-icon", children: "⚠️" }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 600,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("strong", { children: "No service providers registered for this category." }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 602,
+              columnNumber: 17
+            }, this),
+            " Please select another category."
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 601,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 599,
+          columnNumber: 11
+        }, this) : availabilityData.totalAvailable === 0 ? (
+          /* REQUIRED MESSAGE WHEN NO PROVIDER AVAILABLE */
+          /* @__PURE__ */ jsxDEV("div", { className: "slot-unavailable-alert", children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "slot-unavailable-icon", children: "❌" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 608,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { children: /* @__PURE__ */ jsxDEV("strong", { children: "No service provider is available for this time slot. Please select another time." }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 610,
+              columnNumber: 17
+            }, this) }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 609,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 607,
+            columnNumber: 11
+          }, this)
+        ) : /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", flexDirection: "column", gap: 12 }, children: availabilityData.providers.map((prov) => {
+          const isSelected = selectedProvider?.id === prov.id;
+          const isAvailable = prov.isAvailable;
+          return /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              className: `provider-avail-card ${isAvailable ? isSelected ? "selected" : "available" : "booked"}`,
+              onClick: () => handleSelectProvider(prov),
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "provider-info-main", children: [
+                  /* @__PURE__ */ jsxDEV("div", { className: "provider-avatar", children: [
+                    prov.category.includes("Cleaning") && "✨",
+                    prov.category.includes("Plumbing") && "🚰",
+                    prov.category.includes("Electrical") && "⚡",
+                    prov.category.includes("Carpentry") && "🪚",
+                    prov.category.includes("AC") && "❄️",
+                    prov.category.includes("Painting") && "🎨",
+                    prov.category.includes("Pest") && "🛡️",
+                    prov.category.includes("Appliance") && "🔧"
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 628,
+                    columnNumber: 23
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { children: [
+                    /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+                      /* @__PURE__ */ jsxDEV("h4", { style: { margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a" }, children: prov.name }, void 0, false, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                        lineNumber: 640,
+                        columnNumber: 27
+                      }, this),
+                      /* @__PURE__ */ jsxDEV("span", { style: { fontSize: 12, color: "#f59e0b", fontWeight: 700 }, children: [
+                        "★ ",
+                        prov.rating || 4.8
+                      ] }, void 0, true, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                        lineNumber: 643,
+                        columnNumber: 27
+                      }, this)
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                      lineNumber: 639,
+                      columnNumber: 25
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 12.5, color: "#64748b", marginTop: 2 }, children: [
+                      "Technician: ",
+                      /* @__PURE__ */ jsxDEV("strong", { children: prov.technicianName }, void 0, false, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                        lineNumber: 648,
+                        columnNumber: 39
+                      }, this),
+                      " • ",
+                      prov.experienceYears,
+                      " yrs exp • ",
+                      prov.location
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                      lineNumber: 647,
+                      columnNumber: 25
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 12, color: "#0369a1", marginTop: 2 }, children: [
+                      "Skills: ",
+                      prov.skills?.slice(0, 3).join(", ") || "General Repairs"
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                      lineNumber: 650,
+                      columnNumber: 25
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 638,
+                    columnNumber: 23
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 627,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }, children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 15, fontWeight: 700, color: "#0f172a" }, children: formatCurrency ? formatCurrency(prov.price) : `₹${prov.price}` }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 657,
+                    columnNumber: 23
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: `provider-avail-badge ${isAvailable ? "available" : "booked"}`, children: isAvailable ? "✓ Available" : "✗ Booked" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 662,
+                    columnNumber: 23
+                  }, this),
+                  isAvailable && /* @__PURE__ */ jsxDEV("div", { style: { fontSize: 11.5, color: isSelected ? "#15803d" : "#64748b", fontWeight: 600 }, children: isSelected ? "Selected for Booking" : "Click to Select" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                    lineNumber: 667,
+                    columnNumber: 21
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 656,
+                  columnNumber: 21
+                }, this)
+              ]
+            },
+            prov.id,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 620,
+              columnNumber: 17
+            },
+            this
+          );
+        }) }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 614,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 551,
+        columnNumber: 9
+      }, this),
+      selectedProvider && /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          style: {
+            background: "#f0f7ff",
+            border: "2px solid #bfdbfe",
+            borderRadius: 14,
+            padding: "20px 24px",
+            marginTop: "20px"
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("h4", { style: { margin: "0 0 12px 0", fontSize: 16, fontWeight: 700, color: "#1e3a8a" }, children: "📋 Booking Summary" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 690,
+              columnNumber: 13
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, fontSize: 13.5 }, children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Category:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 695,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: selectedCategory?.name }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 696,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 694,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Selected Service:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 699,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: selectedService || "Standard Service" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 700,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 698,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Service Provider:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 703,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: selectedProvider?.name }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 704,
+                  columnNumber: 17
+                }, this),
+                " (",
+                selectedProvider?.technicianName,
+                ")"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 702,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Appointment Date:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 707,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: selectedDate }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 708,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 706,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Time Slot:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 711,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: selectedTimeSlot }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 712,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 710,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Destination:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 715,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { children: [
+                  currentProp?.name,
+                  " — ",
+                  currentProp?.unit || "Flat B-204"
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 716,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 714,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#64748b" }, children: "Estimated Cost:" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 719,
+                  columnNumber: 17
+                }, this),
+                " ",
+                /* @__PURE__ */ jsxDEV("strong", { style: { color: "#0284c7", fontSize: 15 }, children: formatCurrency ? formatCurrency(selectedProvider.price) : `₹${selectedProvider.price}` }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 720,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 718,
+                columnNumber: 15
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 693,
+              columnNumber: 13
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { style: { marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 12 }, children: [
+              /* @__PURE__ */ jsxDEV(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-secondary",
+                  onClick: () => setSelectedProvider(null),
+                  children: "Clear Selection"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 727,
+                  columnNumber: 15
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-primary",
+                  onClick: handleConfirmBooking,
+                  disabled: submitting,
+                  style: { padding: "12px 28px", fontSize: 14, fontWeight: 700 },
+                  children: submitting ? "Verifying & Reserving Slot…" : "Confirm Booking"
+                },
+                void 0,
+                false,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                  lineNumber: 734,
+                  columnNumber: 15
+                },
+                this
+              )
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 726,
+              columnNumber: 13
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 681,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+      lineNumber: 325,
+      columnNumber: 7
+    }, this),
+    bookingSuccess && /* @__PURE__ */ jsxDEV("div", { className: "service-modal-overlay", children: /* @__PURE__ */ jsxDEV("div", { className: "service-modal-content", style: { padding: "32px", textAlign: "center" }, children: [
+      /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          style: {
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            background: "#dcfce7",
+            color: "#15803d",
+            fontSize: 32,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 16
+          },
+          children: "✓"
+        },
+        void 0,
+        false,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 752,
+          columnNumber: 13
+        },
+        this
+      ),
+      /* @__PURE__ */ jsxDEV("h3", { style: { margin: "0 0 8px 0", fontSize: 22, fontWeight: 800, color: "#0f172a" }, children: "Booking Confirmed!" }, void 0, false, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 769,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { style: { margin: "0 0 20px 0", fontSize: 14, color: "#64748b" }, children: [
+        "Booking ID: ",
+        /* @__PURE__ */ jsxDEV("strong", { children: bookingSuccess.bookingNumber || bookingSuccess.id }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 773,
+          columnNumber: 27
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 772,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          style: {
+            background: "#f8fafc",
+            borderRadius: 12,
+            padding: "18px",
+            textAlign: "left",
+            fontSize: 13.5,
+            lineHeight: 1.6,
+            marginBottom: 24,
+            border: "1px solid #e2e8f0"
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: "Service:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 788,
+                columnNumber: 20
+              }, this),
+              " ",
+              bookingSuccess.serviceCategory,
+              " — ",
+              bookingSuccess.serviceName
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 788,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: "Provider:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 789,
+                columnNumber: 20
+              }, this),
+              " ",
+              bookingSuccess.providerName,
+              " (Technician: ",
+              bookingSuccess.technicianName,
+              ")"
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 789,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: "Date & Slot:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 790,
+                columnNumber: 20
+              }, this),
+              " ",
+              bookingSuccess.date,
+              " at ",
+              bookingSuccess.timeSlot
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 790,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: "Property:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 791,
+                columnNumber: 20
+              }, this),
+              " ",
+              bookingSuccess.propertyName,
+              " (",
+              bookingSuccess.unit,
+              ")"
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 791,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("strong", { children: "Status:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 792,
+                columnNumber: 20
+              }, this),
+              " ",
+              /* @__PURE__ */ jsxDEV("span", { className: "pill confirmed", children: "Confirmed" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+                lineNumber: 792,
+                columnNumber: 45
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+              lineNumber: 792,
+              columnNumber: 15
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+          lineNumber: 776,
+          columnNumber: 13
+        },
+        this
+      ),
+      /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "center", gap: 12 }, children: [
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-secondary",
+            onClick: () => setBookingSuccess(null),
+            children: "Book Another Service"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 796,
+            columnNumber: 15
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-primary",
+            onClick: () => {
+              setBookingSuccess(null);
+              navigate(userRole === "admin" ? "/admin/service-bookings" : userRole === "landlord" ? "/landlord/my-bookings" : "/tenant/my-bookings");
+            },
+            children: "View My Service Bookings →"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+            lineNumber: 803,
+            columnNumber: 15
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+        lineNumber: 795,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+      lineNumber: 751,
+      columnNumber: 11
+    }, this) }, void 0, false, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+      lineNumber: 750,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx",
+    lineNumber: 258,
+    columnNumber: 5
+  }, this);
+}
+_s(HomeServicesPortal, "v/MisV44HWXszsxWzQg1cOcJebs=", false, function() {
+  return [useNavigate];
+});
+_c = HomeServicesPortal;
+var _c;
+$RefreshReg$(_c, "HomeServicesPortal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/HomeServicesPortal.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBO0FBQUEsU0EraUJBO0FBRUo7QUFBQ0wsR0FqeEJ1QkQsb0JBQWtCO0FBQUEsVUFHdkJULFdBQVc7QUFBQTtBQUFBLEtBSE5TO0FBQWtCLElBQUE2SjtBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJ1c2VTdGF0ZSIsInVzZUVmZmVjdCIsInVzZUNvbnRleHQiLCJ1c2VOYXZpZ2F0ZSIsIkF1dGhDb250ZXh0IiwiU2V0dGluZ3NDb250ZXh0IiwiUGFnZUhlcm8iLCJmZXRjaFNlcnZpY2VDYXRlZ29yaWVzIiwiZmV0Y2hQcm92aWRlckF2YWlsYWJpbGl0eSIsImNyZWF0ZVNlcnZpY2VCb29raW5nIiwiZmV0Y2hQcm9wZXJ0aWVzIiwiZmV0Y2hUZW5hbnRzIiwiSG9tZVNlcnZpY2VzUG9ydGFsIiwiX3MiLCJ1c2VyIiwidCIsImZvcm1hdEN1cnJlbmN5IiwibmF2aWdhdGUiLCJ1c2VyUm9sZSIsInJvbGUiLCJ1c2VySWQiLCJlbnRpdHlJZCIsImVudGl0eV9pZCIsImlkIiwiY2F0ZWdvcmllcyIsInNldENhdGVnb3JpZXMiLCJwcm9wZXJ0aWVzIiwic2V0UHJvcGVydGllcyIsInNlbGVjdGVkUHJvcGVydHlJZCIsInNldFNlbGVjdGVkUHJvcGVydHlJZCIsInNlbGVjdGVkQ2F0ZWdvcnkiLCJzZXRTZWxlY3RlZENhdGVnb3J5Iiwic2VsZWN0ZWRTZXJ2aWNlIiwic2V0U2VsZWN0ZWRTZXJ2aWNlIiwiZGVzY3JpcHRpb24iLCJzZXREZXNjcmlwdGlvbiIsIm5vdGVzIiwic2V0Tm90ZXMiLCJzZWxlY3RlZERhdGUiLCJzZXRTZWxlY3RlZERhdGUiLCJzZWxlY3RlZFRpbWVTbG90Iiwic2V0U2VsZWN0ZWRUaW1lU2xvdCIsImF2YWlsYWJpbGl0eURhdGEiLCJzZXRBdmFpbGFiaWxpdHlEYXRhIiwicHJvdmlkZXJzIiwidG90YWxBdmFpbGFibGUiLCJ0b3RhbEJvb2tlZCIsInNlbGVjdGVkUHJvdmlkZXIiLCJzZXRTZWxlY3RlZFByb3ZpZGVyIiwibG9hZGluZ0F2YWlsYWJpbGl0eSIsInNldExvYWRpbmdBdmFpbGFiaWxpdHkiLCJzdWJtaXR0aW5nIiwic2V0U3VibWl0dGluZyIsImJvb2tpbmdTdWNjZXNzIiwic2V0Qm9va2luZ1N1Y2Nlc3MiLCJlcnJvck1lc3NhZ2UiLCJzZXRFcnJvck1lc3NhZ2UiLCJ0b2FzdCIsInNldFRvYXN0IiwiVElNRV9TTE9UUyIsInNob3dUb2FzdCIsIm1zZyIsInNldFRpbWVvdXQiLCJsb2FkSW5pdGlhbCIsImNhdHMiLCJwcm9wc0xpc3QiLCJQcm9taXNlIiwiYWxsIiwibGVuZ3RoIiwiY2xlYW5pbmdDYXQiLCJmaW5kIiwiYyIsIm5hbWUiLCJ0b0xvd2VyQ2FzZSIsImluY2x1ZGVzIiwic2VydmljZXMiLCJ2YWxpZFByb3BzIiwibGFuZGxvcmRQcm9wcyIsImZpbHRlciIsInAiLCJsYW5kbG9yZElkIiwibGFuZGxvcmRfaWQiLCJlcnIiLCJjb25zb2xlIiwiZXJyb3IiLCJpc01vdW50ZWQiLCJjaGVja0F2YWlsYWJpbGl0eSIsInJlcyIsInN0aWxsQXZhaWwiLCJpc0F2YWlsYWJsZSIsImhhbmRsZVNlbGVjdENhdGVnb3J5IiwiY2F0IiwiaGFuZGxlU2VsZWN0UHJvdmlkZXIiLCJwcm92IiwiaGFuZGxlQ29uZmlybUJvb2tpbmciLCJlIiwicHJldmVudERlZmF1bHQiLCJzZWxlY3RlZFByb3AiLCJwcm9wTmFtZSIsInByb3BVbml0IiwidW5pdCIsImJvb2tpbmdQYXlsb2FkIiwic2VydmljZUNhdGVnb3J5Iiwic2VydmljZU5hbWUiLCJzZXJ2aWNlRGVzY3JpcHRpb24iLCJwcm92aWRlcklkIiwiZGF0ZSIsInRpbWVTbG90IiwicHJvcGVydHlJZCIsInByb3BlcnR5TmFtZSIsImFtb3VudCIsInByaWNlIiwiYmFzZVByaWNlIiwiY3JlYXRlZCIsImJvb2tpbmdOdW1iZXIiLCJ1cGRhdGVkQXZhaWwiLCJtZXNzYWdlIiwiY3VycmVudFByb3AiLCJwb3NpdGlvbiIsImJvdHRvbSIsInJpZ2h0IiwiYmFja2dyb3VuZCIsImNvbG9yIiwicGFkZGluZyIsImJvcmRlclJhZGl1cyIsInpJbmRleCIsImJveFNoYWRvdyIsImZvbnRTaXplIiwiZm9udFdlaWdodCIsImRvY3VtZW50IiwiZ2V0RWxlbWVudEJ5SWQiLCJzY3JvbGxJbnRvVmlldyIsImJlaGF2aW9yIiwiYm9yZGVyIiwibWFyZ2luQm90dG9tIiwiZGlzcGxheSIsImFsaWduSXRlbXMiLCJnYXAiLCJ3aWR0aCIsImhlaWdodCIsImp1c3RpZnlDb250ZW50IiwibWFyZ2luIiwibWF4V2lkdGgiLCJ0YXJnZXQiLCJ2YWx1ZSIsIm1hcCIsImxvY2FsaXR5IiwiY2l0eSIsIm1hcmdpblRvcCIsImlzU2VsZWN0ZWQiLCJzdmMiLCJmbGV4V3JhcCIsIkRhdGUiLCJ0b0lTT1N0cmluZyIsInNwbGl0Iiwic2xvdCIsInRleHRBbGlnbiIsImZsZXhEaXJlY3Rpb24iLCJjYXRlZ29yeSIsInJhdGluZyIsInRlY2huaWNpYW5OYW1lIiwiZXhwZXJpZW5jZVllYXJzIiwibG9jYXRpb24iLCJza2lsbHMiLCJzbGljZSIsImpvaW4iLCJncmlkVGVtcGxhdGVDb2x1bW5zIiwibGluZUhlaWdodCIsInByb3ZpZGVyTmFtZSIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkhvbWVTZXJ2aWNlc1BvcnRhbC5qc3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgdXNlU3RhdGUsIHVzZUVmZmVjdCwgdXNlQ29udGV4dCB9IGZyb20gXCJyZWFjdFwiO1xyXG5pbXBvcnQgeyB1c2VOYXZpZ2F0ZSB9IGZyb20gXCJyZWFjdC1yb3V0ZXItZG9tXCI7XHJcbmltcG9ydCB7IEF1dGhDb250ZXh0IH0gZnJvbSBcIi4uLy4uL2NvbnRleHQvQXV0aENvbnRleHQuanN4XCI7XHJcbmltcG9ydCB7IFNldHRpbmdzQ29udGV4dCB9IGZyb20gXCIuLi8uLi9jb250ZXh0L1NldHRpbmdzQ29udGV4dC5qc3hcIjtcclxuaW1wb3J0IFBhZ2VIZXJvIGZyb20gXCIuLi8uLi9jb21wb25lbnRzL1BhZ2VIZXJvLmpzeFwiO1xyXG5pbXBvcnQge1xyXG4gIGZldGNoU2VydmljZUNhdGVnb3JpZXMsXHJcbiAgZmV0Y2hQcm92aWRlckF2YWlsYWJpbGl0eSxcclxuICBjcmVhdGVTZXJ2aWNlQm9va2luZyxcclxuICBmZXRjaFByb3BlcnRpZXMsXHJcbiAgZmV0Y2hUZW5hbnRzLFxyXG59IGZyb20gXCIuLi8uLi91dGlscy9hcGlDbGllbnQuanNcIjtcclxuaW1wb3J0IFwiLi4vLi4vY29tcG9uZW50cy9zZXJ2aWNlcy9Ib21lU2VydmljZXNTdHlsZXMuY3NzXCI7XHJcblxyXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBIb21lU2VydmljZXNQb3J0YWwoKSB7XHJcbiAgY29uc3QgeyB1c2VyIH0gPSB1c2VDb250ZXh0KEF1dGhDb250ZXh0KTtcclxuICBjb25zdCB7IHQsIGZvcm1hdEN1cnJlbmN5IH0gPSB1c2VDb250ZXh0KFNldHRpbmdzQ29udGV4dCk7XHJcbiAgY29uc3QgbmF2aWdhdGUgPSB1c2VOYXZpZ2F0ZSgpO1xyXG5cclxuICBjb25zdCB1c2VyUm9sZSA9IHVzZXI/LnJvbGUgfHwgXCJ0ZW5hbnRcIjtcclxuICBjb25zdCB1c2VySWQgPSB1c2VyPy5lbnRpdHlJZCB8fCB1c2VyPy5lbnRpdHlfaWQgfHwgdXNlcj8uaWQgfHwgKHVzZXJSb2xlID09PSBcImxhbmRsb3JkXCIgPyBcIkxETDAwMVwiIDogXCJURU4wMDFcIik7XHJcblxyXG4gIC8vIERhdGEgc3RhdGVzXHJcbiAgY29uc3QgW2NhdGVnb3JpZXMsIHNldENhdGVnb3JpZXNdID0gdXNlU3RhdGUoW10pO1xyXG4gIGNvbnN0IFtwcm9wZXJ0aWVzLCBzZXRQcm9wZXJ0aWVzXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbc2VsZWN0ZWRQcm9wZXJ0eUlkLCBzZXRTZWxlY3RlZFByb3BlcnR5SWRdID0gdXNlU3RhdGUoXCJcIik7XHJcbiAgY29uc3QgW3NlbGVjdGVkQ2F0ZWdvcnksIHNldFNlbGVjdGVkQ2F0ZWdvcnldID0gdXNlU3RhdGUobnVsbCk7XHJcbiAgY29uc3QgW3NlbGVjdGVkU2VydmljZSwgc2V0U2VsZWN0ZWRTZXJ2aWNlXSA9IHVzZVN0YXRlKFwiXCIpO1xyXG4gIGNvbnN0IFtkZXNjcmlwdGlvbiwgc2V0RGVzY3JpcHRpb25dID0gdXNlU3RhdGUoXCJcIik7XHJcbiAgY29uc3QgW25vdGVzLCBzZXROb3Rlc10gPSB1c2VTdGF0ZShcIlwiKTtcclxuXHJcbiAgLy8gU2NoZWR1bGluZyBzdGF0ZXNcclxuICBjb25zdCBbc2VsZWN0ZWREYXRlLCBzZXRTZWxlY3RlZERhdGVdID0gdXNlU3RhdGUoKCkgPT4ge1xyXG4gICAgLy8gRGVmYXVsdCB0byAyMDI2LTEwLTEwIHNvIHRoZSB1c2VyJ3Mgc3BlY2lmaWMgdGVzdCBzY2VuYXJpbyBpcyBpbW1lZGlhdGVseSB2aXNpYmxlIVxyXG4gICAgcmV0dXJuIFwiMjAyNi0xMC0xMFwiO1xyXG4gIH0pO1xyXG4gIGNvbnN0IFtzZWxlY3RlZFRpbWVTbG90LCBzZXRTZWxlY3RlZFRpbWVTbG90XSA9IHVzZVN0YXRlKFwiMTA6MDAgQU1cIik7XHJcblxyXG4gIC8vIEF2YWlsYWJpbGl0eSAmIFByb3ZpZGVycyBzdGF0ZXNcclxuICBjb25zdCBbYXZhaWxhYmlsaXR5RGF0YSwgc2V0QXZhaWxhYmlsaXR5RGF0YV0gPSB1c2VTdGF0ZSh7XHJcbiAgICBwcm92aWRlcnM6IFtdLFxyXG4gICAgdG90YWxBdmFpbGFibGU6IDAsXHJcbiAgICB0b3RhbEJvb2tlZDogMCxcclxuICB9KTtcclxuICBjb25zdCBbc2VsZWN0ZWRQcm92aWRlciwgc2V0U2VsZWN0ZWRQcm92aWRlcl0gPSB1c2VTdGF0ZShudWxsKTtcclxuICBjb25zdCBbbG9hZGluZ0F2YWlsYWJpbGl0eSwgc2V0TG9hZGluZ0F2YWlsYWJpbGl0eV0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcblxyXG4gIC8vIEJvb2tpbmcgYWN0aW9uIHN0YXRlc1xyXG4gIGNvbnN0IFtzdWJtaXR0aW5nLCBzZXRTdWJtaXR0aW5nXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuICBjb25zdCBbYm9va2luZ1N1Y2Nlc3MsIHNldEJvb2tpbmdTdWNjZXNzXSA9IHVzZVN0YXRlKG51bGwpO1xyXG4gIGNvbnN0IFtlcnJvck1lc3NhZ2UsIHNldEVycm9yTWVzc2FnZV0gPSB1c2VTdGF0ZShcIlwiKTtcclxuICBjb25zdCBbdG9hc3QsIHNldFRvYXN0XSA9IHVzZVN0YXRlKG51bGwpO1xyXG5cclxuICBjb25zdCBUSU1FX1NMT1RTID0gW1xyXG4gICAgXCIwOTowMCBBTVwiLFxyXG4gICAgXCIxMDowMCBBTVwiLFxyXG4gICAgXCIxMTowMCBBTVwiLFxyXG4gICAgXCIxMjowMCBQTVwiLFxyXG4gICAgXCIwMjowMCBQTVwiLFxyXG4gICAgXCIwMzowMCBQTVwiLFxyXG4gICAgXCIwNDowMCBQTVwiLFxyXG4gICAgXCIwNTowMCBQTVwiLFxyXG4gIF07XHJcblxyXG4gIGNvbnN0IHNob3dUb2FzdCA9IChtc2cpID0+IHtcclxuICAgIHNldFRvYXN0KG1zZyk7XHJcbiAgICBzZXRUaW1lb3V0KCgpID0+IHNldFRvYXN0KG51bGwpLCA0MDAwKTtcclxuICB9O1xyXG5cclxuICAvLyAxLiBMb2FkIGluaXRpYWwgY2F0ZWdvcmllcyAmIHByb3BlcnR5IGNvbnRleHRcclxuICB1c2VFZmZlY3QoKCkgPT4ge1xyXG4gICAgYXN5bmMgZnVuY3Rpb24gbG9hZEluaXRpYWwoKSB7XHJcbiAgICAgIHRyeSB7XHJcbiAgICAgICAgY29uc3QgW2NhdHMsIHByb3BzTGlzdF0gPSBhd2FpdCBQcm9taXNlLmFsbChbXHJcbiAgICAgICAgICBmZXRjaFNlcnZpY2VDYXRlZ29yaWVzKCksXHJcbiAgICAgICAgICBmZXRjaFByb3BlcnRpZXMoKSxcclxuICAgICAgICBdKTtcclxuXHJcbiAgICAgICAgc2V0Q2F0ZWdvcmllcyhjYXRzIHx8IFtdKTtcclxuICAgICAgICBpZiAoY2F0cyAmJiBjYXRzLmxlbmd0aCA+IDApIHtcclxuICAgICAgICAgIC8vIERlZmF1bHQgdG8gQ2xlYW5pbmcgdG8gbWF0Y2ggcHJvbXB0IGV4YW1wbGVcclxuICAgICAgICAgIGNvbnN0IGNsZWFuaW5nQ2F0ID0gY2F0cy5maW5kKChjKSA9PiBjLm5hbWUudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhcImNsZWFuaW5nXCIpKSB8fCBjYXRzWzBdO1xyXG4gICAgICAgICAgc2V0U2VsZWN0ZWRDYXRlZ29yeShjbGVhbmluZ0NhdCk7XHJcbiAgICAgICAgICBpZiAoY2xlYW5pbmdDYXQuc2VydmljZXMgJiYgY2xlYW5pbmdDYXQuc2VydmljZXMubGVuZ3RoID4gMCkge1xyXG4gICAgICAgICAgICBzZXRTZWxlY3RlZFNlcnZpY2UoY2xlYW5pbmdDYXQuc2VydmljZXNbMF0pO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH1cclxuXHJcbiAgICAgICAgY29uc3QgdmFsaWRQcm9wcyA9IHByb3BzTGlzdCB8fCBbXTtcclxuICAgICAgICBzZXRQcm9wZXJ0aWVzKHZhbGlkUHJvcHMpO1xyXG5cclxuICAgICAgICBpZiAodXNlclJvbGUgPT09IFwibGFuZGxvcmRcIikge1xyXG4gICAgICAgICAgLy8gTGFuZGxvcmQgcHJvcGVydGllc1xyXG4gICAgICAgICAgY29uc3QgbGFuZGxvcmRQcm9wcyA9IHZhbGlkUHJvcHMuZmlsdGVyKFxyXG4gICAgICAgICAgICAocCkgPT4gKHAubGFuZGxvcmRJZCA9PT0gdXNlcklkIHx8IHAubGFuZGxvcmRfaWQgPT09IHVzZXJJZClcclxuICAgICAgICAgICk7XHJcbiAgICAgICAgICBpZiAobGFuZGxvcmRQcm9wcy5sZW5ndGggPiAwKSB7XHJcbiAgICAgICAgICAgIHNldFNlbGVjdGVkUHJvcGVydHlJZChsYW5kbG9yZFByb3BzWzBdLmlkKTtcclxuICAgICAgICAgIH0gZWxzZSBpZiAodmFsaWRQcm9wcy5sZW5ndGggPiAwKSB7XHJcbiAgICAgICAgICAgIHNldFNlbGVjdGVkUHJvcGVydHlJZCh2YWxpZFByb3BzWzBdLmlkKTtcclxuICAgICAgICAgIH1cclxuICAgICAgICB9IGVsc2UgaWYgKHVzZXJSb2xlID09PSBcInRlbmFudFwiKSB7XHJcbiAgICAgICAgICAvLyBBdXRvLWlkZW50aWZ5IHRlbmFudCdzIHJlbnRlZCBwcm9wZXJ0eVxyXG4gICAgICAgICAgc2V0U2VsZWN0ZWRQcm9wZXJ0eUlkKFwiVE4xMDFcIik7XHJcbiAgICAgICAgfVxyXG4gICAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgICBjb25zb2xlLmVycm9yKFwiSW5pdGlhbCBsb2FkIGVycm9yOlwiLCBlcnIpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICBsb2FkSW5pdGlhbCgpO1xyXG4gIH0sIFt1c2VyUm9sZSwgdXNlcklkXSk7XHJcblxyXG4gIC8vIDIuIExvYWQgcHJvdmlkZXIgYXZhaWxhYmlsaXR5IGR5bmFtaWNhbGx5IHdoZW5ldmVyIGNhdGVnb3J5LCBkYXRlLCBvciB0aW1lIHNsb3QgY2hhbmdlc1xyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBpZiAoIXNlbGVjdGVkQ2F0ZWdvcnkgfHwgIXNlbGVjdGVkRGF0ZSB8fCAhc2VsZWN0ZWRUaW1lU2xvdCkgcmV0dXJuO1xyXG5cclxuICAgIGxldCBpc01vdW50ZWQgPSB0cnVlO1xyXG4gICAgYXN5bmMgZnVuY3Rpb24gY2hlY2tBdmFpbGFiaWxpdHkoKSB7XHJcbiAgICAgIHNldExvYWRpbmdBdmFpbGFiaWxpdHkodHJ1ZSk7XHJcbiAgICAgIHNldEVycm9yTWVzc2FnZShcIlwiKTtcclxuICAgICAgdHJ5IHtcclxuICAgICAgICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaFByb3ZpZGVyQXZhaWxhYmlsaXR5KFxyXG4gICAgICAgICAgc2VsZWN0ZWRDYXRlZ29yeS5uYW1lLFxyXG4gICAgICAgICAgc2VsZWN0ZWREYXRlLFxyXG4gICAgICAgICAgc2VsZWN0ZWRUaW1lU2xvdFxyXG4gICAgICAgICk7XHJcbiAgICAgICAgaWYgKGlzTW91bnRlZCkge1xyXG4gICAgICAgICAgc2V0QXZhaWxhYmlsaXR5RGF0YShyZXMgfHwgeyBwcm92aWRlcnM6IFtdLCB0b3RhbEF2YWlsYWJsZTogMCwgdG90YWxCb29rZWQ6IDAgfSk7XHJcbiAgICAgICAgICAvLyBJZiBjdXJyZW50bHkgc2VsZWN0ZWQgcHJvdmlkZXIgaXMgbm93IGJvb2tlZCwgcmVzZXQgc2VsZWN0ZWQgcHJvdmlkZXJcclxuICAgICAgICAgIGlmIChzZWxlY3RlZFByb3ZpZGVyKSB7XHJcbiAgICAgICAgICAgIGNvbnN0IHN0aWxsQXZhaWwgPSByZXM/LnByb3ZpZGVycz8uZmluZChcclxuICAgICAgICAgICAgICAocCkgPT4gcC5pZCA9PT0gc2VsZWN0ZWRQcm92aWRlci5pZCAmJiBwLmlzQXZhaWxhYmxlXHJcbiAgICAgICAgICAgICk7XHJcbiAgICAgICAgICAgIGlmICghc3RpbGxBdmFpbCkge1xyXG4gICAgICAgICAgICAgIHNldFNlbGVjdGVkUHJvdmlkZXIobnVsbCk7XHJcbiAgICAgICAgICAgIH1cclxuICAgICAgICAgIH1cclxuICAgICAgICB9XHJcbiAgICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICAgIGNvbnNvbGUuZXJyb3IoXCJDaGVjayBhdmFpbGFiaWxpdHkgZXJyb3I6XCIsIGVycik7XHJcbiAgICAgIH0gZmluYWxseSB7XHJcbiAgICAgICAgaWYgKGlzTW91bnRlZCkgc2V0TG9hZGluZ0F2YWlsYWJpbGl0eShmYWxzZSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICBjaGVja0F2YWlsYWJpbGl0eSgpO1xyXG4gICAgcmV0dXJuICgpID0+IHtcclxuICAgICAgaXNNb3VudGVkID0gZmFsc2U7XHJcbiAgICB9O1xyXG4gIH0sIFtzZWxlY3RlZENhdGVnb3J5LCBzZWxlY3RlZERhdGUsIHNlbGVjdGVkVGltZVNsb3RdKTtcclxuXHJcbiAgLy8gSGFuZGxlIENhdGVnb3J5IENsaWNrXHJcbiAgY29uc3QgaGFuZGxlU2VsZWN0Q2F0ZWdvcnkgPSAoY2F0KSA9PiB7XHJcbiAgICBzZXRTZWxlY3RlZENhdGVnb3J5KGNhdCk7XHJcbiAgICBpZiAoY2F0LnNlcnZpY2VzICYmIGNhdC5zZXJ2aWNlcy5sZW5ndGggPiAwKSB7XHJcbiAgICAgIHNldFNlbGVjdGVkU2VydmljZShjYXQuc2VydmljZXNbMF0pO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgc2V0U2VsZWN0ZWRTZXJ2aWNlKFwiXCIpO1xyXG4gICAgfVxyXG4gICAgc2V0U2VsZWN0ZWRQcm92aWRlcihudWxsKTtcclxuICB9O1xyXG5cclxuICAvLyBIYW5kbGUgUHJvdmlkZXIgU2VsZWN0aW9uIChQcmV2ZW50IHNlbGVjdGluZyBib29rZWQgcHJvdmlkZXJzKVxyXG4gIGNvbnN0IGhhbmRsZVNlbGVjdFByb3ZpZGVyID0gKHByb3YpID0+IHtcclxuICAgIGlmICghcHJvdi5pc0F2YWlsYWJsZSkge1xyXG4gICAgICBzaG93VG9hc3QoYOKaoO+4jyAke3Byb3YubmFtZX0gaXMgYWxyZWFkeSBib29rZWQgZm9yICR7c2VsZWN0ZWREYXRlfSBhdCAke3NlbGVjdGVkVGltZVNsb3R9LiBQbGVhc2Ugc2VsZWN0IGFuIGF2YWlsYWJsZSBwcm92aWRlci5gKTtcclxuICAgICAgcmV0dXJuO1xyXG4gICAgfVxyXG4gICAgc2V0U2VsZWN0ZWRQcm92aWRlcihwcm92KTtcclxuICB9O1xyXG5cclxuICAvLyBIYW5kbGUgQ29uZmlybSBCb29raW5nXHJcbiAgY29uc3QgaGFuZGxlQ29uZmlybUJvb2tpbmcgPSBhc3luYyAoZSkgPT4ge1xyXG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xyXG4gICAgc2V0RXJyb3JNZXNzYWdlKFwiXCIpO1xyXG5cclxuICAgIGlmICghc2VsZWN0ZWRDYXRlZ29yeSkge1xyXG4gICAgICBzZXRFcnJvck1lc3NhZ2UoXCJQbGVhc2Ugc2VsZWN0IGEgc2VydmljZSBjYXRlZ29yeS5cIik7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuICAgIGlmICghc2VsZWN0ZWRQcm92aWRlcikge1xyXG4gICAgICBzZXRFcnJvck1lc3NhZ2UoXCJQbGVhc2Ugc2VsZWN0IGFuIGF2YWlsYWJsZSBzZXJ2aWNlIHByb3ZpZGVyLlwiKTtcclxuICAgICAgcmV0dXJuO1xyXG4gICAgfVxyXG4gICAgaWYgKCFzZWxlY3RlZERhdGUgfHwgIXNlbGVjdGVkVGltZVNsb3QpIHtcclxuICAgICAgc2V0RXJyb3JNZXNzYWdlKFwiUGxlYXNlIHNlbGVjdCBib3RoIGEgZGF0ZSBhbmQgYSB0aW1lIHNsb3QuXCIpO1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgLy8gUmVzb2x2ZSBwcm9wZXJ0eSBpbmZvXHJcbiAgICBjb25zdCBzZWxlY3RlZFByb3AgPSBwcm9wZXJ0aWVzLmZpbmQoKHApID0+IHAuaWQgPT09IHNlbGVjdGVkUHJvcGVydHlJZCk7XHJcbiAgICBjb25zdCBwcm9wTmFtZSA9IHNlbGVjdGVkUHJvcD8ubmFtZSB8fCBcIlNhaSBLYWxhIEFwYXJ0bWVudHMgLSBGbGF0IDMwMlwiO1xyXG4gICAgY29uc3QgcHJvcFVuaXQgPSBzZWxlY3RlZFByb3A/LnVuaXQgfHwgXCJGbGF0IEItMjA0XCI7XHJcblxyXG4gICAgY29uc3QgYm9va2luZ1BheWxvYWQgPSB7XHJcbiAgICAgIHNlcnZpY2VDYXRlZ29yeTogc2VsZWN0ZWRDYXRlZ29yeS5uYW1lLFxyXG4gICAgICBzZXJ2aWNlTmFtZTogc2VsZWN0ZWRTZXJ2aWNlIHx8IGAke3NlbGVjdGVkQ2F0ZWdvcnkubmFtZX0gU2VydmljZWAsXHJcbiAgICAgIHNlcnZpY2VEZXNjcmlwdGlvbjogZGVzY3JpcHRpb24gfHwgc2VsZWN0ZWRTZXJ2aWNlIHx8IFwiU3RhbmRhcmQgaG9tZSBtYWludGVuYW5jZSByZXF1ZXN0XCIsXHJcbiAgICAgIHByb3ZpZGVySWQ6IHNlbGVjdGVkUHJvdmlkZXIuaWQsXHJcbiAgICAgIGRhdGU6IHNlbGVjdGVkRGF0ZSxcclxuICAgICAgdGltZVNsb3Q6IHNlbGVjdGVkVGltZVNsb3QsXHJcbiAgICAgIHByb3BlcnR5SWQ6IHNlbGVjdGVkUHJvcGVydHlJZCB8fCBcIlROMTAxXCIsXHJcbiAgICAgIHByb3BlcnR5TmFtZTogcHJvcE5hbWUsXHJcbiAgICAgIHVuaXQ6IHByb3BVbml0LFxyXG4gICAgICBub3RlcyxcclxuICAgICAgYW1vdW50OiBzZWxlY3RlZFByb3ZpZGVyLnByaWNlIHx8IHNlbGVjdGVkQ2F0ZWdvcnkuYmFzZVByaWNlIHx8IDQ5OSxcclxuICAgICAgdXNlclJvbGUsXHJcbiAgICB9O1xyXG5cclxuICAgIHNldFN1Ym1pdHRpbmcodHJ1ZSk7XHJcbiAgICB0cnkge1xyXG4gICAgICBjb25zdCBjcmVhdGVkID0gYXdhaXQgY3JlYXRlU2VydmljZUJvb2tpbmcoYm9va2luZ1BheWxvYWQpO1xyXG4gICAgICBzZXRCb29raW5nU3VjY2VzcyhjcmVhdGVkKTtcclxuICAgICAgc2hvd1RvYXN0KGDinIUgQm9va2luZyAke2NyZWF0ZWQuYm9va2luZ051bWJlciB8fCBjcmVhdGVkLmlkfSBjb25maXJtZWQgc3VjY2Vzc2Z1bGx5IWApO1xyXG5cclxuICAgICAgLy8gUmVmcmVzaCBhdmFpbGFiaWxpdHkgdG8gcmVmbGVjdCBuZXdseSBib29rZWQgcHJvdmlkZXJcclxuICAgICAgY29uc3QgdXBkYXRlZEF2YWlsID0gYXdhaXQgZmV0Y2hQcm92aWRlckF2YWlsYWJpbGl0eShcclxuICAgICAgICBzZWxlY3RlZENhdGVnb3J5Lm5hbWUsXHJcbiAgICAgICAgc2VsZWN0ZWREYXRlLFxyXG4gICAgICAgIHNlbGVjdGVkVGltZVNsb3RcclxuICAgICAgKTtcclxuICAgICAgc2V0QXZhaWxhYmlsaXR5RGF0YSh1cGRhdGVkQXZhaWwpO1xyXG4gICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgIGNvbnNvbGUuZXJyb3IoXCJCb29raW5nIGVycm9yOlwiLCBlcnIpO1xyXG4gICAgICAvLyBIYW5kbGVzIDQwOSBkb3VibGUtYm9va2luZyByZWplY3Rpb24gZnJvbSBiYWNrZW5kXHJcbiAgICAgIHNldEVycm9yTWVzc2FnZShcclxuICAgICAgICBlcnIubWVzc2FnZSB8fFxyXG4gICAgICAgICAgXCJEb3VibGUgQm9va2luZyBQcmV2ZW50ZWQhIFRoaXMgcHJvdmlkZXIgd2FzIGp1c3QgYm9va2VkIGZvciB0aGlzIHNsb3QuIFBsZWFzZSBjaG9vc2UgYW5vdGhlciBhdmFpbGFibGUgcHJvdmlkZXIuXCJcclxuICAgICAgKTtcclxuICAgIH0gZmluYWxseSB7XHJcbiAgICAgIHNldFN1Ym1pdHRpbmcoZmFsc2UpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIC8vIEFjdGl2ZSBwcm9wZXJ0eSBkZXRhaWxzXHJcbiAgY29uc3QgY3VycmVudFByb3AgPSBwcm9wZXJ0aWVzLmZpbmQoKHApID0+IHAuaWQgPT09IHNlbGVjdGVkUHJvcGVydHlJZCk7XHJcblxyXG4gIHJldHVybiAoXHJcbiAgICA8ZGl2IGNsYXNzTmFtZT1cImhvbWUtc2VydmljZXMtY29udGFpbmVyXCI+XHJcbiAgICAgIHsvKiBUb2FzdCBOb3RpZmljYXRpb24gKi99XHJcbiAgICAgIHt0b2FzdCAmJiAoXHJcbiAgICAgICAgPGRpdlxyXG4gICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgcG9zaXRpb246IFwiZml4ZWRcIixcclxuICAgICAgICAgICAgYm90dG9tOiAyNCxcclxuICAgICAgICAgICAgcmlnaHQ6IDI0LFxyXG4gICAgICAgICAgICBiYWNrZ3JvdW5kOiBcIiMwZjE3MmFcIixcclxuICAgICAgICAgICAgY29sb3I6IFwiI2ZmZmZmZlwiLFxyXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjE0cHggMjJweFwiLFxyXG4gICAgICAgICAgICBib3JkZXJSYWRpdXM6IDEyLFxyXG4gICAgICAgICAgICB6SW5kZXg6IDEwMDAwLFxyXG4gICAgICAgICAgICBib3hTaGFkb3c6IFwiMCAxMHB4IDI1cHggcmdiYSgwLDAsMCwwLjMpXCIsXHJcbiAgICAgICAgICAgIGZvbnRTaXplOiAxMy41LFxyXG4gICAgICAgICAgICBmb250V2VpZ2h0OiA2MDAsXHJcbiAgICAgICAgICB9fVxyXG4gICAgICAgID5cclxuICAgICAgICAgIHt0b2FzdH1cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgKX1cclxuXHJcbiAgICAgIHsvKiBIZXJvIEhlYWRlciAqL31cclxuICAgICAgPFBhZ2VIZXJvXHJcbiAgICAgICAgdGl0bGU9XCJQcm9wQ29ubmVjdCDigJQgSG9tZSBTZXJ2aWNlIFBvcnRhbFwiXHJcbiAgICAgICAgc3VidGl0bGU9e1xyXG4gICAgICAgICAgdXNlclJvbGUgPT09IFwidGVuYW50XCJcclxuICAgICAgICAgICAgPyBcIkRpcmVjdGx5IGJvb2sgdmVyaWZpZWQgb24tZGVtYW5kIGhvbWUgbWFpbnRlbmFuY2UgdGVjaG5pY2lhbnMgZm9yIHlvdXIgcmVudGFsIGZsYXQsIG9yIGVzY2FsYXRlIG1ham9yIHByb3BlcnR5IGNvbXBsYWludHMgdG8geW91ciBsYW5kbG9yZC5cIlxyXG4gICAgICAgICAgICA6IFwiQXJyYW5nZSB2ZXJpZmllZCBjbGVhbmluZywgcGx1bWJpbmcsIGVsZWN0cmljYWwsIGNhcnBlbnRyeSwgQUMgcmVwYWlyLCBhbmQgbWFpbnRlbmFuY2Ugc2VydmljZXMgYWNyb3NzIGFsbCB5b3VyIG1hbmFnZWQgcHJvcGVydGllcy5cIlxyXG4gICAgICAgIH1cclxuICAgICAgLz5cclxuXHJcbiAgICAgIHsvKiBURU5BTlQgUFJPQkxFTSBERUNJU0lPTiBCQU5ORVIgKFRlbmFudCBGbG93KSAqL31cclxuICAgICAge3VzZXJSb2xlID09PSBcInRlbmFudFwiICYmIChcclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInByb2JsZW0tY2hvaWNlLWJhbm5lclwiPlxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJwcm9ibGVtLWNob2ljZS1sZWZ0XCI+XHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicHJvYmxlbS1jaG9pY2UtaWNvblwiPvCfm6DvuI88L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8aDMgY2xhc3NOYW1lPVwicHJvYmxlbS1jaG9pY2UtdGl0bGVcIj5IYXZlIGEgUHJvYmxlbSBpbiBZb3VyIEZsYXQ/PC9oMz5cclxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJwcm9ibGVtLWNob2ljZS1zdWJ0aXRsZVwiPlxyXG4gICAgICAgICAgICAgICAgRm9yIDxzdHJvbmc+bWlub3IgJmFtcDsgY29tbW9uIHJlcGFpcnM8L3N0cm9uZz4gKGNsZWFuaW5nLCBsZWFrYWdlcywgc3dpdGNoIHJlcGFpcnMsIEFDIGlzc3VlcyksIGJvb2sgYSB2ZXJpZmllZCBob21lIHNlcnZpY2UgYmVsb3cuXHJcbiAgICAgICAgICAgICAgICBGb3IgPHN0cm9uZz5tYWpvciBsYW5kbG9yZCByZXNwb25zaWJpbGl0aWVzPC9zdHJvbmc+IChzZWVwYWdlLCBzdHJ1Y3R1cmFsIGlzc3VlcywgYWdyZWVtZW50IHRlcm1zKSwgcmFpc2UgYSBmb3JtYWwgY29tcGxhaW50LlxyXG4gICAgICAgICAgICAgIDwvcD5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicHJvYmxlbS1jaG9pY2UtYWN0aW9uc1wiPlxyXG4gICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiYnRuLWNob2ljZS1jb21wbGFpbnRcIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG5hdmlnYXRlKFwiL3RlbmFudC9jb21wbGFpbnRzXCIpfVxyXG4gICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAg8J+TnSBSYWlzZSBDb21wbGFpbnQgdG8gTGFuZGxvcmRcclxuICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICBjbGFzc05hbWU9XCJidG4tY2hvaWNlLXNlcnZpY2VcIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHtcclxuICAgICAgICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKFwiYm9va2luZy13b3JrZmxvdy1zZWN0aW9uXCIpPy5zY3JvbGxJbnRvVmlldyh7IGJlaGF2aW9yOiBcInNtb290aFwiIH0pO1xyXG4gICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICDimqEgQm9vayBIb21lIFNlcnZpY2VcclxuICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgKX1cclxuXHJcbiAgICAgIHsvKiBNYWluIFdvcmtmbG93IEZvcm0gKi99XHJcbiAgICAgIDxkaXYgaWQ9XCJib29raW5nLXdvcmtmbG93LXNlY3Rpb25cIiBjbGFzc05hbWU9XCJjYXJkXCIgc3R5bGU9e3sgcGFkZGluZzogXCIyOHB4XCIgfX0+XHJcbiAgICAgICAgey8qIEVycm9yIG1lc3NhZ2UgYmFubmVyICovfVxyXG4gICAgICAgIHtlcnJvck1lc3NhZ2UgJiYgKFxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2ZlZjJmMlwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlcjogXCIxLjVweCBzb2xpZCAjZmVjYWNhXCIsXHJcbiAgICAgICAgICAgICAgY29sb3I6IFwiI2I5MWMxY1wiLFxyXG4gICAgICAgICAgICAgIHBhZGRpbmc6IFwiMTRweCAxOHB4XCIsXHJcbiAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiAxMixcclxuICAgICAgICAgICAgICBtYXJnaW5Cb3R0b206IDIwLFxyXG4gICAgICAgICAgICAgIGZvbnRTaXplOiAxNCxcclxuICAgICAgICAgICAgICBmb250V2VpZ2h0OiA2MDAsXHJcbiAgICAgICAgICAgICAgZGlzcGxheTogXCJmbGV4XCIsXHJcbiAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgICBnYXA6IDEwLFxyXG4gICAgICAgICAgICB9fVxyXG4gICAgICAgICAgPlxyXG4gICAgICAgICAgICA8c3Bhbj7imqDvuI88L3NwYW4+XHJcbiAgICAgICAgICAgIDxzcGFuPntlcnJvck1lc3NhZ2V9PC9zcGFuPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgKX1cclxuXHJcbiAgICAgICAgey8qIFNURVAgMTogUHJvcGVydHkgQ29ubmVjdGlvbiAqL31cclxuICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbTogXCIyOHB4XCIgfX0+XHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IDEwLCBtYXJnaW5Cb3R0b206IFwiOHB4XCIgfX0+XHJcbiAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IHdpZHRoOiAyNCwgaGVpZ2h0OiAyNCwgYm9yZGVyUmFkaXVzOiBcIjUwJVwiLCBiYWNrZ3JvdW5kOiBcIiMwMjg0YzdcIiwgY29sb3I6IFwiI2ZmZlwiLCBkaXNwbGF5OiBcImlubGluZS1mbGV4XCIsIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsIGp1c3RpZnlDb250ZW50OiBcImNlbnRlclwiLCBmb250U2l6ZTogMTIsIGZvbnRXZWlnaHQ6IDcwMCB9fT5cclxuICAgICAgICAgICAgICAxXHJcbiAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgPGgzIHN0eWxlPXt7IG1hcmdpbjogMCwgZm9udFNpemU6IDE3LCBmb250V2VpZ2h0OiA3MDAsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT5cclxuICAgICAgICAgICAgICB7dXNlclJvbGUgPT09IFwibGFuZGxvcmRcIiA/IFwiU2VsZWN0IE1hbmFnZWQgUHJvcGVydHlcIiA6IFwiWW91ciBSZW50ZWQgUHJvcGVydHlcIn1cclxuICAgICAgICAgICAgPC9oMz5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIHt1c2VyUm9sZSA9PT0gXCJsYW5kbG9yZFwiID8gKFxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1heFdpZHRoOiA0ODAgfX0+XHJcbiAgICAgICAgICAgICAgPHNlbGVjdFxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaW5wdXQtc2VsZWN0XCJcclxuICAgICAgICAgICAgICAgIHZhbHVlPXtzZWxlY3RlZFByb3BlcnR5SWR9XHJcbiAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFNlbGVjdGVkUHJvcGVydHlJZChlLnRhcmdldC52YWx1ZSl9XHJcbiAgICAgICAgICAgICAgICBzdHlsZT17eyB3aWR0aDogXCIxMDAlXCIsIHBhZGRpbmc6IFwiMTBweCAxNHB4XCIsIGJvcmRlclJhZGl1czogMTAsIGZvbnRTaXplOiAxNCB9fVxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIHtwcm9wZXJ0aWVzLm1hcCgocCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgICA8b3B0aW9uIGtleT17cC5pZH0gdmFsdWU9e3AuaWR9PlxyXG4gICAgICAgICAgICAgICAgICAgIHtwLm5hbWV9IOKAlCB7cC51bml0IHx8IFwiRmxhdFwifSAoe3AubG9jYWxpdHkgfHwgcC5jaXR5IHx8IFwiQ2hlbm5haVwifSlcclxuICAgICAgICAgICAgICAgICAgPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICApKX1cclxuICAgICAgICAgICAgICA8L3NlbGVjdD5cclxuICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiAxMiwgY29sb3I6IFwiIzY0NzQ4YlwiLCBtYXJnaW5Ub3A6IDYgfX0+XHJcbiAgICAgICAgICAgICAgICBTZWxlY3RlZCBQcm9wZXJ0eTogPHN0cm9uZz57Y3VycmVudFByb3A/Lm5hbWV9PC9zdHJvbmc+IOKAoiBVbml0OiA8c3Ryb25nPntjdXJyZW50UHJvcD8udW5pdCB8fCBcIlVuaXQgMVwifTwvc3Ryb25nPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICkgOiAoXHJcbiAgICAgICAgICAgIDxkaXZcclxuICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgYmFja2dyb3VuZDogXCIjZjhmYWZjXCIsXHJcbiAgICAgICAgICAgICAgICBib3JkZXI6IFwiMS41cHggc29saWQgI2UyZThmMFwiLFxyXG4gICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiAxMixcclxuICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiMTRweCAxOHB4XCIsXHJcbiAgICAgICAgICAgICAgICBkaXNwbGF5OiBcImlubGluZS1mbGV4XCIsXHJcbiAgICAgICAgICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICAgICAgZ2FwOiAxMixcclxuICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6IDIwIH19PvCfj6I8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IDEzLjUsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICB7Y3VycmVudFByb3A/Lm5hbWUgfHwgXCJTYWkgS2FsYSBBcGFydG1lbnRzIC0gRmxhdCAzMDJcIn1cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogMTIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgVW5pdDogPHN0cm9uZz57Y3VycmVudFByb3A/LnVuaXQgfHwgXCJGbGF0IEItMjA0XCJ9PC9zdHJvbmc+IOKAoiBUZW5hbnQ6IDxzdHJvbmc+e3VzZXI/Lm5hbWUgfHwgXCJEaXZ5YSBQcml5YVwifTwvc3Ryb25nPlxyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKX1cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgey8qIFNURVAgMjogU2VydmljZSBDYXRlZ29yeSBTZWxlY3Rpb24gKi99XHJcbiAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Cb3R0b206IFwiMjhweFwiIH19PlxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwgZ2FwOiAxMCwgbWFyZ2luQm90dG9tOiBcIjE0cHhcIiB9fT5cclxuICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgd2lkdGg6IDI0LCBoZWlnaHQ6IDI0LCBib3JkZXJSYWRpdXM6IFwiNTAlXCIsIGJhY2tncm91bmQ6IFwiIzAyODRjN1wiLCBjb2xvcjogXCIjZmZmXCIsIGRpc3BsYXk6IFwiaW5saW5lLWZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsIGZvbnRTaXplOiAxMiwgZm9udFdlaWdodDogNzAwIH19PlxyXG4gICAgICAgICAgICAgIDJcclxuICAgICAgICAgICAgPC9zcGFuPlxyXG4gICAgICAgICAgICA8aDMgc3R5bGU9e3sgbWFyZ2luOiAwLCBmb250U2l6ZTogMTcsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgIFNlbGVjdCBTZXJ2aWNlIENhdGVnb3J5XHJcbiAgICAgICAgICAgIDwvaDM+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImNhdGVnb3J5LWdyaWRcIj5cclxuICAgICAgICAgICAge2NhdGVnb3JpZXMubWFwKChjYXQpID0+IHtcclxuICAgICAgICAgICAgICBjb25zdCBpc1NlbGVjdGVkID0gc2VsZWN0ZWRDYXRlZ29yeT8uaWQgPT09IGNhdC5pZCB8fCBzZWxlY3RlZENhdGVnb3J5Py5uYW1lID09PSBjYXQubmFtZTtcclxuICAgICAgICAgICAgICByZXR1cm4gKFxyXG4gICAgICAgICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICAgICAgICBrZXk9e2NhdC5pZH1cclxuICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgY2F0ZWdvcnktY2FyZCAke2lzU2VsZWN0ZWQgPyBcInNlbGVjdGVkXCIgOiBcIlwifWB9XHJcbiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IGhhbmRsZVNlbGVjdENhdGVnb3J5KGNhdCl9XHJcbiAgICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiY2F0ZWdvcnktY2FyZC10b3BcIj5cclxuICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImNhdGVnb3J5LWljb24td3JhcHBlclwiPlxyXG4gICAgICAgICAgICAgICAgICAgICAge2NhdC5uYW1lLmluY2x1ZGVzKFwiQ2xlYW5pbmdcIikgJiYgXCLinKhcIn1cclxuICAgICAgICAgICAgICAgICAgICAgIHtjYXQubmFtZS5pbmNsdWRlcyhcIlBsdW1iaW5nXCIpICYmIFwi8J+asFwifVxyXG4gICAgICAgICAgICAgICAgICAgICAge2NhdC5uYW1lLmluY2x1ZGVzKFwiRWxlY3RyaWNhbFwiKSAmJiBcIuKaoVwifVxyXG4gICAgICAgICAgICAgICAgICAgICAge2NhdC5uYW1lLmluY2x1ZGVzKFwiQ2FycGVudHJ5XCIpICYmIFwi8J+qmlwifVxyXG4gICAgICAgICAgICAgICAgICAgICAge2NhdC5uYW1lLmluY2x1ZGVzKFwiQUNcIikgJiYgXCLinYTvuI9cIn1cclxuICAgICAgICAgICAgICAgICAgICAgIHtjYXQubmFtZS5pbmNsdWRlcyhcIlBhaW50aW5nXCIpICYmIFwi8J+OqFwifVxyXG4gICAgICAgICAgICAgICAgICAgICAge2NhdC5uYW1lLmluY2x1ZGVzKFwiUGVzdFwiKSAmJiBcIvCfm6HvuI9cIn1cclxuICAgICAgICAgICAgICAgICAgICAgIHtjYXQubmFtZS5pbmNsdWRlcyhcIkFwcGxpYW5jZVwiKSAmJiBcIvCflKdcIn1cclxuICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJjYXRlZ29yeS1iYWRnZS1wcmljZVwiPlxyXG4gICAgICAgICAgICAgICAgICAgICAgRnJvbSB7Zm9ybWF0Q3VycmVuY3kgPyBmb3JtYXRDdXJyZW5jeShjYXQuYmFzZVByaWNlKSA6IGDigrkke2NhdC5iYXNlUHJpY2V9YH1cclxuICAgICAgICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICA8aDQgY2xhc3NOYW1lPVwiY2F0ZWdvcnktbmFtZVwiPntjYXQubmFtZX08L2g0PlxyXG4gICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJjYXRlZ29yeS1kZXNjXCI+e2NhdC5kZXNjcmlwdGlvbn08L3A+XHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICApO1xyXG4gICAgICAgICAgICB9KX1cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIHsvKiBTdWItc2VydmljZXMgY2hpcHMgKi99XHJcbiAgICAgICAgICB7c2VsZWN0ZWRDYXRlZ29yeSAmJiBzZWxlY3RlZENhdGVnb3J5LnNlcnZpY2VzICYmIHNlbGVjdGVkQ2F0ZWdvcnkuc2VydmljZXMubGVuZ3RoID4gMCAmJiAoXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWFyZ2luVG9wOiBcIjE2cHhcIiB9fT5cclxuICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiAxMywgZm9udFdlaWdodDogNjAwLCBjb2xvcjogXCIjNDc1NTY5XCIsIG1hcmdpbkJvdHRvbTogNiB9fT5cclxuICAgICAgICAgICAgICAgIENvbW1vbiBTZXJ2aWNlcyBmb3Ige3NlbGVjdGVkQ2F0ZWdvcnkubmFtZX06XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzZXJ2aWNlLWNoaXBzLXdyYXBwZXJcIj5cclxuICAgICAgICAgICAgICAgIHtzZWxlY3RlZENhdGVnb3J5LnNlcnZpY2VzLm1hcCgoc3ZjKSA9PiAoXHJcbiAgICAgICAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICAgICAgICBrZXk9e3N2Y31cclxuICAgICAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2BzZXJ2aWNlLWNoaXAgJHtzZWxlY3RlZFNlcnZpY2UgPT09IHN2YyA/IFwic2VsZWN0ZWRcIiA6IFwiXCJ9YH1cclxuICAgICAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTZWxlY3RlZFNlcnZpY2Uoc3ZjKX1cclxuICAgICAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgICAgIHtzZWxlY3RlZFNlcnZpY2UgPT09IHN2YyAmJiBcIuKckyBcIn1cclxuICAgICAgICAgICAgICAgICAgICB7c3ZjfVxyXG4gICAgICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICAgICkpfVxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICl9XHJcblxyXG4gICAgICAgICAgey8qIFNlcnZpY2UgRGVzY3JpcHRpb24gaW5wdXQgKi99XHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpblRvcDogXCIxNnB4XCIsIG1heFdpZHRoOiA2NDAgfX0+XHJcbiAgICAgICAgICAgIDxsYWJlbCBzdHlsZT17eyBkaXNwbGF5OiBcImJsb2NrXCIsIGZvbnRTaXplOiAxMywgZm9udFdlaWdodDogNjAwLCBjb2xvcjogXCIjMzM0MTU1XCIsIG1hcmdpbkJvdHRvbTogNiB9fT5cclxuICAgICAgICAgICAgICBQcm9ibGVtIC8gU2VydmljZSBEZXRhaWxzIChPcHRpb25hbClcclxuICAgICAgICAgICAgPC9sYWJlbD5cclxuICAgICAgICAgICAgPHRleHRhcmVhXHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaW5wdXQtdGV4dGFyZWFcIlxyXG4gICAgICAgICAgICAgIHJvd3M9ezJ9XHJcbiAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCJlLmcuLCBCZWRyb29tIGZhbiByZWd1bGF0b3Igbm90IHdvcmtpbmcsIG9yIGJhdGhyb29tIHRpbGUgZGVlcCBkZXNjYWxpbmcgcmVxdWlyZWQuLi5cIlxyXG4gICAgICAgICAgICAgIHZhbHVlPXtkZXNjcmlwdGlvbn1cclxuICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldERlc2NyaXB0aW9uKGUudGFyZ2V0LnZhbHVlKX1cclxuICAgICAgICAgICAgICBzdHlsZT17eyB3aWR0aDogXCIxMDAlXCIsIHBhZGRpbmc6IFwiMTBweCAxNHB4XCIsIGJvcmRlclJhZGl1czogMTAsIGZvbnRTaXplOiAxMy41IH19XHJcbiAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgey8qIFNURVAgMzogRGF0ZSAmIFRpbWUgU2xvdCBTZWxlY3Rpb24gKi99XHJcbiAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Cb3R0b206IFwiMjhweFwiIH19PlxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwgZ2FwOiAxMCwgbWFyZ2luQm90dG9tOiBcIjE0cHhcIiB9fT5cclxuICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgd2lkdGg6IDI0LCBoZWlnaHQ6IDI0LCBib3JkZXJSYWRpdXM6IFwiNTAlXCIsIGJhY2tncm91bmQ6IFwiIzAyODRjN1wiLCBjb2xvcjogXCIjZmZmXCIsIGRpc3BsYXk6IFwiaW5saW5lLWZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsIGZvbnRTaXplOiAxMiwgZm9udFdlaWdodDogNzAwIH19PlxyXG4gICAgICAgICAgICAgIDNcclxuICAgICAgICAgICAgPC9zcGFuPlxyXG4gICAgICAgICAgICA8aDMgc3R5bGU9e3sgbWFyZ2luOiAwLCBmb250U2l6ZTogMTcsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgIFNlbGVjdCBBcHBvaW50bWVudCBEYXRlICZhbXA7IFRpbWUgU2xvdFxyXG4gICAgICAgICAgICA8L2gzPlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZmxleFdyYXA6IFwid3JhcFwiLCBnYXA6IDE2LCBhbGlnbkl0ZW1zOiBcImZsZXgtZW5kXCIgfX0+XHJcbiAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXt7IGRpc3BsYXk6IFwiYmxvY2tcIiwgZm9udFNpemU6IDEzLCBmb250V2VpZ2h0OiA2MDAsIGNvbG9yOiBcIiMzMzQxNTVcIiwgbWFyZ2luQm90dG9tOiA2IH19PlxyXG4gICAgICAgICAgICAgICAgRGF0ZTpcclxuICAgICAgICAgICAgICA8L2xhYmVsPlxyXG4gICAgICAgICAgICAgIDxpbnB1dFxyXG4gICAgICAgICAgICAgICAgdHlwZT1cImRhdGVcIlxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaW5wdXQtdGV4dFwiXHJcbiAgICAgICAgICAgICAgICB2YWx1ZT17c2VsZWN0ZWREYXRlfVxyXG4gICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRTZWxlY3RlZERhdGUoZS50YXJnZXQudmFsdWUpfVxyXG4gICAgICAgICAgICAgICAgc3R5bGU9e3sgcGFkZGluZzogXCIxMHB4IDE0cHhcIiwgYm9yZGVyUmFkaXVzOiAxMCwgZm9udFNpemU6IDE0LCBmb250V2VpZ2h0OiA2MDAgfX1cclxuICAgICAgICAgICAgICAvPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogOCB9fT5cclxuICAgICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT17YGJ0biAke3NlbGVjdGVkRGF0ZSA9PT0gXCIyMDI2LTEwLTEwXCIgPyBcImJ0bi1wcmltYXJ5XCIgOiBcImJ0bi1zZWNvbmRhcnlcIn1gfVxyXG4gICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0U2VsZWN0ZWREYXRlKFwiMjAyNi0xMC0xMFwiKX1cclxuICAgICAgICAgICAgICAgIHN0eWxlPXt7IGZvbnRTaXplOiAxMywgcGFkZGluZzogXCI5cHggMTRweFwiIH19XHJcbiAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgMTAgT2N0b2JlciAyMDI2IChEZW1vIERheSlcclxuICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT17YGJ0biAke3NlbGVjdGVkRGF0ZSA9PT0gbmV3IERhdGUoKS50b0lTT1N0cmluZygpLnNwbGl0KFwiVFwiKVswXSA/IFwiYnRuLXByaW1hcnlcIiA6IFwiYnRuLXNlY29uZGFyeVwifWB9XHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTZWxlY3RlZERhdGUobmV3IERhdGUoKS50b0lTT1N0cmluZygpLnNwbGl0KFwiVFwiKVswXSl9XHJcbiAgICAgICAgICAgICAgICBzdHlsZT17eyBmb250U2l6ZTogMTMsIHBhZGRpbmc6IFwiOXB4IDE0cHhcIiB9fVxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIFRvZGF5XHJcbiAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgey8qIFRpbWUgU2xvdHMgKi99XHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpblRvcDogXCIxNnB4XCIgfX0+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IDEzLCBmb250V2VpZ2h0OiA2MDAsIGNvbG9yOiBcIiMzMzQxNTVcIiwgbWFyZ2luQm90dG9tOiA2IH19PlxyXG4gICAgICAgICAgICAgIEF2YWlsYWJsZSBUaW1lIFNsb3RzOlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzbG90cy1ncmlkXCI+XHJcbiAgICAgICAgICAgICAge1RJTUVfU0xPVFMubWFwKChzbG90KSA9PiB7XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc1NlbGVjdGVkID0gc2VsZWN0ZWRUaW1lU2xvdCA9PT0gc2xvdDtcclxuICAgICAgICAgICAgICAgIHJldHVybiAoXHJcbiAgICAgICAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICAgICAgICBrZXk9e3Nsb3R9XHJcbiAgICAgICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgc2xvdC1idG4gJHtpc1NlbGVjdGVkID8gXCJzZWxlY3RlZFwiIDogXCJcIn1gfVxyXG4gICAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkVGltZVNsb3Qoc2xvdCl9XHJcbiAgICAgICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgICAgICB7c2xvdH1cclxuICAgICAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgICAgICApO1xyXG4gICAgICAgICAgICAgIH0pfVxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICB7LyogU1RFUCA0OiBEeW5hbWljIFByb3ZpZGVyIEF2YWlsYWJpbGl0eSBEaXNwbGF5IChEb3VibGUtQm9va2luZyBQcmV2ZW50aW9uIEVuZ2luZSkgKi99XHJcbiAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Cb3R0b206IFwiMjhweFwiIH19PlxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwic3BhY2UtYmV0d2VlblwiLCBmbGV4V3JhcDogXCJ3cmFwXCIsIGdhcDogMTAsIG1hcmdpbkJvdHRvbTogXCIxNHB4XCIgfX0+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsIGdhcDogMTAgfX0+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgd2lkdGg6IDI0LCBoZWlnaHQ6IDI0LCBib3JkZXJSYWRpdXM6IFwiNTAlXCIsIGJhY2tncm91bmQ6IFwiIzAyODRjN1wiLCBjb2xvcjogXCIjZmZmXCIsIGRpc3BsYXk6IFwiaW5saW5lLWZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsIGZvbnRTaXplOiAxMiwgZm9udFdlaWdodDogNzAwIH19PlxyXG4gICAgICAgICAgICAgICAgNFxyXG4gICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICA8aDMgc3R5bGU9e3sgbWFyZ2luOiAwLCBmb250U2l6ZTogMTcsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgU2VsZWN0IEF2YWlsYWJsZSBTZXJ2aWNlIFByb3ZpZGVyXHJcbiAgICAgICAgICAgICAgPC9oMz5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiAxMywgY29sb3I6IFwiIzY0NzQ4YlwiIH19PlxyXG4gICAgICAgICAgICAgIFNsb3Q6IDxzdHJvbmc+e3NlbGVjdGVkRGF0ZX08L3N0cm9uZz4gYXQgPHN0cm9uZz57c2VsZWN0ZWRUaW1lU2xvdH08L3N0cm9uZz4g4oCie1wiIFwifVxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiMxNmEzNGFcIiwgZm9udFdlaWdodDogNzAwIH19PlxyXG4gICAgICAgICAgICAgICAge2F2YWlsYWJpbGl0eURhdGEudG90YWxBdmFpbGFibGV9IEF2YWlsYWJsZVxyXG4gICAgICAgICAgICAgIDwvc3Bhbj57XCIgXCJ9XHJcbiAgICAgICAgICAgICAgL3tcIiBcIn1cclxuICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjZGMyNjI2XCIsIGZvbnRXZWlnaHQ6IDcwMCB9fT5cclxuICAgICAgICAgICAgICAgIHthdmFpbGFiaWxpdHlEYXRhLnRvdGFsQm9va2VkfSBCb29rZWRcclxuICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgey8qIExpdmUgQXZhaWxhYmlsaXR5IEluZm8gQmFubmVyICovfVxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2YxZjVmOVwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlclJhZGl1czogMTAsXHJcbiAgICAgICAgICAgICAgcGFkZGluZzogXCIxMHB4IDE2cHhcIixcclxuICAgICAgICAgICAgICBtYXJnaW5Cb3R0b206IDE2LFxyXG4gICAgICAgICAgICAgIGZvbnRTaXplOiAxMi41LFxyXG4gICAgICAgICAgICAgIGNvbG9yOiBcIiM0NzU1NjlcIixcclxuICAgICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICAgIGdhcDogOCxcclxuICAgICAgICAgICAgfX1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAgPHNwYW4+8J+boe+4jzwvc3Bhbj5cclxuICAgICAgICAgICAgPHNwYW4+XHJcbiAgICAgICAgICAgICAgPHN0cm9uZz5Eb3VibGUtQm9va2luZyBQcmV2ZW50aW9uIEFjdGl2ZTo8L3N0cm9uZz4gU3lzdGVtIGNyb3NzLXJlZmVyZW5jZXMgY29uZmlybWVkIGJvb2tpbmdzIGFuZCB0ZWNobmljaWFuIHNjaGVkdWxlcyBpbiByZWFsIHRpbWUuIE9ubHkgcHJvdmlkZXJzIG1hcmtlZCA8c3Ryb25nPkF2YWlsYWJsZTwvc3Ryb25nPiBjYW4gYmUgYm9va2VkLlxyXG4gICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICB7bG9hZGluZ0F2YWlsYWJpbGl0eSA/IChcclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBwYWRkaW5nOiBcIjI0cHhcIiwgdGV4dEFsaWduOiBcImNlbnRlclwiLCBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+XHJcbiAgICAgICAgICAgICAgQ2hlY2tpbmcgcmVhbC10aW1lIHByb3ZpZGVyIHNjaGVkdWxlc+KAplxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICkgOiBhdmFpbGFiaWxpdHlEYXRhLnByb3ZpZGVycy5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2xvdC11bmF2YWlsYWJsZS1hbGVydFwiPlxyXG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInNsb3QtdW5hdmFpbGFibGUtaWNvblwiPuKaoO+4jzwvc3Bhbj5cclxuICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgPHN0cm9uZz5ObyBzZXJ2aWNlIHByb3ZpZGVycyByZWdpc3RlcmVkIGZvciB0aGlzIGNhdGVnb3J5Ljwvc3Ryb25nPiBQbGVhc2Ugc2VsZWN0IGFub3RoZXIgY2F0ZWdvcnkuXHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKSA6IGF2YWlsYWJpbGl0eURhdGEudG90YWxBdmFpbGFibGUgPT09IDAgPyAoXHJcbiAgICAgICAgICAgIC8qIFJFUVVJUkVEIE1FU1NBR0UgV0hFTiBOTyBQUk9WSURFUiBBVkFJTEFCTEUgKi9cclxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzbG90LXVuYXZhaWxhYmxlLWFsZXJ0XCI+XHJcbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwic2xvdC11bmF2YWlsYWJsZS1pY29uXCI+4p2MPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8c3Ryb25nPk5vIHNlcnZpY2UgcHJvdmlkZXIgaXMgYXZhaWxhYmxlIGZvciB0aGlzIHRpbWUgc2xvdC4gUGxlYXNlIHNlbGVjdCBhbm90aGVyIHRpbWUuPC9zdHJvbmc+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZmxleERpcmVjdGlvbjogXCJjb2x1bW5cIiwgZ2FwOiAxMiB9fT5cclxuICAgICAgICAgICAgICB7YXZhaWxhYmlsaXR5RGF0YS5wcm92aWRlcnMubWFwKChwcm92KSA9PiB7XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc1NlbGVjdGVkID0gc2VsZWN0ZWRQcm92aWRlcj8uaWQgPT09IHByb3YuaWQ7XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc0F2YWlsYWJsZSA9IHByb3YuaXNBdmFpbGFibGU7XHJcblxyXG4gICAgICAgICAgICAgICAgcmV0dXJuIChcclxuICAgICAgICAgICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICAgICAgICAgIGtleT17cHJvdi5pZH1cclxuICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2Bwcm92aWRlci1hdmFpbC1jYXJkICR7XHJcbiAgICAgICAgICAgICAgICAgICAgICBpc0F2YWlsYWJsZSA/IChpc1NlbGVjdGVkID8gXCJzZWxlY3RlZFwiIDogXCJhdmFpbGFibGVcIikgOiBcImJvb2tlZFwiXHJcbiAgICAgICAgICAgICAgICAgICAgfWB9XHJcbiAgICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gaGFuZGxlU2VsZWN0UHJvdmlkZXIocHJvdil9XHJcbiAgICAgICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInByb3ZpZGVyLWluZm8tbWFpblwiPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJwcm92aWRlci1hdmF0YXJcIj5cclxuICAgICAgICAgICAgICAgICAgICAgICAge3Byb3YuY2F0ZWdvcnkuaW5jbHVkZXMoXCJDbGVhbmluZ1wiKSAmJiBcIuKcqFwifVxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7cHJvdi5jYXRlZ29yeS5pbmNsdWRlcyhcIlBsdW1iaW5nXCIpICYmIFwi8J+asFwifVxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7cHJvdi5jYXRlZ29yeS5pbmNsdWRlcyhcIkVsZWN0cmljYWxcIikgJiYgXCLimqFcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAge3Byb3YuY2F0ZWdvcnkuaW5jbHVkZXMoXCJDYXJwZW50cnlcIikgJiYgXCLwn6qaXCJ9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIHtwcm92LmNhdGVnb3J5LmluY2x1ZGVzKFwiQUNcIikgJiYgXCLinYTvuI9cIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAge3Byb3YuY2F0ZWdvcnkuaW5jbHVkZXMoXCJQYWludGluZ1wiKSAmJiBcIvCfjqhcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAge3Byb3YuY2F0ZWdvcnkuaW5jbHVkZXMoXCJQZXN0XCIpICYmIFwi8J+boe+4j1wifVxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7cHJvdi5jYXRlZ29yeS5pbmNsdWRlcyhcIkFwcGxpYW5jZVwiKSAmJiBcIvCflKdcIn1cclxuICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwgZ2FwOiA4IH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDxoNCBzdHlsZT17eyBtYXJnaW46IDAsIGZvbnRTaXplOiAxNSwgZm9udFdlaWdodDogNzAwLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICB7cHJvdi5uYW1lfVxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDwvaDQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6IDEyLCBjb2xvcjogXCIjZjU5ZTBiXCIsIGZvbnRXZWlnaHQ6IDcwMCB9fT5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIOKYhSB7cHJvdi5yYXRpbmcgfHwgNC44fVxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IDEyLjUsIGNvbG9yOiBcIiM2NDc0OGJcIiwgbWFyZ2luVG9wOiAyIH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIFRlY2huaWNpYW46IDxzdHJvbmc+e3Byb3YudGVjaG5pY2lhbk5hbWV9PC9zdHJvbmc+IOKAoiB7cHJvdi5leHBlcmllbmNlWWVhcnN9IHlycyBleHAg4oCiIHtwcm92LmxvY2F0aW9ufVxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogMTIsIGNvbG9yOiBcIiMwMzY5YTFcIiwgbWFyZ2luVG9wOiAyIH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIFNraWxsczoge3Byb3Yuc2tpbGxzPy5zbGljZSgwLCAzKS5qb2luKFwiLCBcIikgfHwgXCJHZW5lcmFsIFJlcGFpcnNcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyB0ZXh0QWxpZ246IFwicmlnaHRcIiwgZGlzcGxheTogXCJmbGV4XCIsIGZsZXhEaXJlY3Rpb246IFwiY29sdW1uXCIsIGFsaWduSXRlbXM6IFwiZmxleC1lbmRcIiwgZ2FwOiA2IH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogMTUsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7Zm9ybWF0Q3VycmVuY3kgPyBmb3JtYXRDdXJyZW5jeShwcm92LnByaWNlKSA6IGDigrkke3Byb3YucHJpY2V9YH1cclxuICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgICAgICAgICAgIHsvKiBFeHBsaWNpdCBBdmFpbGFiaWxpdHkgU3RhdHVzIEJhZGdlICovfVxyXG4gICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPXtgcHJvdmlkZXItYXZhaWwtYmFkZ2UgJHtpc0F2YWlsYWJsZSA/IFwiYXZhaWxhYmxlXCIgOiBcImJvb2tlZFwifWB9PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7aXNBdmFpbGFibGUgPyBcIuKckyBBdmFpbGFibGVcIiA6IFwi4pyXIEJvb2tlZFwifVxyXG4gICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPlxyXG5cclxuICAgICAgICAgICAgICAgICAgICAgIHtpc0F2YWlsYWJsZSAmJiAoXHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IDExLjUsIGNvbG9yOiBpc1NlbGVjdGVkID8gXCIjMTU4MDNkXCIgOiBcIiM2NDc0OGJcIiwgZm9udFdlaWdodDogNjAwIH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHtpc1NlbGVjdGVkID8gXCJTZWxlY3RlZCBmb3IgQm9va2luZ1wiIDogXCJDbGljayB0byBTZWxlY3RcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICAgICAgICApfVxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICk7XHJcbiAgICAgICAgICAgICAgfSl9XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKX1cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgey8qIFNURVAgNTogQm9va2luZyBTdW1tYXJ5ICYgQ29uZmlybSBCdXR0b24gKi99XHJcbiAgICAgICAge3NlbGVjdGVkUHJvdmlkZXIgJiYgKFxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2YwZjdmZlwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlcjogXCIycHggc29saWQgI2JmZGJmZVwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlclJhZGl1czogMTQsXHJcbiAgICAgICAgICAgICAgcGFkZGluZzogXCIyMHB4IDI0cHhcIixcclxuICAgICAgICAgICAgICBtYXJnaW5Ub3A6IFwiMjBweFwiLFxyXG4gICAgICAgICAgICB9fVxyXG4gICAgICAgICAgPlxyXG4gICAgICAgICAgICA8aDQgc3R5bGU9e3sgbWFyZ2luOiBcIjAgMCAxMnB4IDBcIiwgZm9udFNpemU6IDE2LCBmb250V2VpZ2h0OiA3MDAsIGNvbG9yOiBcIiMxZTNhOGFcIiB9fT5cclxuICAgICAgICAgICAgICDwn5OLIEJvb2tpbmcgU3VtbWFyeVxyXG4gICAgICAgICAgICA8L2g0PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZ3JpZFwiLCBncmlkVGVtcGxhdGVDb2x1bW5zOiBcInJlcGVhdChhdXRvLWZpdCwgbWlubWF4KDIwMHB4LCAxZnIpKVwiLCBnYXA6IDEyLCBmb250U2l6ZTogMTMuNSB9fT5cclxuICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgY29sb3I6IFwiIzY0NzQ4YlwiIH19PkNhdGVnb3J5Ojwvc3Bhbj57XCIgXCJ9XHJcbiAgICAgICAgICAgICAgICA8c3Ryb25nPntzZWxlY3RlZENhdGVnb3J5Py5uYW1lfTwvc3Ryb25nPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+U2VsZWN0ZWQgU2VydmljZTo8L3NwYW4+e1wiIFwifVxyXG4gICAgICAgICAgICAgICAgPHN0cm9uZz57c2VsZWN0ZWRTZXJ2aWNlIHx8IFwiU3RhbmRhcmQgU2VydmljZVwifTwvc3Ryb25nPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+U2VydmljZSBQcm92aWRlcjo8L3NwYW4+e1wiIFwifVxyXG4gICAgICAgICAgICAgICAgPHN0cm9uZz57c2VsZWN0ZWRQcm92aWRlcj8ubmFtZX08L3N0cm9uZz4gKHtzZWxlY3RlZFByb3ZpZGVyPy50ZWNobmljaWFuTmFtZX0pXHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5BcHBvaW50bWVudCBEYXRlOjwvc3Bhbj57XCIgXCJ9XHJcbiAgICAgICAgICAgICAgICA8c3Ryb25nPntzZWxlY3RlZERhdGV9PC9zdHJvbmc+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5UaW1lIFNsb3Q6PC9zcGFuPntcIiBcIn1cclxuICAgICAgICAgICAgICAgIDxzdHJvbmc+e3NlbGVjdGVkVGltZVNsb3R9PC9zdHJvbmc+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5EZXN0aW5hdGlvbjo8L3NwYW4+e1wiIFwifVxyXG4gICAgICAgICAgICAgICAgPHN0cm9uZz57Y3VycmVudFByb3A/Lm5hbWV9IOKAlCB7Y3VycmVudFByb3A/LnVuaXQgfHwgXCJGbGF0IEItMjA0XCJ9PC9zdHJvbmc+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5Fc3RpbWF0ZWQgQ29zdDo8L3NwYW4+e1wiIFwifVxyXG4gICAgICAgICAgICAgICAgPHN0cm9uZyBzdHlsZT17eyBjb2xvcjogXCIjMDI4NGM3XCIsIGZvbnRTaXplOiAxNSB9fT5cclxuICAgICAgICAgICAgICAgICAge2Zvcm1hdEN1cnJlbmN5ID8gZm9ybWF0Q3VycmVuY3koc2VsZWN0ZWRQcm92aWRlci5wcmljZSkgOiBg4oK5JHtzZWxlY3RlZFByb3ZpZGVyLnByaWNlfWB9XHJcbiAgICAgICAgICAgICAgICA8L3N0cm9uZz5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpblRvcDogMjAsIGRpc3BsYXk6IFwiZmxleFwiLCBqdXN0aWZ5Q29udGVudDogXCJmbGV4LWVuZFwiLCBnYXA6IDEyIH19PlxyXG4gICAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiYnRuIGJ0bi1zZWNvbmRhcnlcIlxyXG4gICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0U2VsZWN0ZWRQcm92aWRlcihudWxsKX1cclxuICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICBDbGVhciBTZWxlY3Rpb25cclxuICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImJ0biBidG4tcHJpbWFyeVwiXHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVDb25maXJtQm9va2luZ31cclxuICAgICAgICAgICAgICAgIGRpc2FibGVkPXtzdWJtaXR0aW5nfVxyXG4gICAgICAgICAgICAgICAgc3R5bGU9e3sgcGFkZGluZzogXCIxMnB4IDI4cHhcIiwgZm9udFNpemU6IDE0LCBmb250V2VpZ2h0OiA3MDAgfX1cclxuICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICB7c3VibWl0dGluZyA/IFwiVmVyaWZ5aW5nICYgUmVzZXJ2aW5nIFNsb3TigKZcIiA6IFwiQ29uZmlybSBCb29raW5nXCJ9XHJcbiAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgKX1cclxuICAgICAgPC9kaXY+XHJcblxyXG4gICAgICB7LyogU1VDQ0VTUyBDT05GSVJNQVRJT04gTU9EQUwgKi99XHJcbiAgICAgIHtib29raW5nU3VjY2VzcyAmJiAoXHJcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzZXJ2aWNlLW1vZGFsLW92ZXJsYXlcIj5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic2VydmljZS1tb2RhbC1jb250ZW50XCIgc3R5bGU9e3sgcGFkZGluZzogXCIzMnB4XCIsIHRleHRBbGlnbjogXCJjZW50ZXJcIiB9fT5cclxuICAgICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgICAgICB3aWR0aDogNjQsXHJcbiAgICAgICAgICAgICAgICBoZWlnaHQ6IDY0LFxyXG4gICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjUwJVwiLFxyXG4gICAgICAgICAgICAgICAgYmFja2dyb3VuZDogXCIjZGNmY2U3XCIsXHJcbiAgICAgICAgICAgICAgICBjb2xvcjogXCIjMTU4MDNkXCIsXHJcbiAgICAgICAgICAgICAgICBmb250U2l6ZTogMzIsXHJcbiAgICAgICAgICAgICAgICBkaXNwbGF5OiBcImlubGluZS1mbGV4XCIsXHJcbiAgICAgICAgICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICAgICAganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICAgICAgICBtYXJnaW5Cb3R0b206IDE2LFxyXG4gICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICDinJNcclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8aDMgc3R5bGU9e3sgbWFyZ2luOiBcIjAgMCA4cHggMFwiLCBmb250U2l6ZTogMjIsIGZvbnRXZWlnaHQ6IDgwMCwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgIEJvb2tpbmcgQ29uZmlybWVkIVxyXG4gICAgICAgICAgICA8L2gzPlxyXG4gICAgICAgICAgICA8cCBzdHlsZT17eyBtYXJnaW46IFwiMCAwIDIwcHggMFwiLCBmb250U2l6ZTogMTQsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5cclxuICAgICAgICAgICAgICBCb29raW5nIElEOiA8c3Ryb25nPntib29raW5nU3VjY2Vzcy5ib29raW5nTnVtYmVyIHx8IGJvb2tpbmdTdWNjZXNzLmlkfTwvc3Ryb25nPlxyXG4gICAgICAgICAgICA8L3A+XHJcblxyXG4gICAgICAgICAgICA8ZGl2XHJcbiAgICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2Y4ZmFmY1wiLFxyXG4gICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiAxMixcclxuICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiMThweFwiLFxyXG4gICAgICAgICAgICAgICAgdGV4dEFsaWduOiBcImxlZnRcIixcclxuICAgICAgICAgICAgICAgIGZvbnRTaXplOiAxMy41LFxyXG4gICAgICAgICAgICAgICAgbGluZUhlaWdodDogMS42LFxyXG4gICAgICAgICAgICAgICAgbWFyZ2luQm90dG9tOiAyNCxcclxuICAgICAgICAgICAgICAgIGJvcmRlcjogXCIxcHggc29saWQgI2UyZThmMFwiLFxyXG4gICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICA8ZGl2PjxzdHJvbmc+U2VydmljZTo8L3N0cm9uZz4ge2Jvb2tpbmdTdWNjZXNzLnNlcnZpY2VDYXRlZ29yeX0g4oCUIHtib29raW5nU3VjY2Vzcy5zZXJ2aWNlTmFtZX08L2Rpdj5cclxuICAgICAgICAgICAgICA8ZGl2PjxzdHJvbmc+UHJvdmlkZXI6PC9zdHJvbmc+IHtib29raW5nU3VjY2Vzcy5wcm92aWRlck5hbWV9IChUZWNobmljaWFuOiB7Ym9va2luZ1N1Y2Nlc3MudGVjaG5pY2lhbk5hbWV9KTwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXY+PHN0cm9uZz5EYXRlICZhbXA7IFNsb3Q6PC9zdHJvbmc+IHtib29raW5nU3VjY2Vzcy5kYXRlfSBhdCB7Ym9va2luZ1N1Y2Nlc3MudGltZVNsb3R9PC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdj48c3Ryb25nPlByb3BlcnR5Ojwvc3Ryb25nPiB7Ym9va2luZ1N1Y2Nlc3MucHJvcGVydHlOYW1lfSAoe2Jvb2tpbmdTdWNjZXNzLnVuaXR9KTwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXY+PHN0cm9uZz5TdGF0dXM6PC9zdHJvbmc+IDxzcGFuIGNsYXNzTmFtZT1cInBpbGwgY29uZmlybWVkXCI+Q29uZmlybWVkPC9zcGFuPjwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGp1c3RpZnlDb250ZW50OiBcImNlbnRlclwiLCBnYXA6IDEyIH19PlxyXG4gICAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiYnRuIGJ0bi1zZWNvbmRhcnlcIlxyXG4gICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0Qm9va2luZ1N1Y2Nlc3MobnVsbCl9XHJcbiAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgQm9vayBBbm90aGVyIFNlcnZpY2VcclxuICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImJ0biBidG4tcHJpbWFyeVwiXHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiB7XHJcbiAgICAgICAgICAgICAgICAgIHNldEJvb2tpbmdTdWNjZXNzKG51bGwpO1xyXG4gICAgICAgICAgICAgICAgICBuYXZpZ2F0ZSh1c2VyUm9sZSA9PT0gXCJhZG1pblwiID8gXCIvYWRtaW4vc2VydmljZS1ib29raW5nc1wiIDogdXNlclJvbGUgPT09IFwibGFuZGxvcmRcIiA/IFwiL2xhbmRsb3JkL215LWJvb2tpbmdzXCIgOiBcIi90ZW5hbnQvbXktYm9va2luZ3NcIik7XHJcbiAgICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIFZpZXcgTXkgU2VydmljZSBCb29raW5ncyDihpJcclxuICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgKX1cclxuICAgIDwvZGl2PlxyXG4gICk7XHJcbn1cclxuIl0sImZpbGUiOiJDOi9Vc2Vycy9TaXZhL0Rvd25sb2Fkcy9Qcm9wQ29ubmVjdC9mcm9udGVuZC9zcmMvcGFnZXMvc2hhcmVkL0hvbWVTZXJ2aWNlc1BvcnRhbC5qc3gifQ==

@@ -1,0 +1,348 @@
+/* HomeServicesMarketplace.css - Unified Home Services Marketplace Styling */
+
+.hsm-container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+  padding-bottom: 40px;
+}
+
+/* Section Headers */
+.hsm-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hsm-section-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hsm-section-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+/* SECTION 1: Category Grid */
+.hsm-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.hsm-category-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.hsm-category-card:hover {
+  transform: translateY(-3px);
+  border-color: #0284c7;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.12);
+}
+
+.hsm-category-card.selected {
+  background: #f0f9ff;
+  border: 2px solid #0284c7;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.15);
+}
+
+.hsm-cat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: transform 0.2s ease;
+}
+
+.hsm-category-card.selected .hsm-cat-icon {
+  background: #e0f2fe;
+  transform: scale(1.1);
+}
+
+.hsm-cat-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hsm-cat-price {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.08);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* SECTION 2: Provider Discovery */
+.hsm-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.hsm-provider-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hsm-provider-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+.hsm-prov-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hsm-prov-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hsm-prov-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-top: 3px;
+}
+
+.hsm-prov-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.hsm-prov-rating {
+  font-weight: 700;
+  color: #d97706;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hsm-prov-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.hsm-skill-tag {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.hsm-prov-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  margin-top: auto;
+}
+
+.hsm-prov-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* SECTION 3: 9-Step Booking Flow */
+.hsm-booking-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-top: 5px solid #0284c7;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.hsm-steps-indicator {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  scrollbar-width: thin;
+}
+
+.hsm-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  white-space: nowrap;
+}
+
+.hsm-step-pill.active {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.hsm-step-pill.done {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.hsm-step-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(0,0,0,0.1);
+}
+
+.hsm-step-pill.active .hsm-step-num {
+  background: rgba(255,255,255,0.25);
+  color: #ffffff;
+}
+
+.hsm-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.hsm-slot-btn {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.hsm-slot-btn:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.hsm-slot-btn.selected {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+/* SECTION 4: Booking Tracking */
+.hsm-tracking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.hsm-track-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hsm-track-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hsm-track-id {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hsm-track-status-pill {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hsm-track-meta {
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.hsm-track-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}

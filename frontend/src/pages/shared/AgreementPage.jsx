@@ -1,9 +1,10 @@
-import { useContext, useState, useMemo } from "react";
+import { useContext, useState, useMemo, useEffect } from "react";
 import { AuthContext } from "../../context/AuthContext.jsx";
 import { SettingsContext } from "../../context/SettingsContext.jsx";
 import PageHero from "../../components/PageHero.jsx";
 import { LEASES, PROPERTIES, TENANTS, LANDLORDS } from "../../data/db.js";
 import { calculateTenantRentCycle } from "../../utils/rentCycleEngine.js";
+import { fetchLeases } from "../../utils/apiClient.js";
 
 export default function AgreementPage() {
   const { user } = useContext(AuthContext);
@@ -11,20 +12,63 @@ export default function AgreementPage() {
 
   const role = user?.role || "tenant";
   const entityId = user?.entityId || user?.entity_id || "TEN001";
+  const [liveLeases, setLiveLeases] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const leaseData = await fetchLeases();
+        if (isMounted && Array.isArray(leaseData) && leaseData.length > 0) {
+          setLiveLeases(leaseData);
+        }
+      } catch (err) {
+        console.warn("Could not load leases for agreement:", err);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const allLeases = liveLeases.length > 0 ? liveLeases : LEASES;
 
   // Select active lease
   const relevantLeases = useMemo(() => {
+    let list = [];
     if (role === "tenant") {
-      return LEASES.filter((l) => l.tenantId === entityId || l.tenant_id === entityId);
+      list = allLeases.filter((l) => l.tenantId === entityId || l.tenant_id === entityId);
     } else if (role === "landlord") {
-      return LEASES.filter((l) => l.landlordId === entityId || l.landlord_id === entityId);
+      list = allLeases.filter((l) => l.landlordId === entityId || l.landlord_id === entityId);
+    } else {
+      list = allLeases;
     }
-    return LEASES;
-  }, [role, entityId]);
+    // Sort so active primary lease is first
+    return [...list].sort((a, b) => {
+      const aActive = (a.status || "").toLowerCase() === "active" ? 1 : 0;
+      const bActive = (b.status || "").toLowerCase() === "active" ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+
+      const aAncillary = (a.id || "").includes("-P") || (a.id || "").includes("-S") ? 1 : 0;
+      const bAncillary = (b.id || "").includes("-P") || (b.id || "").includes("-S") ? 1 : 0;
+      if (aAncillary !== bAncillary) return aAncillary - bAncillary;
+
+      const aRent = Number(a.monthlyRent || a.rent || 0);
+      const bRent = Number(b.monthlyRent || b.rent || 0);
+      return bRent - aRent;
+    });
+  }, [allLeases, role, entityId]);
 
   const [selectedLeaseId, setSelectedLeaseId] = useState(() => {
     return relevantLeases[0]?.id || "LSE001";
   });
+
+  useEffect(() => {
+    if (relevantLeases.length > 0 && !relevantLeases.some((l) => l.id === selectedLeaseId)) {
+      setSelectedLeaseId(relevantLeases[0].id);
+    }
+  }, [relevantLeases, selectedLeaseId]);
 
   const activeLease = useMemo(() => {
     return relevantLeases.find((l) => l.id === selectedLeaseId) || relevantLeases[0] || LEASES[0];

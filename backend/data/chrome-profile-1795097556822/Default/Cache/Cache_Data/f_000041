@@ -1,0 +1,197 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/discovery/RecentlyViewedBar.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+import { Clock, ArrowRight } from "/node_modules/.vite/deps/lucide-react.js?v=1e3aa71c";
+export default function RecentlyViewedBar({
+  recentlyViewed = [],
+  onNavigateDetails,
+  formatCurrency = (v) => `₹${Number(v).toLocaleString("en-IN")}`
+}) {
+  if (!recentlyViewed || recentlyViewed.length === 0) return null;
+  return /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      style: {
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "12px",
+        padding: "14px 18px",
+        marginBottom: "20px",
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)"
+      },
+      children: [
+        /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            style: {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px"
+            },
+            children: /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 700, color: "#334155" }, children: [
+              /* @__PURE__ */ jsxDEV(Clock, { size: 15, color: "#2563eb" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                lineNumber: 49,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: [
+                "Recently Viewed Homes (",
+                recentlyViewed.length,
+                ")"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                lineNumber: 50,
+                columnNumber: 11
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+              lineNumber: 48,
+              columnNumber: 9
+            }, this)
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+            lineNumber: 40,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            style: {
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: "12px"
+            },
+            children: recentlyViewed.slice(0, 4).map(
+              (p) => /* @__PURE__ */ jsxDEV(
+                "div",
+                {
+                  onClick: () => onNavigateDetails(p.id),
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 10px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
+                  },
+                  className: "recent-item-hover",
+                  children: [
+                    /* @__PURE__ */ jsxDEV(
+                      "img",
+                      {
+                        src: p.image || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=120",
+                        alt: p.name,
+                        style: { width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", flexShrink: 0 }
+                      },
+                      void 0,
+                      false,
+                      {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                        lineNumber: 78,
+                        columnNumber: 13
+                      },
+                      this
+                    ),
+                    /* @__PURE__ */ jsxDEV("div", { style: { minWidth: 0, flex: 1 }, children: [
+                      /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12.5px", fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: p.name }, void 0, false, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                        lineNumber: 84,
+                        columnNumber: 15
+                      }, this),
+                      /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b", margin: "1px 0" }, children: [
+                        p.city,
+                        " · ",
+                        p.bedrooms ? `${p.bedrooms} BHK` : "Flat"
+                      ] }, void 0, true, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                        lineNumber: 87,
+                        columnNumber: 15
+                      }, this),
+                      /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", fontWeight: 700, color: "#2563eb" }, children: [
+                        formatCurrency(p.rent),
+                        "/mo"
+                      ] }, void 0, true, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                        lineNumber: 90,
+                        columnNumber: 15
+                      }, this)
+                    ] }, void 0, true, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                      lineNumber: 83,
+                      columnNumber: 13
+                    }, this)
+                  ]
+                },
+                p.id,
+                true,
+                {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+                  lineNumber: 62,
+                  columnNumber: 9
+                },
+                this
+              )
+            )
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+            lineNumber: 54,
+            columnNumber: 7
+          },
+          this
+        )
+      ]
+    },
+    void 0,
+    true,
+    {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx",
+      lineNumber: 30,
+      columnNumber: 5
+    },
+    this
+  );
+}
+_c = RecentlyViewedBar;
+var _c;
+$RefreshReg$(_c, "RecentlyViewedBar");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/discovery/RecentlyViewedBar.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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ZjtBQUFBQSwwQkFBRWdCO0FBQUFBLHdCQUFLO0FBQUEsd0JBQUloQixFQUFFaUIsV0FBVyxHQUFHakIsRUFBRWlCLFFBQVEsU0FBUztBQUFBLDJCQURqRDtBQUFBO0FBQUE7QUFBQTtBQUFBLDZCQUVBO0FBQUEsc0JBQ0EsdUJBQUMsU0FBSSxPQUFPLEVBQUV2QixVQUFVLFFBQVFDLFlBQVksS0FBS0MsT0FBTyxVQUFVLEdBQy9EakI7QUFBQUEsdUNBQWVxQixFQUFFa0IsSUFBSTtBQUFBLHdCQUFFO0FBQUEsMkJBRDFCO0FBQUE7QUFBQTtBQUFBO0FBQUEsNkJBRUE7QUFBQSx5QkFURjtBQUFBO0FBQUE7QUFBQTtBQUFBLDJCQVVBO0FBQUE7QUFBQTtBQUFBLGdCQTlCS2xCLEVBQUVDO0FBQUFBLGdCQURUO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsY0FnQ0E7QUFBQSxZQUNEO0FBQUE7QUFBQSxVQXpDSDtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUEwQ0E7QUFBQTtBQUFBO0FBQUEsSUFsRUY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEVBbUVBO0FBRUo7QUFBQ2tCLEtBN0V1QjNDO0FBQWlCLElBQUEyQztBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJDbG9jayIsIkFycm93UmlnaHQiLCJSZWNlbnRseVZpZXdlZEJhciIsInJlY2VudGx5Vmlld2VkIiwib25OYXZpZ2F0ZURldGFpbHMiLCJmb3JtYXRDdXJyZW5jeSIsInYiLCJOdW1iZXIiLCJ0b0xvY2FsZVN0cmluZyIsImxlbmd0aCIsImJhY2tncm91bmQiLCJib3JkZXIiLCJib3JkZXJSYWRpdXMiLCJwYWRkaW5nIiwibWFyZ2luQm90dG9tIiwiYm94U2hhZG93IiwiZGlzcGxheSIsImp1c3RpZnlDb250ZW50IiwiYWxpZ25JdGVtcyIsImdhcCIsImZvbnRTaXplIiwiZm9udFdlaWdodCIsImNvbG9yIiwiZ3JpZFRlbXBsYXRlQ29sdW1ucyIsInNsaWNlIiwibWFwIiwicCIsImlkIiwiY3Vyc29yIiwidHJhbnNpdGlvbiIsImltYWdlIiwibmFtZSIsIndpZHRoIiwiaGVpZ2h0Iiwib2JqZWN0Rml0IiwiZmxleFNocmluayIsIm1pbldpZHRoIiwiZmxleCIsIndoaXRlU3BhY2UiLCJvdmVyZmxvdyIsInRleHRPdmVyZmxvdyIsIm1hcmdpbiIsImNpdHkiLCJiZWRyb29tcyIsInJlbnQiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJSZWNlbnRseVZpZXdlZEJhci5qc3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgQ2xvY2ssIEFycm93UmlnaHQgfSBmcm9tIFwibHVjaWRlLXJlYWN0XCI7XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFJlY2VudGx5Vmlld2VkQmFyKHtcbiAgcmVjZW50bHlWaWV3ZWQgPSBbXSxcbiAgb25OYXZpZ2F0ZURldGFpbHMsXG4gIGZvcm1hdEN1cnJlbmN5ID0gKHYpID0+IGDigrkke051bWJlcih2KS50b0xvY2FsZVN0cmluZyhcImVuLUlOXCIpfWAsXG59KSB7XG4gIGlmICghcmVjZW50bHlWaWV3ZWQgfHwgcmVjZW50bHlWaWV3ZWQubGVuZ3RoID09PSAwKSByZXR1cm4gbnVsbDtcblxuICByZXR1cm4gKFxuICAgIDxkaXZcbiAgICAgIHN0eWxlPXt7XG4gICAgICAgIGJhY2tncm91bmQ6IFwiI2ZmZmZmZlwiLFxuICAgICAgICBib3JkZXI6IFwiMXB4IHNvbGlkICNlMmU4ZjBcIixcbiAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjEycHhcIixcbiAgICAgICAgcGFkZGluZzogXCIxNHB4IDE4cHhcIixcbiAgICAgICAgbWFyZ2luQm90dG9tOiBcIjIwcHhcIixcbiAgICAgICAgYm94U2hhZG93OiBcIjAgMXB4IDNweCByZ2JhKDE1LCAyMywgNDIsIDAuMDMpXCIsXG4gICAgICB9fVxuICAgID5cbiAgICAgIDxkaXZcbiAgICAgICAgc3R5bGU9e3tcbiAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcbiAgICAgICAgICBqdXN0aWZ5Q29udGVudDogXCJzcGFjZS1iZXR3ZWVuXCIsXG4gICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcbiAgICAgICAgICBtYXJnaW5Cb3R0b206IFwiMTBweFwiLFxuICAgICAgICB9fVxuICAgICAgPlxuICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiNnB4XCIsIGZvbnRTaXplOiBcIjEzcHhcIiwgZm9udFdlaWdodDogNzAwLCBjb2xvcjogXCIjMzM0MTU1XCIgfX0+XG4gICAgICAgICAgPENsb2NrIHNpemU9ezE1fSBjb2xvcj1cIiMyNTYzZWJcIiAvPlxuICAgICAgICAgIDxzcGFuPlJlY2VudGx5IFZpZXdlZCBIb21lcyAoe3JlY2VudGx5Vmlld2VkLmxlbmd0aH0pPC9zcGFuPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8ZGl2XG4gICAgICAgIHN0eWxlPXt7XG4gICAgICAgICAgZGlzcGxheTogXCJncmlkXCIsXG4gICAgICAgICAgZ3JpZFRlbXBsYXRlQ29sdW1uczogXCJyZXBlYXQoYXV0by1maWxsLCBtaW5tYXgoMjIwcHgsIDFmcikpXCIsXG4gICAgICAgICAgZ2FwOiBcIjEycHhcIixcbiAgICAgICAgfX1cbiAgICAgID5cbiAgICAgICAge3JlY2VudGx5Vmlld2VkLnNsaWNlKDAsIDQpLm1hcCgocCkgPT4gKFxuICAgICAgICAgIDxkaXZcbiAgICAgICAgICAgIGtleT17cC5pZH1cbiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG9uTmF2aWdhdGVEZXRhaWxzKHAuaWQpfVxuICAgICAgICAgICAgc3R5bGU9e3tcbiAgICAgICAgICAgICAgZGlzcGxheTogXCJmbGV4XCIsXG4gICAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXG4gICAgICAgICAgICAgIGdhcDogXCIxMHB4XCIsXG4gICAgICAgICAgICAgIHBhZGRpbmc6IFwiOHB4IDEwcHhcIixcbiAgICAgICAgICAgICAgYmFja2dyb3VuZDogXCIjZjhmYWZjXCIsXG4gICAgICAgICAgICAgIGJvcmRlcjogXCIxcHggc29saWQgI2UyZThmMFwiLFxuICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiOHB4XCIsXG4gICAgICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXG4gICAgICAgICAgICAgIHRyYW5zaXRpb246IFwiYWxsIDAuMTVzIGVhc2VcIixcbiAgICAgICAgICAgIH19XG4gICAgICAgICAgICBjbGFzc05hbWU9XCJyZWNlbnQtaXRlbS1ob3ZlclwiXG4gICAgICAgICAgPlxuICAgICAgICAgICAgPGltZ1xuICAgICAgICAgICAgICBzcmM9e3AuaW1hZ2UgfHwgXCJodHRwczovL2ltYWdlcy51bnNwbGFzaC5jb20vcGhvdG8tMTU0NTMyNDQxOC1jYzFhM2ZhMTBjMDA/dz0xMjBcIn1cbiAgICAgICAgICAgICAgYWx0PXtwLm5hbWV9XG4gICAgICAgICAgICAgIHN0eWxlPXt7IHdpZHRoOiBcIjQ0cHhcIiwgaGVpZ2h0OiBcIjQ0cHhcIiwgYm9yZGVyUmFkaXVzOiBcIjZweFwiLCBvYmplY3RGaXQ6IFwiY292ZXJcIiwgZmxleFNocmluazogMCB9fVxuICAgICAgICAgICAgLz5cbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWluV2lkdGg6IDAsIGZsZXg6IDEgfX0+XG4gICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTIuNXB4XCIsIGZvbnRXZWlnaHQ6IDYwMCwgY29sb3I6IFwiIzBmMTcyYVwiLCB3aGl0ZVNwYWNlOiBcIm5vd3JhcFwiLCBvdmVyZmxvdzogXCJoaWRkZW5cIiwgdGV4dE92ZXJmbG93OiBcImVsbGlwc2lzXCIgfX0+XG4gICAgICAgICAgICAgICAge3AubmFtZX1cbiAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTFweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIsIG1hcmdpbjogXCIxcHggMFwiIH19PlxuICAgICAgICAgICAgICAgIHtwLmNpdHl9IMK3IHtwLmJlZHJvb21zID8gYCR7cC5iZWRyb29tc30gQkhLYCA6IFwiRmxhdFwifVxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMnB4XCIsIGZvbnRXZWlnaHQ6IDcwMCwgY29sb3I6IFwiIzI1NjNlYlwiIH19PlxuICAgICAgICAgICAgICAgIHtmb3JtYXRDdXJyZW5jeShwLnJlbnQpfS9tb1xuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICApKX1cbiAgICAgIDwvZGl2PlxuICAgIDwvZGl2PlxuICApO1xufVxuIl0sImZpbGUiOiJDOi9Vc2Vycy9TaXZhL0Rvd25sb2Fkcy9Qcm9wQ29ubmVjdC9mcm9udGVuZC9zcmMvY29tcG9uZW50cy9kaXNjb3ZlcnkvUmVjZW50bHlWaWV3ZWRCYXIuanN4In0=

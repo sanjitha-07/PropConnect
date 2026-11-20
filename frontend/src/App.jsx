@@ -13,9 +13,7 @@ import LandlordOverview from "./pages/landlord/LandlordOverview.jsx";
 import TenantOverview from "./pages/tenant/TenantOverview.jsx";
 import MyLeasePage from "./pages/tenant/MyLeasePage.jsx";
 import MyPaymentsPage from "./pages/tenant/MyPaymentsPage.jsx";
-import MyMaintenancePage from "./pages/tenant/MyMaintenancePage.jsx";
 import MyDocumentsPage from "./pages/tenant/MyDocumentsPage.jsx";
-import MyComplaintsPage from "./pages/tenant/MyComplaintsPage.jsx";
 import PropertiesPage from "./pages/shared/PropertiesPage.jsx";
 import PropertyDetailsPage from "./pages/shared/PropertyDetailsPage.jsx";
 import LeasesPage from "./pages/shared/LeasesPage.jsx";
@@ -35,11 +33,15 @@ import ServiceBookingsPage from "./pages/shared/ServiceBookingsPage.jsx";
 import ServiceCategoriesPage from "./pages/admin/ServiceCategoriesPage.jsx";
 import ServiceProvidersPage from "./pages/admin/ServiceProvidersPage.jsx";
 import AvailabilityManagementPage from "./pages/admin/AvailabilityManagementPage.jsx";
-import TenantEbBillsPage from "./pages/tenant/TenantEbBillsPage.jsx";
 import LandlordEbBillsPage from "./pages/landlord/LandlordEbBillsPage.jsx";
 import ServicesAndComplaintsHub from "./pages/shared/ServicesAndComplaintsHub.jsx";
 import ProviderOverview from "./pages/provider/ProviderOverview.jsx";
 import AgreementPage from "./pages/shared/AgreementPage.jsx";
+import UtilityCenterPage from "./pages/tenant/UtilityCenterPage.jsx";
+import RequestCenterPage from "./pages/tenant/RequestCenterPage.jsx";
+import HomeServicesMarketplace from "./pages/tenant/HomeServicesMarketplace.jsx";
+import FinancialCenterPage from "./pages/landlord/FinancialCenterPage.jsx";
+import RequestsCenterPage from "./pages/landlord/RequestsCenterPage.jsx";
 
 export default function App() {
   return (
@@ -85,7 +87,7 @@ export default function App() {
                   <Route path="complaints" element={<ComplaintsPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
-                  <Route path="agreement" element={<AgreementPage />} />
+                  <Route path="agreement" element={<Navigate to="/admin/leases?tab=agreements" replace />} />
                   <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
                 </Route>
 
@@ -99,26 +101,31 @@ export default function App() {
                   }
                 >
                   <Route index element={<LandlordOverview />} />
-                  <Route path="analytics" element={<AnalyticsPage />} />
-                  <Route path="tenants" element={<TenantsPage />} />
                   <Route path="properties" element={<PropertiesPage />} />
                   <Route path="properties/:id" element={<PropertyDetailsPage />} />
+                  <Route path="tenants" element={<TenantsPage />} />
                   <Route path="leases" element={<LeasesPage />} />
-                  <Route path="payments" element={<PaymentsPage />} />
-                  <Route path="eb-bills" element={<LandlordEbBillsPage />} />
-                  <Route path="maintenance" element={<MaintenancePage />} />
-                  <Route path="home-services" element={<HomeServicesPortal />} />
-                  <Route path="bookings" element={<ServiceBookingsPage />} />
-                  <Route path="services" element={<ServicesPage />} />
-                  <Route path="deposits" element={<DepositsPage />} />
-                  <Route path="utility-bills" element={<UtilityBillsPage />} />
-                  <Route path="expenses" element={<ExpensesPage />} />
+                  <Route path="financials" element={<FinancialCenterPage />} />
+                  <Route path="requests" element={<RequestsCenterPage />} />
                   <Route path="documents" element={<DocumentsPage />} />
-                  <Route path="complaints" element={<ComplaintsPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
-                  <Route path="agreement" element={<AgreementPage />} />
-                  <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
+
+                  {/* ROUTE SAFETY: Legacy Route Redirects */}
+                  <Route path="agreement" element={<Navigate to="/landlord/leases?tab=agreements" replace />} />
+                  <Route path="payments" element={<Navigate to="/landlord/financials?tab=invoices" replace />} />
+                  <Route path="deposits" element={<Navigate to="/landlord/financials?tab=deposits" replace />} />
+                  <Route path="expenses" element={<Navigate to="/landlord/financials?tab=expenses" replace />} />
+                  <Route path="eb-bills" element={<Navigate to="/landlord/financials?tab=utilities" replace />} />
+                  <Route path="utility-bills" element={<Navigate to="/landlord/financials?tab=utilities" replace />} />
+                  <Route path="analytics" element={<Navigate to="/landlord/financials?tab=analytics" replace />} />
+                  <Route path="maintenance" element={<Navigate to="/landlord/requests?tab=maintenance" replace />} />
+                  <Route path="services-complaints" element={<Navigate to="/landlord/requests?tab=maintenance" replace />} />
+                  <Route path="complaints" element={<Navigate to="/landlord/requests?tab=complaints" replace />} />
+                  <Route path="home-services" element={<Navigate to="/landlord/requests?tab=marketplace" replace />} />
+                  <Route path="bookings" element={<Navigate to="/landlord/requests?tab=bookings" replace />} />
+                  <Route path="service-bookings" element={<Navigate to="/landlord/requests?tab=bookings" replace />} />
+                  <Route path="services" element={<Navigate to="/landlord/requests?tab=marketplace" replace />} />
                 </Route>
 
                 {/* ---------------- Tenant ---------------- */}
@@ -130,24 +137,39 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 >
+                  {/* DASHBOARD */}
                   <Route index element={<TenantOverview />} />
-                  <Route path="analytics" element={<AnalyticsPage />} />
+
+                  {/* PROPERTY */}
                   <Route path="properties" element={<PropertiesPage />} />
                   <Route path="properties/:id" element={<PropertyDetailsPage />} />
                   <Route path="lease" element={<MyLeasePage />} />
+
+                  {/* PAYMENTS */}
                   <Route path="payments" element={<MyPaymentsPage />} />
-                  <Route path="eb-bills" element={<TenantEbBillsPage />} />
-                  <Route path="utility-bills" element={<UtilityBillsPage />} />
-                  <Route path="maintenance" element={<MyMaintenancePage />} />
-                  <Route path="home-services" element={<HomeServicesPortal />} />
+                  <Route path="utility-center" element={<UtilityCenterPage />} />
+                  <Route path="utility-bills" element={<UtilityCenterPage />} />
+
+                  {/* SERVICES */}
+                  <Route path="request-center" element={<RequestCenterPage />} />
+                  <Route path="requests" element={<RequestCenterPage />} />
+                  <Route path="home-services" element={<HomeServicesMarketplace />} />
+                  <Route path="services" element={<HomeServicesMarketplace />} />
                   <Route path="my-bookings" element={<ServiceBookingsPage />} />
-                  <Route path="services" element={<ServicesPage />} />
+
+                  {/* ACCOUNT */}
                   <Route path="documents" element={<MyDocumentsPage />} />
-                  <Route path="complaints" element={<MyComplaintsPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
-                  <Route path="agreement" element={<AgreementPage />} />
-                  <Route path="services-complaints" element={<ServicesAndComplaintsHub />} />
+
+                  {/* ROUTE SAFETY: Legacy Route Redirects */}
+                  <Route path="agreement" element={<Navigate to="/tenant/lease?tab=agreement" replace />} />
+                  <Route path="eb-bills" element={<Navigate to="/tenant/utility-bills?tab=eb" replace />} />
+                  <Route path="maintenance" element={<Navigate to="/tenant/requests?tab=maintenance" replace />} />
+                  <Route path="complaints" element={<Navigate to="/tenant/requests?tab=complaints" replace />} />
+                  <Route path="services-complaints" element={<Navigate to="/tenant/requests" replace />} />
+                  <Route path="fixit" element={<Navigate to="/tenant/services" replace />} />
+                  <Route path="analytics" element={<Navigate to="/tenant" replace />} />
                 </Route>
 
                 {/* ---------------- Provider ---------------- */}

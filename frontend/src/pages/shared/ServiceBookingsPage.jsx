@@ -256,19 +256,22 @@ export default function ServiceBookingsPage() {
 
   const getComplaintStatusBadge = (status) => {
     const norm = (status || "").toLowerCase();
-    if (norm.includes("review")) {
+    if (norm === "submitted") {
+      return { label: "Submitted", bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" };
+    }
+    if (norm === "under review" || norm.includes("review")) {
       return { label: "Under Review", bg: "#fef3c7", color: "#b45309", border: "#fde68a" };
     }
-    if (norm.includes("progress")) {
-      return { label: "In Progress", bg: "#e0e7ff", color: "#4338ca", border: "#c7d2fe" };
+    if (norm === "assigned") {
+      return { label: "Assigned", bg: "#f3e8ff", color: "#7e22ce", border: "#e9d5ff" };
     }
-    if (norm.includes("resolv") || norm.includes("complet")) {
+    if (norm === "resolved" || norm.includes("resolv") || norm.includes("complet")) {
       return { label: "Resolved", bg: "#dcfce7", color: "#15803d", border: "#bbf7d0" };
     }
-    if (norm.includes("reject")) {
+    if (norm === "rejected" || norm.includes("reject")) {
       return { label: "Rejected", bg: "#fee2e2", color: "#b91c1c", border: "#fecaca" };
     }
-    return { label: "Submitted", bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" };
+    return { label: status || "Submitted", bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" };
   };
 
   const formatBookingDate = (dateStr) => {
@@ -569,8 +572,9 @@ export default function ServiceBookingsPage() {
                   <th style={{ padding: "14px 16px", fontWeight: 700, minWidth: "150px" }}>Date &amp; Time Slot</th>
                   <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "right", width: "100px" }}>Cost (₹)</th>
                   <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", width: "130px" }}>Job Status</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", width: "150px" }}>Payment Status</th>
-                  <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", minWidth: "180px" }}>Actions</th>
+                  <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", width: "140px" }}>Payment Status</th>
+                  <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", minWidth: "160px" }}>Provider Complaint</th>
+                  <th style={{ padding: "14px 16px", fontWeight: 700, textAlign: "center", minWidth: "160px" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -748,7 +752,62 @@ export default function ServiceBookingsPage() {
                         )}
                       </td>
 
-                      {/* 9. Actions */}
+                      {/* 9. Provider Complaint */}
+                      <td style={{ padding: "14px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                        {b.complaint ? (
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            style={{
+                              padding: "5px 10px",
+                              fontSize: "11.5px",
+                              fontWeight: 700,
+                              color: getComplaintStatusBadge(b.complaint.status).color,
+                              borderColor: getComplaintStatusBadge(b.complaint.status).border,
+                              background: getComplaintStatusBadge(b.complaint.status).bg,
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              whiteSpace: "nowrap",
+                            }}
+                            onClick={() => setSelectedComplaintView(b.complaint)}
+                            title={`View complaint details (${getComplaintStatusBadge(b.complaint.status).label})`}
+                          >
+                            ⚠️ View Complaint ({getComplaintStatusBadge(b.complaint.status).label})
+                          </button>
+                        ) : b.status !== "Cancelled" ? (
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            style={{
+                              padding: "5px 10px",
+                              fontSize: "11.5px",
+                              fontWeight: 600,
+                              color: "#dc2626",
+                              borderColor: "#fca5a5",
+                              background: "#fef2f2",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              whiteSpace: "nowrap",
+                            }}
+                            onClick={() => handleOpenComplaintModal(b)}
+                            title={`Raise complaint against ${b.providerName || "service provider"}`}
+                          >
+                            ⚠️ Raise Complaint
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: "11.5px", color: "#94a3b8", fontStyle: "italic", whiteSpace: "nowrap" }}>
+                            — Unavailable
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 10. Actions */}
                       <td style={{ padding: "14px 16px", textAlign: "center", verticalAlign: "middle" }}>
                         <div style={{ display: "inline-flex", gap: "8px", alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
                           {/* Confirmed / Assigned: Cancel Booking */}
@@ -775,55 +834,9 @@ export default function ServiceBookingsPage() {
                             </button>
                           )}
 
-                          {/* Completed: Raise Complaint & Review */}
+                          {/* Completed: Pay & Review Actions */}
                           {isCompleted && (
                             <>
-                              {b.complaint ? (
-                                <button
-                                  type="button"
-                                  className="btn-outline"
-                                  style={{
-                                    padding: "5px 10px",
-                                    fontSize: "11.5px",
-                                    fontWeight: 700,
-                                    color: getComplaintStatusBadge(b.complaint.status).color,
-                                    borderColor: getComplaintStatusBadge(b.complaint.status).border,
-                                    background: getComplaintStatusBadge(b.complaint.status).bg,
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                  }}
-                                  onClick={() => setSelectedComplaintView(b.complaint)}
-                                  title="View complaint details"
-                                >
-                                  ⚠️ {getComplaintStatusBadge(b.complaint.status).label}
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="btn-outline"
-                                  style={{
-                                    padding: "5px 10px",
-                                    fontSize: "11.5px",
-                                    fontWeight: 600,
-                                    color: "#dc2626",
-                                    borderColor: "#fca5a5",
-                                    background: "#fef2f2",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                  }}
-                                  onClick={() => handleOpenComplaintModal(b)}
-                                  title={`Raise complaint against ${b.providerName || "provider"}`}
-                                >
-                                  ⚠️ Raise Complaint
-                                </button>
-                              )}
-
                               {isPaid && (
                                 <button
                                   type="button"
@@ -1509,6 +1522,16 @@ export default function ServiceBookingsPage() {
                     {complaintModalBooking.providerName || "Assigned Partner"}
                   </span>
                 </div>
+                {Boolean(complaintModalBooking.technicianName || complaintModalBooking.assignedTechnician?.name) && (
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                      Technician
+                    </span>
+                    <span style={{ color: "#0f172a", fontWeight: 600 }}>
+                      👨‍🔧 {complaintModalBooking.technicianName || complaintModalBooking.assignedTechnician?.name}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <span style={{ color: "#64748b", display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
                     Property / Unit
@@ -1542,10 +1565,10 @@ export default function ServiceBookingsPage() {
                   disabled={submittingComplaint}
                 >
                   <option value="Poor Service Quality">Poor Service Quality</option>
-                  <option value="Provider Did Not Arrive">Provider Did Not Arrive</option>
+                  <option value="Technician Delay">Technician Delay</option>
                   <option value="Incomplete Work">Incomplete Work</option>
-                  <option value="Property Damage">Property Damage</option>
-                  <option value="Overcharging / Payment Issue">Overcharging / Payment Issue</option>
+                  <option value="Unexpected Extra Charges">Unexpected Extra Charges</option>
+                  <option value="Provider Behaviour">Provider Behaviour</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
@@ -1785,9 +1808,14 @@ export default function ServiceBookingsPage() {
                 </div>
                 <div style={{ fontWeight: 600, color: "#0f172a" }}>
                   {selectedComplaintView.providerName || "Assigned Provider"}
+                  {selectedComplaintView.technicianName && (
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, marginLeft: 8 }}>
+                      (👨‍🔧 Technician: {selectedComplaintView.technicianName})
+                    </span>
+                  )}
                 </div>
                 <div style={{ color: "#475569", fontSize: 12, marginTop: 2 }}>
-                  Type: <strong>{selectedComplaintView.complaintType || "Service Quality"}</strong>
+                  Category: <strong>{selectedComplaintView.category || selectedComplaintView.complaintType || "Service Quality"}</strong>
                 </div>
               </div>
 
@@ -1819,6 +1847,25 @@ export default function ServiceBookingsPage() {
                     alt="Complaint Attachment"
                     style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 8, border: "1px solid #cbd5e1", objectFit: "cover" }}
                   />
+                </div>
+              )}
+
+              {/* Admin Investigation & Resolution Details */}
+              {(selectedComplaintView.adminResponse || selectedComplaintView.resolutionDetails || selectedComplaintView.investigationNotes) && (
+                <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 8, padding: "12px 14px", marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: "#065f46", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
+                    🛡️ Admin &amp; Support Resolution
+                  </div>
+                  {selectedComplaintView.adminResponse && (
+                    <div style={{ color: "#047857", fontSize: 13, lineHeight: 1.5, marginBottom: 4 }}>
+                      {selectedComplaintView.adminResponse}
+                    </div>
+                  )}
+                  {selectedComplaintView.resolutionDetails && selectedComplaintView.resolutionDetails !== selectedComplaintView.adminResponse && (
+                    <div style={{ color: "#0f766e", fontSize: 12, marginTop: 4 }}>
+                      <strong>Resolution:</strong> {selectedComplaintView.resolutionDetails}
+                    </div>
+                  )}
                 </div>
               )}
 

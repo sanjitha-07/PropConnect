@@ -1,0 +1,621 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/admin/LandlordsPage.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=1e3aa71c"; const useContext = __vite__cjsImport3_react["useContext"]; const useState = __vite__cjsImport3_react["useState"];
+import { SettingsContext } from "/src/context/SettingsContext.jsx";
+import DataTable from "/src/components/DataTable.jsx";
+import PageHero from "/src/components/PageHero.jsx";
+import { LANDLORDS, PROPERTIES } from "/src/data/db.js";
+export default function LandlordsPage() {
+  _s();
+  const { t } = useContext(SettingsContext);
+  const [landlordsList, setLandlordsList] = useState(LANDLORDS);
+  const [selectedLandlord, setSelectedLandlord] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newLandlord, setNewLandlord] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    location: "Chennai, TN"
+  });
+  const handleAdd = (e) => {
+    e.preventDefault();
+    if (!newLandlord.name || !newLandlord.email) return;
+    const created = {
+      ...newLandlord,
+      id: `LDL0${Math.floor(Math.random() * 80 + 20)}`,
+      status: "Verified",
+      propertiesCount: 1,
+      totalUnits: 1
+    };
+    setLandlordsList([created, ...landlordsList]);
+    setShowAddModal(false);
+    setNewLandlord({ name: "", email: "", phone: "", location: "Chennai, TN" });
+  };
+  const handleDelete = (id) => {
+    if (confirm("Are you sure you want to remove this landlord?")) {
+      setLandlordsList((prev) => prev.filter((l) => l.id !== id));
+    }
+  };
+  const rows = landlordsList.map((l) => {
+    const ownedProps = PROPERTIES.filter((p) => p.landlordId === l.id);
+    return {
+      ...l,
+      propertiesCount: ownedProps.length || l.propertiesCount || 1,
+      ownedProperties: ownedProps
+    };
+  });
+  const columns = [
+    {
+      key: "name",
+      label: "Landlord Name",
+      render: (r) => /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("strong", { style: { color: "var(--ink-primary)" }, children: r.name }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+          lineNumber: 75,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "sub-text", children: r.email }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+          lineNumber: 76,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 74,
+        columnNumber: 5
+      }, this)
+    },
+    {
+      key: "location",
+      label: "Tamil Nadu Region",
+      render: (r) => /* @__PURE__ */ jsxDEV("span", { className: "city-tag", children: r.location }, void 0, false, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 83,
+        columnNumber: 20
+      }, this)
+    },
+    { key: "phone", label: "Contact Phone" },
+    {
+      key: "propertiesCount",
+      label: "Managed Units",
+      render: (r) => /* @__PURE__ */ jsxDEV("span", { className: "bhk-badge", children: [
+        "🏢 ",
+        r.propertiesCount,
+        " ",
+        r.propertiesCount === 1 ? "Unit" : "Units"
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 90,
+        columnNumber: 5
+      }, this)
+    },
+    {
+      key: "status",
+      label: t("status"),
+      render: (r) => /* @__PURE__ */ jsxDEV("span", { className: "pill verified", children: [
+        "✓ ",
+        r.status || "Verified"
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 99,
+        columnNumber: 5
+      }, this)
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "6px" }, children: [
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            className: "btn-outline",
+            style: { padding: "4px 8px", fontSize: "11px" },
+            onClick: () => setSelectedLandlord(r),
+            children: "View"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+            lineNumber: 109,
+            columnNumber: 11
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            className: "btn-outline",
+            style: { padding: "4px 8px", fontSize: "11px", color: "var(--red)" },
+            onClick: () => handleDelete(r.id),
+            children: "Delete"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+            lineNumber: 116,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 108,
+        columnNumber: 5
+      }, this)
+    }
+  ];
+  return /* @__PURE__ */ jsxDEV("div", { children: [
+    /* @__PURE__ */ jsxDEV(
+      PageHero,
+      {
+        badge: "Asset Ownership Registry",
+        title: t("landlordsTable"),
+        subtitle: "Verified property owners and residential apartment landlords across Tamil Nadu",
+        actions: /* @__PURE__ */ jsxDEV("button", { className: "btn-primary", onClick: () => setShowAddModal(true), children: "+ Register Landlord" }, void 0, false, {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+          lineNumber: 135,
+          columnNumber: 9
+        }, this)
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 130,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV(
+      DataTable,
+      {
+        title: "Verified Landlords Directory",
+        columns,
+        rows,
+        searchKeys: ["name", "email", "location", "phone"],
+        searchPlaceholder: "Search landlords by name, city, email, or phone…",
+        pageSize: 10
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 141,
+        columnNumber: 7
+      },
+      this
+    ),
+    selectedLandlord && /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        style: {
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1e3,
+          padding: "20px"
+        },
+        onClick: () => setSelectedLandlord(null),
+        children: /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            className: "card",
+            style: { width: "100%", maxWidth: "520px", padding: "28px", boxShadow: "var(--shadow-xl)" },
+            onClick: (e) => e.stopPropagation(),
+            children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "row-between", style: { borderBottom: "1px solid var(--border-subtle)", paddingBottom: "12px" }, children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0 }, children: selectedLandlord.name }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 173,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "pill verified", style: { marginTop: "4px" }, children: "✓ KYC Verified Owner" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 174,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 172,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "icon-btn",
+                    onClick: () => setSelectedLandlord(null),
+                    style: { width: "28px", height: "28px" },
+                    children: "✕"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 176,
+                    columnNumber: 15
+                  },
+                  this
+                )
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 171,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { margin: "20px 0", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }, children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "kv", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "k", children: "Landlord ID:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 187,
+                    columnNumber: 35
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "v", children: selectedLandlord.id }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 187,
+                    columnNumber: 74
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 187,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "kv", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "k", children: "Primary Email:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 188,
+                    columnNumber: 35
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "v", children: selectedLandlord.email }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 188,
+                    columnNumber: 76
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 188,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "kv", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "k", children: "Contact Phone:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 189,
+                    columnNumber: 35
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "v", children: selectedLandlord.phone }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 189,
+                    columnNumber: 76
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 189,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "kv", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "k", children: "Office Location:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 190,
+                    columnNumber: 35
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "v", children: selectedLandlord.location }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 190,
+                    columnNumber: 78
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 190,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "kv", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "k", children: "Total Managed Properties:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 191,
+                    columnNumber: 35
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "v", children: [
+                    selectedLandlord.propertiesCount,
+                    " Units"
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 191,
+                    columnNumber: 87
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 191,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 186,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ jsxDEV("button", { className: "btn-outline", onClick: () => setSelectedLandlord(null), children: "Close" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 195,
+                columnNumber: 15
+              }, this) }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 194,
+                columnNumber: 13
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+            lineNumber: 166,
+            columnNumber: 11
+          },
+          this
+        )
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 152,
+        columnNumber: 7
+      },
+      this
+    ),
+    showAddModal && /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        style: {
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1e3,
+          padding: "20px"
+        },
+        onClick: () => setShowAddModal(false),
+        children: /* @__PURE__ */ jsxDEV(
+          "div",
+          {
+            className: "card",
+            style: { width: "100%", maxWidth: "480px", padding: "28px", boxShadow: "var(--shadow-xl)" },
+            onClick: (e) => e.stopPropagation(),
+            children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "row-between", style: { borderBottom: "1px solid var(--border-subtle)", paddingBottom: "12px" }, children: [
+                /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0 }, children: "Register New Landlord" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 225,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    className: "icon-btn",
+                    onClick: () => setShowAddModal(false),
+                    style: { width: "28px", height: "28px" },
+                    children: "✕"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 226,
+                    columnNumber: 15
+                  },
+                  this
+                )
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 224,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("form", { onSubmit: handleAdd, style: { marginTop: "18px", display: "flex", flexDirection: "column", gap: "14px" }, children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "form-group", style: { margin: 0 }, children: [
+                  /* @__PURE__ */ jsxDEV("label", { children: "Full Name" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 238,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV(
+                    "input",
+                    {
+                      className: "inp",
+                      value: newLandlord.name,
+                      onChange: (e) => setNewLandlord({ ...newLandlord, name: e.target.value }),
+                      placeholder: "e.g. S. Ramanathan",
+                      required: true
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                      lineNumber: 239,
+                      columnNumber: 17
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 237,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "form-group", style: { margin: 0 }, children: [
+                  /* @__PURE__ */ jsxDEV("label", { children: "Email Address" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 249,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV(
+                    "input",
+                    {
+                      type: "email",
+                      className: "inp",
+                      value: newLandlord.email,
+                      onChange: (e) => setNewLandlord({ ...newLandlord, email: e.target.value }),
+                      placeholder: "e.g. ramanathan.s@mail.com",
+                      required: true
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                      lineNumber: 250,
+                      columnNumber: 17
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 248,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "form-group", style: { margin: 0 }, children: [
+                  /* @__PURE__ */ jsxDEV("label", { children: "Contact Phone" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 261,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV(
+                    "input",
+                    {
+                      className: "inp",
+                      value: newLandlord.phone,
+                      onChange: (e) => setNewLandlord({ ...newLandlord, phone: e.target.value }),
+                      placeholder: "+91 98400 12345",
+                      required: true
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                      lineNumber: 262,
+                      columnNumber: 17
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 260,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "form-group", style: { margin: 0 }, children: [
+                  /* @__PURE__ */ jsxDEV("label", { children: "City & Region" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 272,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV(
+                    "input",
+                    {
+                      className: "inp",
+                      value: newLandlord.location,
+                      onChange: (e) => setNewLandlord({ ...newLandlord, location: e.target.value }),
+                      placeholder: "e.g. Anna Nagar, Chennai, TN"
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                      lineNumber: 273,
+                      columnNumber: 17
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 271,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }, children: [
+                  /* @__PURE__ */ jsxDEV("button", { type: "button", className: "btn-outline", onClick: () => setShowAddModal(false), children: "Cancel" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 282,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("button", { type: "submit", className: "btn-primary", children: "Verify & Register" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                    lineNumber: 285,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                  lineNumber: 281,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+                lineNumber: 236,
+                columnNumber: 13
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+            lineNumber: 219,
+            columnNumber: 11
+          },
+          this
+        )
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+        lineNumber: 205,
+        columnNumber: 7
+      },
+      this
+    )
+  ] }, void 0, true, {
+    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx",
+    lineNumber: 129,
+    columnNumber: 5
+  }, this);
+}
+_s(LandlordsPage, "v81xa72NGtbaGmqpsSck6GEOGCk=");
+_c = LandlordsPage;
+var _c;
+$RefreshReg$(_c, "LandlordsPage");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/admin/LandlordsPage.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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V0FBVyxPQUFPLEdBQ3hGO0FBQUEseUNBQUMsWUFBTyxNQUFLLFVBQVMsV0FBVSxlQUFjLFNBQVMsTUFBTXRELGdCQUFnQixLQUFLLEdBQUcsc0JBQXJGO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBRUE7QUFBQSxrQkFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxXQUFVLGVBQWMsaUNBQTlDO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBRUE7QUFBQSxxQkFORjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQU9BO0FBQUEsbUJBcERGO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBcURBO0FBQUE7QUFBQTtBQUFBLFVBdEVGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQXVFQTtBQUFBO0FBQUEsTUFyRkY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLElBc0ZBO0FBQUEsT0FsS0o7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQW9LQTtBQUVKO0FBQUNQLEdBN1F1QkQsZUFBYTtBQUFBLEtBQWJBO0FBQWEsSUFBQW1FO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbInVzZUNvbnRleHQiLCJ1c2VTdGF0ZSIsIlNldHRpbmdzQ29udGV4dCIsIkRhdGFUYWJsZSIsIlBhZ2VIZXJvIiwiTEFORExPUkRTIiwiUFJPUEVSVElFUyIsIkxhbmRsb3Jkc1BhZ2UiLCJfcyIsInQiLCJsYW5kbG9yZHNMaXN0Iiwic2V0TGFuZGxvcmRzTGlzdCIsInNlbGVjdGVkTGFuZGxvcmQiLCJzZXRTZWxlY3RlZExhbmRsb3JkIiwic2hvd0FkZE1vZGFsIiwic2V0U2hvd0FkZE1vZGFsIiwibmV3TGFuZGxvcmQiLCJzZXROZXdMYW5kbG9yZCIsIm5hbWUiLCJlbWFpbCIsInBob25lIiwibG9jYXRpb24iLCJoYW5kbGVBZGQiLCJlIiwicHJldmVudERlZmF1bHQiLCJjcmVhdGVkIiwiaWQiLCJNYXRoIiwiZmxvb3IiLCJyYW5kb20iLCJzdGF0dXMiLCJwcm9wZXJ0aWVzQ291bnQiLCJ0b3RhbFVuaXRzIiwiaGFuZGxlRGVsZXRlIiwiY29uZmlybSIsInByZXYiLCJmaWx0ZXIiLCJsIiwicm93cyIsIm1hcCIsIm93bmVkUHJvcHMiLCJwIiwibGFuZGxvcmRJZCIsImxlbmd0aCIsIm93bmVkUHJvcGVydGllcyIsImNvbHVtbnMiLCJrZXkiLCJsYWJlbCIsInJlbmRlciIsInIiLCJjb2xvciIsImRpc3BsYXkiLCJnYXAiLCJwYWRkaW5nIiwiZm9udFNpemUiLCJwb3NpdGlvbiIsImluc2V0IiwiYmFja2dyb3VuZCIsImJhY2tkcm9wRmlsdGVyIiwiYWxpZ25JdGVtcyIsImp1c3RpZnlDb250ZW50IiwiekluZGV4Iiwid2lkdGgiLCJtYXhXaWR0aCIsImJveFNoYWRvdyIsInN0b3BQcm9wYWdhdGlvbiIsImJvcmRlckJvdHRvbSIsInBhZGRpbmdCb3R0b20iLCJtYXJnaW4iLCJtYXJnaW5Ub3AiLCJoZWlnaHQiLCJmbGV4RGlyZWN0aW9uIiwidGFyZ2V0IiwidmFsdWUiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJMYW5kbG9yZHNQYWdlLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VDb250ZXh0LCB1c2VTdGF0ZSB9IGZyb20gXCJyZWFjdFwiO1xyXG5pbXBvcnQgeyBTZXR0aW5nc0NvbnRleHQgfSBmcm9tIFwiLi4vLi4vY29udGV4dC9TZXR0aW5nc0NvbnRleHQuanN4XCI7XHJcbmltcG9ydCBEYXRhVGFibGUgZnJvbSBcIi4uLy4uL2NvbXBvbmVudHMvRGF0YVRhYmxlLmpzeFwiO1xyXG5pbXBvcnQgUGFnZUhlcm8gZnJvbSBcIi4uLy4uL2NvbXBvbmVudHMvUGFnZUhlcm8uanN4XCI7XHJcbmltcG9ydCB7IExBTkRMT1JEUywgUFJPUEVSVElFUyB9IGZyb20gXCIuLi8uLi9kYXRhL2RiLmpzXCI7XHJcblxyXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBMYW5kbG9yZHNQYWdlKCkge1xyXG4gIGNvbnN0IHsgdCB9ID0gdXNlQ29udGV4dChTZXR0aW5nc0NvbnRleHQpO1xyXG4gIGNvbnN0IFtsYW5kbG9yZHNMaXN0LCBzZXRMYW5kbG9yZHNMaXN0XSA9IHVzZVN0YXRlKExBTkRMT1JEUyk7XHJcbiAgY29uc3QgW3NlbGVjdGVkTGFuZGxvcmQsIHNldFNlbGVjdGVkTGFuZGxvcmRdID0gdXNlU3RhdGUobnVsbCk7XHJcbiAgY29uc3QgW3Nob3dBZGRNb2RhbCwgc2V0U2hvd0FkZE1vZGFsXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuXHJcbiAgY29uc3QgW25ld0xhbmRsb3JkLCBzZXROZXdMYW5kbG9yZF0gPSB1c2VTdGF0ZSh7XHJcbiAgICBuYW1lOiBcIlwiLFxyXG4gICAgZW1haWw6IFwiXCIsXHJcbiAgICBwaG9uZTogXCJcIixcclxuICAgIGxvY2F0aW9uOiBcIkNoZW5uYWksIFROXCIsXHJcbiAgfSk7XHJcblxyXG4gIGNvbnN0IGhhbmRsZUFkZCA9IChlKSA9PiB7XHJcbiAgICBlLnByZXZlbnREZWZhdWx0KCk7XHJcbiAgICBpZiAoIW5ld0xhbmRsb3JkLm5hbWUgfHwgIW5ld0xhbmRsb3JkLmVtYWlsKSByZXR1cm47XHJcbiAgICBjb25zdCBjcmVhdGVkID0ge1xyXG4gICAgICAuLi5uZXdMYW5kbG9yZCxcclxuICAgICAgaWQ6IGBMREwwJHtNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiA4MCArIDIwKX1gLFxyXG4gICAgICBzdGF0dXM6IFwiVmVyaWZpZWRcIixcclxuICAgICAgcHJvcGVydGllc0NvdW50OiAxLFxyXG4gICAgICB0b3RhbFVuaXRzOiAxLFxyXG4gICAgfTtcclxuICAgIHNldExhbmRsb3Jkc0xpc3QoW2NyZWF0ZWQsIC4uLmxhbmRsb3Jkc0xpc3RdKTtcclxuICAgIHNldFNob3dBZGRNb2RhbChmYWxzZSk7XHJcbiAgICBzZXROZXdMYW5kbG9yZCh7IG5hbWU6IFwiXCIsIGVtYWlsOiBcIlwiLCBwaG9uZTogXCJcIiwgbG9jYXRpb246IFwiQ2hlbm5haSwgVE5cIiB9KTtcclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVEZWxldGUgPSAoaWQpID0+IHtcclxuICAgIGlmIChjb25maXJtKFwiQXJlIHlvdSBzdXJlIHlvdSB3YW50IHRvIHJlbW92ZSB0aGlzIGxhbmRsb3JkP1wiKSkge1xyXG4gICAgICBzZXRMYW5kbG9yZHNMaXN0KChwcmV2KSA9PiBwcmV2LmZpbHRlcigobCkgPT4gbC5pZCAhPT0gaWQpKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCByb3dzID0gbGFuZGxvcmRzTGlzdC5tYXAoKGwpID0+IHtcclxuICAgIGNvbnN0IG93bmVkUHJvcHMgPSBQUk9QRVJUSUVTLmZpbHRlcigocCkgPT4gcC5sYW5kbG9yZElkID09PSBsLmlkKTtcclxuICAgIHJldHVybiB7XHJcbiAgICAgIC4uLmwsXHJcbiAgICAgIHByb3BlcnRpZXNDb3VudDogb3duZWRQcm9wcy5sZW5ndGggfHwgbC5wcm9wZXJ0aWVzQ291bnQgfHwgMSxcclxuICAgICAgb3duZWRQcm9wZXJ0aWVzOiBvd25lZFByb3BzLFxyXG4gICAgfTtcclxuICB9KTtcclxuXHJcbiAgY29uc3QgY29sdW1ucyA9IFtcclxuICAgIHtcclxuICAgICAga2V5OiBcIm5hbWVcIixcclxuICAgICAgbGFiZWw6IFwiTGFuZGxvcmQgTmFtZVwiLFxyXG4gICAgICByZW5kZXI6IChyKSA9PiAoXHJcbiAgICAgICAgPGRpdj5cclxuICAgICAgICAgIDxzdHJvbmcgc3R5bGU9e3sgY29sb3I6IFwidmFyKC0taW5rLXByaW1hcnkpXCIgfX0+e3IubmFtZX08L3N0cm9uZz5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3ViLXRleHRcIj57ci5lbWFpbH08L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgKSxcclxuICAgIH0sXHJcbiAgICB7XHJcbiAgICAgIGtleTogXCJsb2NhdGlvblwiLFxyXG4gICAgICBsYWJlbDogXCJUYW1pbCBOYWR1IFJlZ2lvblwiLFxyXG4gICAgICByZW5kZXI6IChyKSA9PiA8c3BhbiBjbGFzc05hbWU9XCJjaXR5LXRhZ1wiPntyLmxvY2F0aW9ufTwvc3Bhbj4sXHJcbiAgICB9LFxyXG4gICAgeyBrZXk6IFwicGhvbmVcIiwgbGFiZWw6IFwiQ29udGFjdCBQaG9uZVwiIH0sXHJcbiAgICB7XHJcbiAgICAgIGtleTogXCJwcm9wZXJ0aWVzQ291bnRcIixcclxuICAgICAgbGFiZWw6IFwiTWFuYWdlZCBVbml0c1wiLFxyXG4gICAgICByZW5kZXI6IChyKSA9PiAoXHJcbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiYmhrLWJhZGdlXCI+XHJcbiAgICAgICAgICDwn4+iIHtyLnByb3BlcnRpZXNDb3VudH0ge3IucHJvcGVydGllc0NvdW50ID09PSAxID8gXCJVbml0XCIgOiBcIlVuaXRzXCJ9XHJcbiAgICAgICAgPC9zcGFuPlxyXG4gICAgICApLFxyXG4gICAgfSxcclxuICAgIHtcclxuICAgICAga2V5OiBcInN0YXR1c1wiLFxyXG4gICAgICBsYWJlbDogdChcInN0YXR1c1wiKSxcclxuICAgICAgcmVuZGVyOiAocikgPT4gKFxyXG4gICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInBpbGwgdmVyaWZpZWRcIj5cclxuICAgICAgICAgIOKckyB7ci5zdGF0dXMgfHwgXCJWZXJpZmllZFwifVxyXG4gICAgICAgIDwvc3Bhbj5cclxuICAgICAgKSxcclxuICAgIH0sXHJcbiAgICB7XHJcbiAgICAgIGtleTogXCJhY3Rpb25zXCIsXHJcbiAgICAgIGxhYmVsOiBcIkFjdGlvbnNcIixcclxuICAgICAgcmVuZGVyOiAocikgPT4gKFxyXG4gICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogXCI2cHhcIiB9fT5cclxuICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgY2xhc3NOYW1lPVwiYnRuLW91dGxpbmVcIlxyXG4gICAgICAgICAgICBzdHlsZT17eyBwYWRkaW5nOiBcIjRweCA4cHhcIiwgZm9udFNpemU6IFwiMTFweFwiIH19XHJcbiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkTGFuZGxvcmQocil9XHJcbiAgICAgICAgICA+XHJcbiAgICAgICAgICAgIFZpZXdcclxuICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJidG4tb3V0bGluZVwiXHJcbiAgICAgICAgICAgIHN0eWxlPXt7IHBhZGRpbmc6IFwiNHB4IDhweFwiLCBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcInZhcigtLXJlZClcIiB9fVxyXG4gICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBoYW5kbGVEZWxldGUoci5pZCl9XHJcbiAgICAgICAgICA+XHJcbiAgICAgICAgICAgIERlbGV0ZVxyXG4gICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgICksXHJcbiAgICB9LFxyXG4gIF07XHJcblxyXG4gIHJldHVybiAoXHJcbiAgICA8ZGl2PlxyXG4gICAgICA8UGFnZUhlcm9cclxuICAgICAgICBiYWRnZT1cIkFzc2V0IE93bmVyc2hpcCBSZWdpc3RyeVwiXHJcbiAgICAgICAgdGl0bGU9e3QoXCJsYW5kbG9yZHNUYWJsZVwiKX1cclxuICAgICAgICBzdWJ0aXRsZT1cIlZlcmlmaWVkIHByb3BlcnR5IG93bmVycyBhbmQgcmVzaWRlbnRpYWwgYXBhcnRtZW50IGxhbmRsb3JkcyBhY3Jvc3MgVGFtaWwgTmFkdVwiXHJcbiAgICAgICAgYWN0aW9ucz17XHJcbiAgICAgICAgICA8YnV0dG9uIGNsYXNzTmFtZT1cImJ0bi1wcmltYXJ5XCIgb25DbGljaz17KCkgPT4gc2V0U2hvd0FkZE1vZGFsKHRydWUpfT5cclxuICAgICAgICAgICAgKyBSZWdpc3RlciBMYW5kbG9yZFxyXG4gICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgfVxyXG4gICAgICAvPlxyXG5cclxuICAgICAgPERhdGFUYWJsZVxyXG4gICAgICAgIHRpdGxlPVwiVmVyaWZpZWQgTGFuZGxvcmRzIERpcmVjdG9yeVwiXHJcbiAgICAgICAgY29sdW1ucz17Y29sdW1uc31cclxuICAgICAgICByb3dzPXtyb3dzfVxyXG4gICAgICAgIHNlYXJjaEtleXM9e1tcIm5hbWVcIiwgXCJlbWFpbFwiLCBcImxvY2F0aW9uXCIsIFwicGhvbmVcIl19XHJcbiAgICAgICAgc2VhcmNoUGxhY2Vob2xkZXI9XCJTZWFyY2ggbGFuZGxvcmRzIGJ5IG5hbWUsIGNpdHksIGVtYWlsLCBvciBwaG9uZeKAplwiXHJcbiAgICAgICAgcGFnZVNpemU9ezEwfVxyXG4gICAgICAvPlxyXG5cclxuICAgICAgey8qIExhbmRsb3JkIERldGFpbCBNb2RhbCAqL31cclxuICAgICAge3NlbGVjdGVkTGFuZGxvcmQgJiYgKFxyXG4gICAgICAgIDxkaXZcclxuICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgIHBvc2l0aW9uOiBcImZpeGVkXCIsXHJcbiAgICAgICAgICAgIGluc2V0OiAwLFxyXG4gICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInJnYmEoMTUsIDIzLCA0MiwgMC42KVwiLFxyXG4gICAgICAgICAgICBiYWNrZHJvcEZpbHRlcjogXCJibHVyKDRweClcIixcclxuICAgICAgICAgICAgZGlzcGxheTogXCJmbGV4XCIsXHJcbiAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICAgIGp1c3RpZnlDb250ZW50OiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICB6SW5kZXg6IDEwMDAsXHJcbiAgICAgICAgICAgIHBhZGRpbmc6IFwiMjBweFwiLFxyXG4gICAgICAgICAgfX1cclxuICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkTGFuZGxvcmQobnVsbCl9XHJcbiAgICAgICAgPlxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJjYXJkXCJcclxuICAgICAgICAgICAgc3R5bGU9e3sgd2lkdGg6IFwiMTAwJVwiLCBtYXhXaWR0aDogXCI1MjBweFwiLCBwYWRkaW5nOiBcIjI4cHhcIiwgYm94U2hhZG93OiBcInZhcigtLXNoYWRvdy14bClcIiB9fVxyXG4gICAgICAgICAgICBvbkNsaWNrPXsoZSkgPT4gZS5zdG9wUHJvcGFnYXRpb24oKX1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyb3ctYmV0d2VlblwiIHN0eWxlPXt7IGJvcmRlckJvdHRvbTogXCIxcHggc29saWQgdmFyKC0tYm9yZGVyLXN1YnRsZSlcIiwgcGFkZGluZ0JvdHRvbTogXCIxMnB4XCIgfX0+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxoMyBzdHlsZT17eyBtYXJnaW46IDAgfX0+e3NlbGVjdGVkTGFuZGxvcmQubmFtZX08L2gzPlxyXG4gICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwicGlsbCB2ZXJpZmllZFwiIHN0eWxlPXt7IG1hcmdpblRvcDogXCI0cHhcIiB9fT7inJMgS1lDIFZlcmlmaWVkIE93bmVyPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaWNvbi1idG5cIlxyXG4gICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0U2VsZWN0ZWRMYW5kbG9yZChudWxsKX1cclxuICAgICAgICAgICAgICAgIHN0eWxlPXt7IHdpZHRoOiBcIjI4cHhcIiwgaGVpZ2h0OiBcIjI4cHhcIiB9fVxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIOKclVxyXG4gICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWFyZ2luOiBcIjIwcHggMFwiLCBkaXNwbGF5OiBcImZsZXhcIiwgZmxleERpcmVjdGlvbjogXCJjb2x1bW5cIiwgZ2FwOiBcIjEwcHhcIiwgZm9udFNpemU6IFwiMTNweFwiIH19PlxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwia3ZcIj48c3BhbiBjbGFzc05hbWU9XCJrXCI+TGFuZGxvcmQgSUQ6PC9zcGFuPjxzcGFuIGNsYXNzTmFtZT1cInZcIj57c2VsZWN0ZWRMYW5kbG9yZC5pZH08L3NwYW4+PC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJrdlwiPjxzcGFuIGNsYXNzTmFtZT1cImtcIj5QcmltYXJ5IEVtYWlsOjwvc3Bhbj48c3BhbiBjbGFzc05hbWU9XCJ2XCI+e3NlbGVjdGVkTGFuZGxvcmQuZW1haWx9PC9zcGFuPjwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwia3ZcIj48c3BhbiBjbGFzc05hbWU9XCJrXCI+Q29udGFjdCBQaG9uZTo8L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwidlwiPntzZWxlY3RlZExhbmRsb3JkLnBob25lfTwvc3Bhbj48L2Rpdj5cclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImt2XCI+PHNwYW4gY2xhc3NOYW1lPVwia1wiPk9mZmljZSBMb2NhdGlvbjo8L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwidlwiPntzZWxlY3RlZExhbmRsb3JkLmxvY2F0aW9ufTwvc3Bhbj48L2Rpdj5cclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImt2XCI+PHNwYW4gY2xhc3NOYW1lPVwia1wiPlRvdGFsIE1hbmFnZWQgUHJvcGVydGllczo8L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwidlwiPntzZWxlY3RlZExhbmRsb3JkLnByb3BlcnRpZXNDb3VudH0gVW5pdHM8L3NwYW4+PC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwganVzdGlmeUNvbnRlbnQ6IFwiZmxleC1lbmRcIiB9fT5cclxuICAgICAgICAgICAgICA8YnV0dG9uIGNsYXNzTmFtZT1cImJ0bi1vdXRsaW5lXCIgb25DbGljaz17KCkgPT4gc2V0U2VsZWN0ZWRMYW5kbG9yZChudWxsKX0+XHJcbiAgICAgICAgICAgICAgICBDbG9zZVxyXG4gICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICApfVxyXG5cclxuICAgICAgey8qIFJlZ2lzdGVyIExhbmRsb3JkIE1vZGFsICovfVxyXG4gICAgICB7c2hvd0FkZE1vZGFsICYmIChcclxuICAgICAgICA8ZGl2XHJcbiAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICBwb3NpdGlvbjogXCJmaXhlZFwiLFxyXG4gICAgICAgICAgICBpbnNldDogMCxcclxuICAgICAgICAgICAgYmFja2dyb3VuZDogXCJyZ2JhKDE1LCAyMywgNDIsIDAuNilcIixcclxuICAgICAgICAgICAgYmFja2Ryb3BGaWx0ZXI6IFwiYmx1cig0cHgpXCIsXHJcbiAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxyXG4gICAgICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICBqdXN0aWZ5Q29udGVudDogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgekluZGV4OiAxMDAwLFxyXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjIwcHhcIixcclxuICAgICAgICAgIH19XHJcbiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTaG93QWRkTW9kYWwoZmFsc2UpfVxyXG4gICAgICAgID5cclxuICAgICAgICAgIDxkaXZcclxuICAgICAgICAgICAgY2xhc3NOYW1lPVwiY2FyZFwiXHJcbiAgICAgICAgICAgIHN0eWxlPXt7IHdpZHRoOiBcIjEwMCVcIiwgbWF4V2lkdGg6IFwiNDgwcHhcIiwgcGFkZGluZzogXCIyOHB4XCIsIGJveFNoYWRvdzogXCJ2YXIoLS1zaGFkb3cteGwpXCIgfX1cclxuICAgICAgICAgICAgb25DbGljaz17KGUpID0+IGUuc3RvcFByb3BhZ2F0aW9uKCl9XHJcbiAgICAgICAgICA+XHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicm93LWJldHdlZW5cIiBzdHlsZT17eyBib3JkZXJCb3R0b206IFwiMXB4IHNvbGlkIHZhcigtLWJvcmRlci1zdWJ0bGUpXCIsIHBhZGRpbmdCb3R0b206IFwiMTJweFwiIH19PlxyXG4gICAgICAgICAgICAgIDxoMyBzdHlsZT17eyBtYXJnaW46IDAgfX0+UmVnaXN0ZXIgTmV3IExhbmRsb3JkPC9oMz5cclxuICAgICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImljb24tYnRuXCJcclxuICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNob3dBZGRNb2RhbChmYWxzZSl9XHJcbiAgICAgICAgICAgICAgICBzdHlsZT17eyB3aWR0aDogXCIyOHB4XCIsIGhlaWdodDogXCIyOHB4XCIgfX1cclxuICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICDinJVcclxuICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8Zm9ybSBvblN1Ym1pdD17aGFuZGxlQWRkfSBzdHlsZT17eyBtYXJnaW5Ub3A6IFwiMThweFwiLCBkaXNwbGF5OiBcImZsZXhcIiwgZmxleERpcmVjdGlvbjogXCJjb2x1bW5cIiwgZ2FwOiBcIjE0cHhcIiB9fT5cclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZvcm0tZ3JvdXBcIiBzdHlsZT17eyBtYXJnaW46IDAgfX0+XHJcbiAgICAgICAgICAgICAgICA8bGFiZWw+RnVsbCBOYW1lPC9sYWJlbD5cclxuICAgICAgICAgICAgICAgIDxpbnB1dFxyXG4gICAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJpbnBcIlxyXG4gICAgICAgICAgICAgICAgICB2YWx1ZT17bmV3TGFuZGxvcmQubmFtZX1cclxuICAgICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXROZXdMYW5kbG9yZCh7IC4uLm5ld0xhbmRsb3JkLCBuYW1lOiBlLnRhcmdldC52YWx1ZSB9KX1cclxuICAgICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCJlLmcuIFMuIFJhbWFuYXRoYW5cIlxyXG4gICAgICAgICAgICAgICAgICByZXF1aXJlZFxyXG4gICAgICAgICAgICAgICAgLz5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmb3JtLWdyb3VwXCIgc3R5bGU9e3sgbWFyZ2luOiAwIH19PlxyXG4gICAgICAgICAgICAgICAgPGxhYmVsPkVtYWlsIEFkZHJlc3M8L2xhYmVsPlxyXG4gICAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICAgIHR5cGU9XCJlbWFpbFwiXHJcbiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImlucFwiXHJcbiAgICAgICAgICAgICAgICAgIHZhbHVlPXtuZXdMYW5kbG9yZC5lbWFpbH1cclxuICAgICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXROZXdMYW5kbG9yZCh7IC4uLm5ld0xhbmRsb3JkLCBlbWFpbDogZS50YXJnZXQudmFsdWUgfSl9XHJcbiAgICAgICAgICAgICAgICAgIHBsYWNlaG9sZGVyPVwiZS5nLiByYW1hbmF0aGFuLnNAbWFpbC5jb21cIlxyXG4gICAgICAgICAgICAgICAgICByZXF1aXJlZFxyXG4gICAgICAgICAgICAgICAgLz5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmb3JtLWdyb3VwXCIgc3R5bGU9e3sgbWFyZ2luOiAwIH19PlxyXG4gICAgICAgICAgICAgICAgPGxhYmVsPkNvbnRhY3QgUGhvbmU8L2xhYmVsPlxyXG4gICAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImlucFwiXHJcbiAgICAgICAgICAgICAgICAgIHZhbHVlPXtuZXdMYW5kbG9yZC5waG9uZX1cclxuICAgICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXROZXdMYW5kbG9yZCh7IC4uLm5ld0xhbmRsb3JkLCBwaG9uZTogZS50YXJnZXQudmFsdWUgfSl9XHJcbiAgICAgICAgICAgICAgICAgIHBsYWNlaG9sZGVyPVwiKzkxIDk4NDAwIDEyMzQ1XCJcclxuICAgICAgICAgICAgICAgICAgcmVxdWlyZWRcclxuICAgICAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZm9ybS1ncm91cFwiIHN0eWxlPXt7IG1hcmdpbjogMCB9fT5cclxuICAgICAgICAgICAgICAgIDxsYWJlbD5DaXR5ICZhbXA7IFJlZ2lvbjwvbGFiZWw+XHJcbiAgICAgICAgICAgICAgICA8aW5wdXRcclxuICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaW5wXCJcclxuICAgICAgICAgICAgICAgICAgdmFsdWU9e25ld0xhbmRsb3JkLmxvY2F0aW9ufVxyXG4gICAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldE5ld0xhbmRsb3JkKHsgLi4ubmV3TGFuZGxvcmQsIGxvY2F0aW9uOiBlLnRhcmdldC52YWx1ZSB9KX1cclxuICAgICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCJlLmcuIEFubmEgTmFnYXIsIENoZW5uYWksIFROXCJcclxuICAgICAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGp1c3RpZnlDb250ZW50OiBcImZsZXgtZW5kXCIsIGdhcDogXCIxMHB4XCIsIG1hcmdpblRvcDogXCIxMnB4XCIgfX0+XHJcbiAgICAgICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJidG4tb3V0bGluZVwiIG9uQ2xpY2s9eygpID0+IHNldFNob3dBZGRNb2RhbChmYWxzZSl9PlxyXG4gICAgICAgICAgICAgICAgICBDYW5jZWxcclxuICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICAgICAgPGJ1dHRvbiB0eXBlPVwic3VibWl0XCIgY2xhc3NOYW1lPVwiYnRuLXByaW1hcnlcIj5cclxuICAgICAgICAgICAgICAgICAgVmVyaWZ5ICZhbXA7IFJlZ2lzdGVyXHJcbiAgICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9mb3JtPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgICl9XHJcbiAgICA8L2Rpdj5cclxuICApO1xyXG59XHJcbiJdLCJmaWxlIjoiQzovVXNlcnMvU2l2YS9Eb3dubG9hZHMvUHJvcENvbm5lY3QvZnJvbnRlbmQvc3JjL3BhZ2VzL2FkbWluL0xhbmRsb3Jkc1BhZ2UuanN4In0=

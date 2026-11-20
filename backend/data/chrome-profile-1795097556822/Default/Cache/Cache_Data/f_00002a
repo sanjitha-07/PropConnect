@@ -1,0 +1,884 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/shared/AgreementPage.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=1e3aa71c"; const useContext = __vite__cjsImport3_react["useContext"]; const useState = __vite__cjsImport3_react["useState"]; const useMemo = __vite__cjsImport3_react["useMemo"]; const useEffect = __vite__cjsImport3_react["useEffect"];
+import { AuthContext } from "/src/context/AuthContext.jsx";
+import { SettingsContext } from "/src/context/SettingsContext.jsx";
+import PageHero from "/src/components/PageHero.jsx";
+import { LEASES, PROPERTIES, TENANTS, LANDLORDS } from "/src/data/db.js";
+import { calculateTenantRentCycle } from "/src/utils/rentCycleEngine.js";
+import { fetchLeases } from "/src/utils/apiClient.js";
+export default function AgreementPage() {
+  _s();
+  const { user } = useContext(AuthContext);
+  const { t } = useContext(SettingsContext);
+  const role = user?.role || "tenant";
+  const entityId = user?.entityId || user?.entity_id || "TEN001";
+  const [liveLeases, setLiveLeases] = useState([]);
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const leaseData = await fetchLeases();
+        if (isMounted && Array.isArray(leaseData) && leaseData.length > 0) {
+          setLiveLeases(leaseData);
+        }
+      } catch (err) {
+        console.warn("Could not load leases for agreement:", err);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+  const allLeases = liveLeases.length > 0 ? liveLeases : LEASES;
+  const relevantLeases = useMemo(() => {
+    let list = [];
+    if (role === "tenant") {
+      list = allLeases.filter((l) => l.tenantId === entityId || l.tenant_id === entityId);
+    } else if (role === "landlord") {
+      list = allLeases.filter((l) => l.landlordId === entityId || l.landlord_id === entityId);
+    } else {
+      list = allLeases;
+    }
+    return [...list].sort((a, b) => {
+      const aActive = (a.status || "").toLowerCase() === "active" ? 1 : 0;
+      const bActive = (b.status || "").toLowerCase() === "active" ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      const aAncillary = (a.id || "").includes("-P") || (a.id || "").includes("-S") ? 1 : 0;
+      const bAncillary = (b.id || "").includes("-P") || (b.id || "").includes("-S") ? 1 : 0;
+      if (aAncillary !== bAncillary) return aAncillary - bAncillary;
+      const aRent = Number(a.monthlyRent || a.rent || 0);
+      const bRent = Number(b.monthlyRent || b.rent || 0);
+      return bRent - aRent;
+    });
+  }, [allLeases, role, entityId]);
+  const [selectedLeaseId, setSelectedLeaseId] = useState(() => {
+    return relevantLeases[0]?.id || "LSE001";
+  });
+  useEffect(() => {
+    if (relevantLeases.length > 0 && !relevantLeases.some((l) => l.id === selectedLeaseId)) {
+      setSelectedLeaseId(relevantLeases[0].id);
+    }
+  }, [relevantLeases, selectedLeaseId]);
+  const activeLease = useMemo(() => {
+    return relevantLeases.find((l) => l.id === selectedLeaseId) || relevantLeases[0] || LEASES[0];
+  }, [relevantLeases, selectedLeaseId]);
+  const property = PROPERTIES.find((p) => p.id === activeLease?.propertyId) || PROPERTIES[0];
+  const landlord = LANDLORDS.find((l) => l.id === activeLease?.landlordId) || LANDLORDS[0];
+  const tenant = TENANTS.find((t2) => t2.id === activeLease?.tenantId) || TENANTS[0];
+  const rentCycle = useMemo(() => {
+    if (!activeLease) return null;
+    return calculateTenantRentCycle(activeLease, /* @__PURE__ */ new Date(), []);
+  }, [activeLease]);
+  const handlePrintAgreement = () => {
+    window.print();
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "agreement-page", style: { paddingBottom: "40px" }, children: [
+    /* @__PURE__ */ jsxDEV(
+      PageHero,
+      {
+        title: "Tenancy Agreement & Responsibilities",
+        subtitle: "Statutory lease terms, personalized rent due dates, and detailed landlord vs. tenant responsibilities under Tamil Nadu tenancy laws."
+      },
+      void 0,
+      false,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+        lineNumber: 111,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: "card",
+        style: {
+          padding: "16px 20px",
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px"
+        },
+        children: [
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "10px" }, children: [
+            /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "13px", fontWeight: 700, color: "var(--ink-secondary)" }, children: "Select Lease Agreement:" }, void 0, false, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 130,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV(
+              "select",
+              {
+                value: selectedLeaseId,
+                onChange: (e) => setSelectedLeaseId(e.target.value),
+                style: {
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border-subtle, #cbd5e1)",
+                  fontSize: "13px",
+                  fontWeight: 600
+                },
+                children: relevantLeases.map(
+                  (l) => /* @__PURE__ */ jsxDEV("option", { value: l.id, children: [
+                    l.id,
+                    " — ",
+                    l.propertyName,
+                    " (",
+                    l.startDate,
+                    " to ",
+                    l.endDate,
+                    ")"
+                  ] }, l.id, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 145,
+                    columnNumber: 13
+                  }, this)
+                )
+              },
+              void 0,
+              false,
+              {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 133,
+                columnNumber: 11
+              },
+              this
+            )
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+            lineNumber: 129,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px" }, children: /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              className: "btn-outline",
+              onClick: handlePrintAgreement,
+              style: { padding: "7px 16px", fontSize: "13px", fontWeight: 600 },
+              children: "🖨️ Print Agreement / PDF"
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 153,
+              columnNumber: 11
+            },
+            this
+          ) }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+            lineNumber: 152,
+            columnNumber: 9
+          }, this)
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+        lineNumber: 117,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: "card",
+        style: {
+          padding: "24px",
+          marginBottom: "20px",
+          borderTop: "5px solid var(--color-primary, #0284c7)",
+          background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)"
+        },
+        children: [
+          /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }, children: [
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { padding: "4px 8px", background: "#f0f9ff", color: "#0284c7", borderRadius: "6px", fontSize: "12px", fontWeight: 800 }, children: [
+                  "REG: TN-RERA/AGT/",
+                  activeLease?.id || "LSE001"
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 177,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "pill paid", children: "Legally Binding Agreement" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 180,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 176,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("h2", { style: { margin: "4px 0", fontSize: "20px", fontWeight: 800, color: "var(--ink-primary)" }, children: [
+                "Residential Tenancy Agreement — ",
+                property.name
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 182,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "13px", color: "var(--ink-muted)" }, children: [
+                "📍 ",
+                property.location,
+                " • Building: ",
+                property.building || "Residential Complex"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 185,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 175,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { style: { textAlign: "right", minWidth: "160px" }, children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "var(--ink-muted)" }, children: "Personalized Monthly Rent:" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 191,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "22px", fontWeight: 800, color: "var(--color-primary, #0284c7)" }, children: [
+                "₹",
+                (activeLease?.monthlyRent || property.rent || 22e3).toLocaleString("en-IN"),
+                "/mo"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 192,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#16a34a", fontWeight: 600 }, children: [
+                "⏰ Rent Due on ",
+                rentCycle?.dueDayOrdinal || "10th",
+                " of each month"
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 195,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 190,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+            lineNumber: 174,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "12px",
+                padding: "16px",
+                background: "#ffffff",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0"
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Landlord / Owner:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 214,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: landlord.name }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 215,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b" }, children: [
+                    "📞 ",
+                    landlord.phone
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 216,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 213,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Tenant / Resident:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 220,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: tenant.name }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 221,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b" }, children: [
+                    "📞 ",
+                    tenant.phone
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 222,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 219,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Security Deposit Held:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 226,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: [
+                    "₹",
+                    (activeLease?.depositAmount || property.deposit || 8e4).toLocaleString("en-IN")
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 227,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#16a34a" }, children: "Escrow Protected" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 230,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 225,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Tenancy Period:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 234,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: [
+                    activeLease?.startDate,
+                    " to ",
+                    activeLease?.endDate
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 235,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b" }, children: "11 Months Renewal Term" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 238,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 233,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Personalized Due Date:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 242,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0284c7" }, children: [
+                    "Every ",
+                    rentCycle?.dueDayOrdinal || "10th",
+                    " of month"
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 243,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b" }, children: "Reminders 5 days prior" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 246,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 241,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "#64748b" }, children: "Notice Period for Vacation:" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 250,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "1 Month Written Notice" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 251,
+                    columnNumber: 13
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "#64748b" }, children: "Deposit refund in 30 days" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 254,
+                    columnNumber: 13
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 249,
+                  columnNumber: 11
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 202,
+              columnNumber: 9
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+        lineNumber: 165,
+        columnNumber: 7
+      },
+      this
+    ),
+    /* @__PURE__ */ jsxDEV("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }, children: [
+      /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          className: "card",
+          style: {
+            padding: "24px",
+            borderTop: "4px solid #2563eb",
+            background: "#ffffff"
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }, children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { width: "36px", height: "36px", borderRadius: "8px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }, children: "🏛️" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 271,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: "16px", fontWeight: 800, color: "#1e3a8a" }, children: "Landlord Responsibilities" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 275,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b" }, children: "Statutory duties under Tamil Nadu Tenancy Act (TNRRRLTA)" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 278,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 274,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 270,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", flexDirection: "column", gap: "12px" }, children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#2563eb", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 286,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Structural Maintenance & Waterproofing" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 288,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Responsible for structural stability, major wall plastering, foundation repairs, exterior painting, and terrace/roof waterproofing." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 291,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 287,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 285,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#2563eb", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 298,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Major Plumbing & Electrical Conduits" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 300,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Rectification of internal concealed pipeline leakages, underground drainage line chokes, and main electrical breaker/earthing faults." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 303,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 299,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 297,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#2563eb", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 310,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Property Taxes & Housing Municipal Dues" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 312,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Payment of Greater Chennai Corporation / Municipal Property Tax and Urban Land Ceiling fees to keep tenancy unencumbered." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 315,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 311,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 309,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#2563eb", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 322,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Peaceful Possession & Advance Notice for Entry" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 324,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Guaranteed uninterrupted peaceful possession. Landlord shall give at least 24 hours advance written or app notification prior to entering premises." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 327,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 323,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 321,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#2563eb", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 334,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Security Deposit Refund Within 30 Days" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 336,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Prompt refund of interest-free security deposit within thirty (30) days of tenant vacating the premises, subject to mutual walkthrough audit." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 339,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 335,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 333,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 284,
+              columnNumber: 11
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+          lineNumber: 262,
+          columnNumber: 9
+        },
+        this
+      ),
+      /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          className: "card",
+          style: {
+            padding: "24px",
+            borderTop: "4px solid #16a34a",
+            background: "#ffffff"
+          },
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }, children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { width: "36px", height: "36px", borderRadius: "8px", background: "#f0fdf4", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }, children: "🏠" }, void 0, false, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 357,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, fontSize: "16px", fontWeight: 800, color: "#14532d" }, children: "Tenant Responsibilities" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 361,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b" }, children: "Occupancy obligations, utility dues & upkeep guidelines" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 364,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 360,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 356,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", flexDirection: "column", gap: "12px" }, children: [
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 372,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Punctual Rent Remittance on Due Date" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 374,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: [
+                    "Payment of monthly rent on or before the agreed personalized due date (",
+                    rentCycle?.dueDayOrdinal || "10th",
+                    " of each English calendar month)."
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 377,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 373,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 371,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 384,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Consumption Utility Dues (Water & Electricity)" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 386,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Settlement of actual TNEB bi-monthly electricity bills and sub-metered CMWSSB Metrowater / private water tanker consumption charges." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 389,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 385,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 383,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 396,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Routine Housekeeping & Minor Repairs" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 398,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Day-to-day maintenance such as replacing fused LED lamps, tap washer washers, routine kitchen cleaning, and maintaining sanitary fittings." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 401,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 397,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 395,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 408,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Compliance with Community Bylaws" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 410,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Strict adherence to society association rules regarding waste segregation, designated car parking bay CP-08, and quiet residential hours." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 413,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 409,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 407,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "10px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "#16a34a", fontWeight: 800, fontSize: "14px" }, children: "✓" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 420,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: 700, fontSize: "13px", color: "#0f172a" }, children: "Timely Intimation of Structural Defects" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 422,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "12px", color: "#64748b", lineHeight: "1.4" }, children: "Mandatory notification to the landlord via PropConnect portal within 48 hours of noticing any wall cracks, seepage, or electrical issues." }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                    lineNumber: 425,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                  lineNumber: 421,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+                lineNumber: 419,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+              lineNumber: 370,
+              columnNumber: 11
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+          lineNumber: 348,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+      lineNumber: 260,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx",
+    lineNumber: 110,
+    columnNumber: 5
+  }, this);
+}
+_s(AgreementPage, "2xEKUC7wdG8ZvNh0YIG8DzIAa0I=");
+_c = AgreementPage;
+var _c;
+$RefreshReg$(_c, "AgreementPage");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/pages/shared/AgreementPage.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFNLEdBQUcseUpBQXZFO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBRUE7QUFBQSxxQkFORjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQU9BO0FBQUEsbUJBVEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFVQTtBQUFBLGlCQTNERjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQTREQTtBQUFBO0FBQUE7QUFBQSxRQWxGRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUFtRkE7QUFBQSxTQTNLRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBNEtBO0FBQUEsT0FsVUY7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQW1VQTtBQUVKO0FBQUM5RixHQXZadUJELGVBQWE7QUFBQSxLQUFiQTtBQUFhLElBQUFnRztBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJ1c2VDb250ZXh0IiwidXNlU3RhdGUiLCJ1c2VNZW1vIiwidXNlRWZmZWN0IiwiQXV0aENvbnRleHQiLCJTZXR0aW5nc0NvbnRleHQiLCJQYWdlSGVybyIsIkxFQVNFUyIsIlBST1BFUlRJRVMiLCJURU5BTlRTIiwiTEFORExPUkRTIiwiY2FsY3VsYXRlVGVuYW50UmVudEN5Y2xlIiwiZmV0Y2hMZWFzZXMiLCJBZ3JlZW1lbnRQYWdlIiwiX3MiLCJ1c2VyIiwidCIsInJvbGUiLCJlbnRpdHlJZCIsImVudGl0eV9pZCIsImxpdmVMZWFzZXMiLCJzZXRMaXZlTGVhc2VzIiwiaXNNb3VudGVkIiwibG9hZERhdGEiLCJsZWFzZURhdGEiLCJBcnJheSIsImlzQXJyYXkiLCJsZW5ndGgiLCJlcnIiLCJjb25zb2xlIiwid2FybiIsImFsbExlYXNlcyIsInJlbGV2YW50TGVhc2VzIiwibGlzdCIsImZpbHRlciIsImwiLCJ0ZW5hbnRJZCIsInRlbmFudF9pZCIsImxhbmRsb3JkSWQiLCJsYW5kbG9yZF9pZCIsInNvcnQiLCJhIiwiYiIsImFBY3RpdmUiLCJzdGF0dXMiLCJ0b0xvd2VyQ2FzZSIsImJBY3RpdmUiLCJhQW5jaWxsYXJ5IiwiaWQiLCJpbmNsdWRlcyIsImJBbmNpbGxhcnkiLCJhUmVudCIsIk51bWJlciIsIm1vbnRobHlSZW50IiwicmVudCIsImJSZW50Iiwic2VsZWN0ZWRMZWFzZUlkIiwic2V0U2VsZWN0ZWRMZWFzZUlkIiwic29tZSIsImFjdGl2ZUxlYXNlIiwiZmluZCIsInByb3BlcnR5IiwicCIsInByb3BlcnR5SWQiLCJsYW5kbG9yZCIsInRlbmFudCIsInJlbnRDeWNsZSIsIkRhdGUiLCJoYW5kbGVQcmludEFncmVlbWVudCIsIndpbmRvdyIsInByaW50IiwicGFkZGluZ0JvdHRvbSIsInBhZGRpbmciLCJtYXJnaW5Cb3R0b20iLCJkaXNwbGF5IiwianVzdGlmeUNvbnRlbnQiLCJhbGlnbkl0ZW1zIiwiZmxleFdyYXAiLCJnYXAiLCJmb250U2l6ZSIsImZvbnRXZWlnaHQiLCJjb2xvciIsImUiLCJ0YXJnZXQiLCJ2YWx1ZSIsImJvcmRlclJhZGl1cyIsImJvcmRlciIsIm1hcCIsInByb3BlcnR5TmFtZSIsInN0YXJ0RGF0ZSIsImVuZERhdGUiLCJib3JkZXJUb3AiLCJiYWNrZ3JvdW5kIiwibWFyZ2luIiwibmFtZSIsImxvY2F0aW9uIiwiYnVpbGRpbmciLCJ0ZXh0QWxpZ24iLCJtaW5XaWR0aCIsInRvTG9jYWxlU3RyaW5nIiwiZHVlRGF5T3JkaW5hbCIsImdyaWRUZW1wbGF0ZUNvbHVtbnMiLCJwaG9uZSIsImRlcG9zaXRBbW91bnQiLCJkZXBvc2l0Iiwid2lkdGgiLCJoZWlnaHQiLCJmbGV4RGlyZWN0aW9uIiwibGluZUhlaWdodCIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkFncmVlbWVudFBhZ2UuanN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZUNvbnRleHQsIHVzZVN0YXRlLCB1c2VNZW1vLCB1c2VFZmZlY3QgfSBmcm9tIFwicmVhY3RcIjtcclxuaW1wb3J0IHsgQXV0aENvbnRleHQgfSBmcm9tIFwiLi4vLi4vY29udGV4dC9BdXRoQ29udGV4dC5qc3hcIjtcclxuaW1wb3J0IHsgU2V0dGluZ3NDb250ZXh0IH0gZnJvbSBcIi4uLy4uL2NvbnRleHQvU2V0dGluZ3NDb250ZXh0LmpzeFwiO1xyXG5pbXBvcnQgUGFnZUhlcm8gZnJvbSBcIi4uLy4uL2NvbXBvbmVudHMvUGFnZUhlcm8uanN4XCI7XHJcbmltcG9ydCB7IExFQVNFUywgUFJPUEVSVElFUywgVEVOQU5UUywgTEFORExPUkRTIH0gZnJvbSBcIi4uLy4uL2RhdGEvZGIuanNcIjtcclxuaW1wb3J0IHsgY2FsY3VsYXRlVGVuYW50UmVudEN5Y2xlIH0gZnJvbSBcIi4uLy4uL3V0aWxzL3JlbnRDeWNsZUVuZ2luZS5qc1wiO1xyXG5pbXBvcnQgeyBmZXRjaExlYXNlcyB9IGZyb20gXCIuLi8uLi91dGlscy9hcGlDbGllbnQuanNcIjtcclxuXHJcbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEFncmVlbWVudFBhZ2UoKSB7XHJcbiAgY29uc3QgeyB1c2VyIH0gPSB1c2VDb250ZXh0KEF1dGhDb250ZXh0KTtcclxuICBjb25zdCB7IHQgfSA9IHVzZUNvbnRleHQoU2V0dGluZ3NDb250ZXh0KTtcclxuXHJcbiAgY29uc3Qgcm9sZSA9IHVzZXI/LnJvbGUgfHwgXCJ0ZW5hbnRcIjtcclxuICBjb25zdCBlbnRpdHlJZCA9IHVzZXI/LmVudGl0eUlkIHx8IHVzZXI/LmVudGl0eV9pZCB8fCBcIlRFTjAwMVwiO1xyXG4gIGNvbnN0IFtsaXZlTGVhc2VzLCBzZXRMaXZlTGVhc2VzXSA9IHVzZVN0YXRlKFtdKTtcclxuXHJcbiAgdXNlRWZmZWN0KCgpID0+IHtcclxuICAgIGxldCBpc01vdW50ZWQgPSB0cnVlO1xyXG4gICAgYXN5bmMgZnVuY3Rpb24gbG9hZERhdGEoKSB7XHJcbiAgICAgIHRyeSB7XHJcbiAgICAgICAgY29uc3QgbGVhc2VEYXRhID0gYXdhaXQgZmV0Y2hMZWFzZXMoKTtcclxuICAgICAgICBpZiAoaXNNb3VudGVkICYmIEFycmF5LmlzQXJyYXkobGVhc2VEYXRhKSAmJiBsZWFzZURhdGEubGVuZ3RoID4gMCkge1xyXG4gICAgICAgICAgc2V0TGl2ZUxlYXNlcyhsZWFzZURhdGEpO1xyXG4gICAgICAgIH1cclxuICAgICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgICAgY29uc29sZS53YXJuKFwiQ291bGQgbm90IGxvYWQgbGVhc2VzIGZvciBhZ3JlZW1lbnQ6XCIsIGVycik7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIGxvYWREYXRhKCk7XHJcbiAgICByZXR1cm4gKCkgPT4ge1xyXG4gICAgICBpc01vdW50ZWQgPSBmYWxzZTtcclxuICAgIH07XHJcbiAgfSwgW10pO1xyXG5cclxuICBjb25zdCBhbGxMZWFzZXMgPSBsaXZlTGVhc2VzLmxlbmd0aCA+IDAgPyBsaXZlTGVhc2VzIDogTEVBU0VTO1xyXG5cclxuICAvLyBTZWxlY3QgYWN0aXZlIGxlYXNlXHJcbiAgY29uc3QgcmVsZXZhbnRMZWFzZXMgPSB1c2VNZW1vKCgpID0+IHtcclxuICAgIGxldCBsaXN0ID0gW107XHJcbiAgICBpZiAocm9sZSA9PT0gXCJ0ZW5hbnRcIikge1xyXG4gICAgICBsaXN0ID0gYWxsTGVhc2VzLmZpbHRlcigobCkgPT4gbC50ZW5hbnRJZCA9PT0gZW50aXR5SWQgfHwgbC50ZW5hbnRfaWQgPT09IGVudGl0eUlkKTtcclxuICAgIH0gZWxzZSBpZiAocm9sZSA9PT0gXCJsYW5kbG9yZFwiKSB7XHJcbiAgICAgIGxpc3QgPSBhbGxMZWFzZXMuZmlsdGVyKChsKSA9PiBsLmxhbmRsb3JkSWQgPT09IGVudGl0eUlkIHx8IGwubGFuZGxvcmRfaWQgPT09IGVudGl0eUlkKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGxpc3QgPSBhbGxMZWFzZXM7XHJcbiAgICB9XHJcbiAgICAvLyBTb3J0IHNvIGFjdGl2ZSBwcmltYXJ5IGxlYXNlIGlzIGZpcnN0XHJcbiAgICByZXR1cm4gWy4uLmxpc3RdLnNvcnQoKGEsIGIpID0+IHtcclxuICAgICAgY29uc3QgYUFjdGl2ZSA9IChhLnN0YXR1cyB8fCBcIlwiKS50b0xvd2VyQ2FzZSgpID09PSBcImFjdGl2ZVwiID8gMSA6IDA7XHJcbiAgICAgIGNvbnN0IGJBY3RpdmUgPSAoYi5zdGF0dXMgfHwgXCJcIikudG9Mb3dlckNhc2UoKSA9PT0gXCJhY3RpdmVcIiA/IDEgOiAwO1xyXG4gICAgICBpZiAoYUFjdGl2ZSAhPT0gYkFjdGl2ZSkgcmV0dXJuIGJBY3RpdmUgLSBhQWN0aXZlO1xyXG5cclxuICAgICAgY29uc3QgYUFuY2lsbGFyeSA9IChhLmlkIHx8IFwiXCIpLmluY2x1ZGVzKFwiLVBcIikgfHwgKGEuaWQgfHwgXCJcIikuaW5jbHVkZXMoXCItU1wiKSA/IDEgOiAwO1xyXG4gICAgICBjb25zdCBiQW5jaWxsYXJ5ID0gKGIuaWQgfHwgXCJcIikuaW5jbHVkZXMoXCItUFwiKSB8fCAoYi5pZCB8fCBcIlwiKS5pbmNsdWRlcyhcIi1TXCIpID8gMSA6IDA7XHJcbiAgICAgIGlmIChhQW5jaWxsYXJ5ICE9PSBiQW5jaWxsYXJ5KSByZXR1cm4gYUFuY2lsbGFyeSAtIGJBbmNpbGxhcnk7XHJcblxyXG4gICAgICBjb25zdCBhUmVudCA9IE51bWJlcihhLm1vbnRobHlSZW50IHx8IGEucmVudCB8fCAwKTtcclxuICAgICAgY29uc3QgYlJlbnQgPSBOdW1iZXIoYi5tb250aGx5UmVudCB8fCBiLnJlbnQgfHwgMCk7XHJcbiAgICAgIHJldHVybiBiUmVudCAtIGFSZW50O1xyXG4gICAgfSk7XHJcbiAgfSwgW2FsbExlYXNlcywgcm9sZSwgZW50aXR5SWRdKTtcclxuXHJcbiAgY29uc3QgW3NlbGVjdGVkTGVhc2VJZCwgc2V0U2VsZWN0ZWRMZWFzZUlkXSA9IHVzZVN0YXRlKCgpID0+IHtcclxuICAgIHJldHVybiByZWxldmFudExlYXNlc1swXT8uaWQgfHwgXCJMU0UwMDFcIjtcclxuICB9KTtcclxuXHJcbiAgdXNlRWZmZWN0KCgpID0+IHtcclxuICAgIGlmIChyZWxldmFudExlYXNlcy5sZW5ndGggPiAwICYmICFyZWxldmFudExlYXNlcy5zb21lKChsKSA9PiBsLmlkID09PSBzZWxlY3RlZExlYXNlSWQpKSB7XHJcbiAgICAgIHNldFNlbGVjdGVkTGVhc2VJZChyZWxldmFudExlYXNlc1swXS5pZCk7XHJcbiAgICB9XHJcbiAgfSwgW3JlbGV2YW50TGVhc2VzLCBzZWxlY3RlZExlYXNlSWRdKTtcclxuXHJcbiAgY29uc3QgYWN0aXZlTGVhc2UgPSB1c2VNZW1vKCgpID0+IHtcclxuICAgIHJldHVybiByZWxldmFudExlYXNlcy5maW5kKChsKSA9PiBsLmlkID09PSBzZWxlY3RlZExlYXNlSWQpIHx8IHJlbGV2YW50TGVhc2VzWzBdIHx8IExFQVNFU1swXTtcclxuICB9LCBbcmVsZXZhbnRMZWFzZXMsIHNlbGVjdGVkTGVhc2VJZF0pO1xyXG5cclxuICBjb25zdCBwcm9wZXJ0eSA9IFBST1BFUlRJRVMuZmluZCgocCkgPT4gcC5pZCA9PT0gYWN0aXZlTGVhc2U/LnByb3BlcnR5SWQpIHx8IFBST1BFUlRJRVNbMF07XHJcbiAgY29uc3QgbGFuZGxvcmQgPSBMQU5ETE9SRFMuZmluZCgobCkgPT4gbC5pZCA9PT0gYWN0aXZlTGVhc2U/LmxhbmRsb3JkSWQpIHx8IExBTkRMT1JEU1swXTtcclxuICBjb25zdCB0ZW5hbnQgPSBURU5BTlRTLmZpbmQoKHQpID0+IHQuaWQgPT09IGFjdGl2ZUxlYXNlPy50ZW5hbnRJZCkgfHwgVEVOQU5UU1swXTtcclxuXHJcbiAgY29uc3QgcmVudEN5Y2xlID0gdXNlTWVtbygoKSA9PiB7XHJcbiAgICBpZiAoIWFjdGl2ZUxlYXNlKSByZXR1cm4gbnVsbDtcclxuICAgIHJldHVybiBjYWxjdWxhdGVUZW5hbnRSZW50Q3ljbGUoYWN0aXZlTGVhc2UsIG5ldyBEYXRlKCksIFtdKTtcclxuICB9LCBbYWN0aXZlTGVhc2VdKTtcclxuXHJcbiAgY29uc3QgaGFuZGxlUHJpbnRBZ3JlZW1lbnQgPSAoKSA9PiB7XHJcbiAgICB3aW5kb3cucHJpbnQoKTtcclxuICB9O1xyXG5cclxuICByZXR1cm4gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJhZ3JlZW1lbnQtcGFnZVwiIHN0eWxlPXt7IHBhZGRpbmdCb3R0b206IFwiNDBweFwiIH19PlxyXG4gICAgICA8UGFnZUhlcm9cclxuICAgICAgICB0aXRsZT1cIlRlbmFuY3kgQWdyZWVtZW50ICZhbXA7IFJlc3BvbnNpYmlsaXRpZXNcIlxyXG4gICAgICAgIHN1YnRpdGxlPVwiU3RhdHV0b3J5IGxlYXNlIHRlcm1zLCBwZXJzb25hbGl6ZWQgcmVudCBkdWUgZGF0ZXMsIGFuZCBkZXRhaWxlZCBsYW5kbG9yZCB2cy4gdGVuYW50IHJlc3BvbnNpYmlsaXRpZXMgdW5kZXIgVGFtaWwgTmFkdSB0ZW5hbmN5IGxhd3MuXCJcclxuICAgICAgLz5cclxuXHJcbiAgICAgIHsvKiBUb3AgQ29udHJvbHM6IExlYXNlIFNlbGVjdG9yICsgUHJpbnQvRG93bmxvYWQgKi99XHJcbiAgICAgIDxkaXZcclxuICAgICAgICBjbGFzc05hbWU9XCJjYXJkXCJcclxuICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgcGFkZGluZzogXCIxNnB4IDIwcHhcIixcclxuICAgICAgICAgIG1hcmdpbkJvdHRvbTogXCIyMHB4XCIsXHJcbiAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgIGp1c3RpZnlDb250ZW50OiBcInNwYWNlLWJldHdlZW5cIixcclxuICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICBmbGV4V3JhcDogXCJ3cmFwXCIsXHJcbiAgICAgICAgICBnYXA6IFwiMTJweFwiLFxyXG4gICAgICAgIH19XHJcbiAgICAgID5cclxuICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiMTBweFwiIH19PlxyXG4gICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6IFwiMTNweFwiLCBmb250V2VpZ2h0OiA3MDAsIGNvbG9yOiBcInZhcigtLWluay1zZWNvbmRhcnkpXCIgfX0+XHJcbiAgICAgICAgICAgIFNlbGVjdCBMZWFzZSBBZ3JlZW1lbnQ6XHJcbiAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICA8c2VsZWN0XHJcbiAgICAgICAgICAgIHZhbHVlPXtzZWxlY3RlZExlYXNlSWR9XHJcbiAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0U2VsZWN0ZWRMZWFzZUlkKGUudGFyZ2V0LnZhbHVlKX1cclxuICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICBwYWRkaW5nOiBcIjZweCAxMnB4XCIsXHJcbiAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjZweFwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlcjogXCIxcHggc29saWQgdmFyKC0tYm9yZGVyLXN1YnRsZSwgI2NiZDVlMSlcIixcclxuICAgICAgICAgICAgICBmb250U2l6ZTogXCIxM3B4XCIsXHJcbiAgICAgICAgICAgICAgZm9udFdlaWdodDogNjAwLFxyXG4gICAgICAgICAgICB9fVxyXG4gICAgICAgICAgPlxyXG4gICAgICAgICAgICB7cmVsZXZhbnRMZWFzZXMubWFwKChsKSA9PiAoXHJcbiAgICAgICAgICAgICAgPG9wdGlvbiBrZXk9e2wuaWR9IHZhbHVlPXtsLmlkfT5cclxuICAgICAgICAgICAgICAgIHtsLmlkfSDigJQge2wucHJvcGVydHlOYW1lfSAoe2wuc3RhcnREYXRlfSB0byB7bC5lbmREYXRlfSlcclxuICAgICAgICAgICAgICA8L29wdGlvbj5cclxuICAgICAgICAgICAgKSl9XHJcbiAgICAgICAgICA8L3NlbGVjdD5cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiBcIjEwcHhcIiB9fT5cclxuICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgIGNsYXNzTmFtZT1cImJ0bi1vdXRsaW5lXCJcclxuICAgICAgICAgICAgb25DbGljaz17aGFuZGxlUHJpbnRBZ3JlZW1lbnR9XHJcbiAgICAgICAgICAgIHN0eWxlPXt7IHBhZGRpbmc6IFwiN3B4IDE2cHhcIiwgZm9udFNpemU6IFwiMTNweFwiLCBmb250V2VpZ2h0OiA2MDAgfX1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAg8J+WqO+4jyBQcmludCBBZ3JlZW1lbnQgLyBQREZcclxuICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICA8L2Rpdj5cclxuXHJcbiAgICAgIHsvKiBPZmZpY2lhbCBUZW5hbmN5IENlcnRpZmljYXRlIEJhbm5lciAqL31cclxuICAgICAgPGRpdlxyXG4gICAgICAgIGNsYXNzTmFtZT1cImNhcmRcIlxyXG4gICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICBwYWRkaW5nOiBcIjI0cHhcIixcclxuICAgICAgICAgIG1hcmdpbkJvdHRvbTogXCIyMHB4XCIsXHJcbiAgICAgICAgICBib3JkZXJUb3A6IFwiNXB4IHNvbGlkIHZhcigtLWNvbG9yLXByaW1hcnksICMwMjg0YzcpXCIsXHJcbiAgICAgICAgICBiYWNrZ3JvdW5kOiBcImxpbmVhci1ncmFkaWVudCgxMzVkZWcsICNmZmZmZmYgMCUsICNmOGZhZmMgMTAwJSlcIixcclxuICAgICAgICB9fVxyXG4gICAgICA+XHJcbiAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwganVzdGlmeUNvbnRlbnQ6IFwic3BhY2UtYmV0d2VlblwiLCBhbGlnbkl0ZW1zOiBcImZsZXgtc3RhcnRcIiwgZmxleFdyYXA6IFwid3JhcFwiLCBnYXA6IFwiMTZweFwiLCBtYXJnaW5Cb3R0b206IFwiMjBweFwiIH19PlxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwgZ2FwOiBcIjEwcHhcIiwgbWFyZ2luQm90dG9tOiBcIjZweFwiIH19PlxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IHBhZGRpbmc6IFwiNHB4IDhweFwiLCBiYWNrZ3JvdW5kOiBcIiNmMGY5ZmZcIiwgY29sb3I6IFwiIzAyODRjN1wiLCBib3JkZXJSYWRpdXM6IFwiNnB4XCIsIGZvbnRTaXplOiBcIjEycHhcIiwgZm9udFdlaWdodDogODAwIH19PlxyXG4gICAgICAgICAgICAgICAgUkVHOiBUTi1SRVJBL0FHVC97YWN0aXZlTGVhc2U/LmlkIHx8IFwiTFNFMDAxXCJ9XHJcbiAgICAgICAgICAgICAgPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInBpbGwgcGFpZFwiPkxlZ2FsbHkgQmluZGluZyBBZ3JlZW1lbnQ8L3NwYW4+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8aDIgc3R5bGU9e3sgbWFyZ2luOiBcIjRweCAwXCIsIGZvbnRTaXplOiBcIjIwcHhcIiwgZm9udFdlaWdodDogODAwLCBjb2xvcjogXCJ2YXIoLS1pbmstcHJpbWFyeSlcIiB9fT5cclxuICAgICAgICAgICAgICBSZXNpZGVudGlhbCBUZW5hbmN5IEFncmVlbWVudCDigJQge3Byb3BlcnR5Lm5hbWV9XHJcbiAgICAgICAgICAgIDwvaDI+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstbXV0ZWQpXCIgfX0+XHJcbiAgICAgICAgICAgICAg8J+TjSB7cHJvcGVydHkubG9jYXRpb259IOKAoiBCdWlsZGluZzoge3Byb3BlcnR5LmJ1aWxkaW5nIHx8IFwiUmVzaWRlbnRpYWwgQ29tcGxleFwifVxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXYgc3R5bGU9e3sgdGV4dEFsaWduOiBcInJpZ2h0XCIsIG1pbldpZHRoOiBcIjE2MHB4XCIgfX0+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstbXV0ZWQpXCIgfX0+UGVyc29uYWxpemVkIE1vbnRobHkgUmVudDo8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIyMnB4XCIsIGZvbnRXZWlnaHQ6IDgwMCwgY29sb3I6IFwidmFyKC0tY29sb3ItcHJpbWFyeSwgIzAyODRjNylcIiB9fT5cclxuICAgICAgICAgICAgICDigrl7KGFjdGl2ZUxlYXNlPy5tb250aGx5UmVudCB8fCBwcm9wZXJ0eS5yZW50IHx8IDIyMDAwKS50b0xvY2FsZVN0cmluZyhcImVuLUlOXCIpfS9tb1xyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMS41cHhcIiwgY29sb3I6IFwiIzE2YTM0YVwiLCBmb250V2VpZ2h0OiA2MDAgfX0+XHJcbiAgICAgICAgICAgICAg4o+wIFJlbnQgRHVlIG9uIHtyZW50Q3ljbGU/LmR1ZURheU9yZGluYWwgfHwgXCIxMHRoXCJ9IG9mIGVhY2ggbW9udGhcclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgey8qIEtleSBUZW5hbmN5IFRlcm1zIEdyaWQgKi99XHJcbiAgICAgICAgPGRpdlxyXG4gICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgZGlzcGxheTogXCJncmlkXCIsXHJcbiAgICAgICAgICAgIGdyaWRUZW1wbGF0ZUNvbHVtbnM6IFwicmVwZWF0KGF1dG8tZml0LCBtaW5tYXgoMjAwcHgsIDFmcikpXCIsXHJcbiAgICAgICAgICAgIGdhcDogXCIxMnB4XCIsXHJcbiAgICAgICAgICAgIHBhZGRpbmc6IFwiMTZweFwiLFxyXG4gICAgICAgICAgICBiYWNrZ3JvdW5kOiBcIiNmZmZmZmZcIixcclxuICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjhweFwiLFxyXG4gICAgICAgICAgICBib3JkZXI6IFwiMXB4IHNvbGlkICNlMmU4ZjBcIixcclxuICAgICAgICAgIH19XHJcbiAgICAgICAgPlxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMS41cHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiIH19PkxhbmRsb3JkIC8gT3duZXI6PC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDogNzAwLCBmb250U2l6ZTogXCIxM3B4XCIsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT57bGFuZGxvcmQubmFtZX08L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT7wn5OeIHtsYW5kbG9yZC5waG9uZX08L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTEuNXB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5UZW5hbnQgLyBSZXNpZGVudDo8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiBcIjEzcHhcIiwgY29sb3I6IFwiIzBmMTcyYVwiIH19Pnt0ZW5hbnQubmFtZX08L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT7wn5OeIHt0ZW5hbnQucGhvbmV9PC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExLjVweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+U2VjdXJpdHkgRGVwb3NpdCBIZWxkOjwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAg4oK5eyhhY3RpdmVMZWFzZT8uZGVwb3NpdEFtb3VudCB8fCBwcm9wZXJ0eS5kZXBvc2l0IHx8IDgwMDAwKS50b0xvY2FsZVN0cmluZyhcImVuLUlOXCIpfVxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcIiMxNmEzNGFcIiB9fT5Fc2Nyb3cgUHJvdGVjdGVkPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExLjVweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+VGVuYW5jeSBQZXJpb2Q6PC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDogNzAwLCBmb250U2l6ZTogXCIxM3B4XCIsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT5cclxuICAgICAgICAgICAgICB7YWN0aXZlTGVhc2U/LnN0YXJ0RGF0ZX0gdG8ge2FjdGl2ZUxlYXNlPy5lbmREYXRlfVxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT4xMSBNb250aHMgUmVuZXdhbCBUZXJtPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExLjVweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+UGVyc29uYWxpemVkIER1ZSBEYXRlOjwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMDI4NGM3XCIgfX0+XHJcbiAgICAgICAgICAgICAgRXZlcnkge3JlbnRDeWNsZT8uZHVlRGF5T3JkaW5hbCB8fCBcIjEwdGhcIn0gb2YgbW9udGhcclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTFweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIgfX0+UmVtaW5kZXJzIDUgZGF5cyBwcmlvcjwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMS41cHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiIH19Pk5vdGljZSBQZXJpb2QgZm9yIFZhY2F0aW9uOjwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgMSBNb250aCBXcml0dGVuIE5vdGljZVxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMXB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5EZXBvc2l0IHJlZnVuZCBpbiAzMCBkYXlzPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgPC9kaXY+XHJcblxyXG4gICAgICB7LyogVHdvIENvbHVtbiBEZXRhaWxlZCBSZXNwb25zaWJpbGl0aWVzIEJyZWFrZG93biAqL31cclxuICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImdyaWRcIiwgZ3JpZFRlbXBsYXRlQ29sdW1uczogXCJyZXBlYXQoYXV0by1maXQsIG1pbm1heCgzNDBweCwgMWZyKSlcIiwgZ2FwOiBcIjIwcHhcIiB9fT5cclxuICAgICAgICB7LyogTGFuZGxvcmQgUmVzcG9uc2liaWxpdGllcyBDb2x1bW4gKi99XHJcbiAgICAgICAgPGRpdlxyXG4gICAgICAgICAgY2xhc3NOYW1lPVwiY2FyZFwiXHJcbiAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjI0cHhcIixcclxuICAgICAgICAgICAgYm9yZGVyVG9wOiBcIjRweCBzb2xpZCAjMjU2M2ViXCIsXHJcbiAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2ZmZmZmZlwiLFxyXG4gICAgICAgICAgfX1cclxuICAgICAgICA+XHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiMTBweFwiLCBtYXJnaW5Cb3R0b206IFwiMTZweFwiIH19PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IHdpZHRoOiBcIjM2cHhcIiwgaGVpZ2h0OiBcIjM2cHhcIiwgYm9yZGVyUmFkaXVzOiBcIjhweFwiLCBiYWNrZ3JvdW5kOiBcIiNlZmY2ZmZcIiwgY29sb3I6IFwiIzI1NjNlYlwiLCBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsIGZvbnRTaXplOiBcIjE4cHhcIiB9fT5cclxuICAgICAgICAgICAgICDwn4+b77iPXHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxoMyBzdHlsZT17eyBtYXJnaW46IDAsIGZvbnRTaXplOiBcIjE2cHhcIiwgZm9udFdlaWdodDogODAwLCBjb2xvcjogXCIjMWUzYThhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICBMYW5kbG9yZCBSZXNwb25zaWJpbGl0aWVzXHJcbiAgICAgICAgICAgICAgPC9oMz5cclxuICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjEycHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiIH19PlxyXG4gICAgICAgICAgICAgICAgU3RhdHV0b3J5IGR1dGllcyB1bmRlciBUYW1pbCBOYWR1IFRlbmFuY3kgQWN0IChUTlJSUkxUQSlcclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBmbGV4RGlyZWN0aW9uOiBcImNvbHVtblwiLCBnYXA6IFwiMTJweFwiIH19PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBnYXA6IFwiMTBweFwiLCBhbGlnbkl0ZW1zOiBcImZsZXgtc3RhcnRcIiB9fT5cclxuICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjMjU2M2ViXCIsIGZvbnRXZWlnaHQ6IDgwMCwgZm9udFNpemU6IFwiMTRweFwiIH19PuKckzwvc3Bhbj5cclxuICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiBcIjEzcHhcIiwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBTdHJ1Y3R1cmFsIE1haW50ZW5hbmNlICZhbXA7IFdhdGVycHJvb2ZpbmdcclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMnB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiwgbGluZUhlaWdodDogXCIxLjRcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgUmVzcG9uc2libGUgZm9yIHN0cnVjdHVyYWwgc3RhYmlsaXR5LCBtYWpvciB3YWxsIHBsYXN0ZXJpbmcsIGZvdW5kYXRpb24gcmVwYWlycywgZXh0ZXJpb3IgcGFpbnRpbmcsIGFuZCB0ZXJyYWNlL3Jvb2Ygd2F0ZXJwcm9vZmluZy5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogXCIxMHB4XCIsIGFsaWduSXRlbXM6IFwiZmxleC1zdGFydFwiIH19PlxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiMyNTYzZWJcIiwgZm9udFdlaWdodDogODAwLCBmb250U2l6ZTogXCIxNHB4XCIgfX0+4pyTPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIE1ham9yIFBsdW1iaW5nICZhbXA7IEVsZWN0cmljYWwgQ29uZHVpdHNcclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMnB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiwgbGluZUhlaWdodDogXCIxLjRcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgUmVjdGlmaWNhdGlvbiBvZiBpbnRlcm5hbCBjb25jZWFsZWQgcGlwZWxpbmUgbGVha2FnZXMsIHVuZGVyZ3JvdW5kIGRyYWluYWdlIGxpbmUgY2hva2VzLCBhbmQgbWFpbiBlbGVjdHJpY2FsIGJyZWFrZXIvZWFydGhpbmcgZmF1bHRzLlxyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiBcIjEwcHhcIiwgYWxpZ25JdGVtczogXCJmbGV4LXN0YXJ0XCIgfX0+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgY29sb3I6IFwiIzI1NjNlYlwiLCBmb250V2VpZ2h0OiA4MDAsIGZvbnRTaXplOiBcIjE0cHhcIiB9fT7inJM8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDogNzAwLCBmb250U2l6ZTogXCIxM3B4XCIsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgUHJvcGVydHkgVGF4ZXMgJmFtcDsgSG91c2luZyBNdW5pY2lwYWwgRHVlc1xyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjEycHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiLCBsaW5lSGVpZ2h0OiBcIjEuNFwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBQYXltZW50IG9mIEdyZWF0ZXIgQ2hlbm5haSBDb3Jwb3JhdGlvbiAvIE11bmljaXBhbCBQcm9wZXJ0eSBUYXggYW5kIFVyYmFuIExhbmQgQ2VpbGluZyBmZWVzIHRvIGtlZXAgdGVuYW5jeSB1bmVuY3VtYmVyZWQuXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBnYXA6IFwiMTBweFwiLCBhbGlnbkl0ZW1zOiBcImZsZXgtc3RhcnRcIiB9fT5cclxuICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjMjU2M2ViXCIsIGZvbnRXZWlnaHQ6IDgwMCwgZm9udFNpemU6IFwiMTRweFwiIH19PuKckzwvc3Bhbj5cclxuICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiBcIjEzcHhcIiwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBQZWFjZWZ1bCBQb3NzZXNzaW9uICZhbXA7IEFkdmFuY2UgTm90aWNlIGZvciBFbnRyeVxyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjEycHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiLCBsaW5lSGVpZ2h0OiBcIjEuNFwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBHdWFyYW50ZWVkIHVuaW50ZXJydXB0ZWQgcGVhY2VmdWwgcG9zc2Vzc2lvbi4gTGFuZGxvcmQgc2hhbGwgZ2l2ZSBhdCBsZWFzdCAyNCBob3VycyBhZHZhbmNlIHdyaXR0ZW4gb3IgYXBwIG5vdGlmaWNhdGlvbiBwcmlvciB0byBlbnRlcmluZyBwcmVtaXNlcy5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogXCIxMHB4XCIsIGFsaWduSXRlbXM6IFwiZmxleC1zdGFydFwiIH19PlxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiMyNTYzZWJcIiwgZm9udFdlaWdodDogODAwLCBmb250U2l6ZTogXCIxNHB4XCIgfX0+4pyTPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIFNlY3VyaXR5IERlcG9zaXQgUmVmdW5kIFdpdGhpbiAzMCBEYXlzXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIsIGxpbmVIZWlnaHQ6IFwiMS40XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIFByb21wdCByZWZ1bmQgb2YgaW50ZXJlc3QtZnJlZSBzZWN1cml0eSBkZXBvc2l0IHdpdGhpbiB0aGlydHkgKDMwKSBkYXlzIG9mIHRlbmFudCB2YWNhdGluZyB0aGUgcHJlbWlzZXMsIHN1YmplY3QgdG8gbXV0dWFsIHdhbGt0aHJvdWdoIGF1ZGl0LlxyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIHsvKiBUZW5hbnQgUmVzcG9uc2liaWxpdGllcyBDb2x1bW4gKi99XHJcbiAgICAgICAgPGRpdlxyXG4gICAgICAgICAgY2xhc3NOYW1lPVwiY2FyZFwiXHJcbiAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICBwYWRkaW5nOiBcIjI0cHhcIixcclxuICAgICAgICAgICAgYm9yZGVyVG9wOiBcIjRweCBzb2xpZCAjMTZhMzRhXCIsXHJcbiAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2ZmZmZmZlwiLFxyXG4gICAgICAgICAgfX1cclxuICAgICAgICA+XHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiMTBweFwiLCBtYXJnaW5Cb3R0b206IFwiMTZweFwiIH19PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IHdpZHRoOiBcIjM2cHhcIiwgaGVpZ2h0OiBcIjM2cHhcIiwgYm9yZGVyUmFkaXVzOiBcIjhweFwiLCBiYWNrZ3JvdW5kOiBcIiNmMGZkZjRcIiwgY29sb3I6IFwiIzE2YTM0YVwiLCBkaXNwbGF5OiBcImZsZXhcIiwgYWxpZ25JdGVtczogXCJjZW50ZXJcIiwganVzdGlmeUNvbnRlbnQ6IFwiY2VudGVyXCIsIGZvbnRTaXplOiBcIjE4cHhcIiB9fT5cclxuICAgICAgICAgICAgICDwn4+gXHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxoMyBzdHlsZT17eyBtYXJnaW46IDAsIGZvbnRTaXplOiBcIjE2cHhcIiwgZm9udFdlaWdodDogODAwLCBjb2xvcjogXCIjMTQ1MzJkXCIgfX0+XHJcbiAgICAgICAgICAgICAgICBUZW5hbnQgUmVzcG9uc2liaWxpdGllc1xyXG4gICAgICAgICAgICAgIDwvaDM+XHJcbiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMnB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiB9fT5cclxuICAgICAgICAgICAgICAgIE9jY3VwYW5jeSBvYmxpZ2F0aW9ucywgdXRpbGl0eSBkdWVzICZhbXA7IHVwa2VlcCBndWlkZWxpbmVzXHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZmxleERpcmVjdGlvbjogXCJjb2x1bW5cIiwgZ2FwOiBcIjEycHhcIiB9fT5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiBcIjEwcHhcIiwgYWxpZ25JdGVtczogXCJmbGV4LXN0YXJ0XCIgfX0+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgY29sb3I6IFwiIzE2YTM0YVwiLCBmb250V2VpZ2h0OiA4MDAsIGZvbnRTaXplOiBcIjE0cHhcIiB9fT7inJM8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDogNzAwLCBmb250U2l6ZTogXCIxM3B4XCIsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgUHVuY3R1YWwgUmVudCBSZW1pdHRhbmNlIG9uIER1ZSBEYXRlXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIsIGxpbmVIZWlnaHQ6IFwiMS40XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIFBheW1lbnQgb2YgbW9udGhseSByZW50IG9uIG9yIGJlZm9yZSB0aGUgYWdyZWVkIHBlcnNvbmFsaXplZCBkdWUgZGF0ZSAoe3JlbnRDeWNsZT8uZHVlRGF5T3JkaW5hbCB8fCBcIjEwdGhcIn0gb2YgZWFjaCBFbmdsaXNoIGNhbGVuZGFyIG1vbnRoKS5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogXCIxMHB4XCIsIGFsaWduSXRlbXM6IFwiZmxleC1zdGFydFwiIH19PlxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiMxNmEzNGFcIiwgZm9udFdlaWdodDogODAwLCBmb250U2l6ZTogXCIxNHB4XCIgfX0+4pyTPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIENvbnN1bXB0aW9uIFV0aWxpdHkgRHVlcyAoV2F0ZXIgJmFtcDsgRWxlY3RyaWNpdHkpXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIsIGxpbmVIZWlnaHQ6IFwiMS40XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIFNldHRsZW1lbnQgb2YgYWN0dWFsIFRORUIgYmktbW9udGhseSBlbGVjdHJpY2l0eSBiaWxscyBhbmQgc3ViLW1ldGVyZWQgQ01XU1NCIE1ldHJvd2F0ZXIgLyBwcml2YXRlIHdhdGVyIHRhbmtlciBjb25zdW1wdGlvbiBjaGFyZ2VzLlxyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiBcImZsZXhcIiwgZ2FwOiBcIjEwcHhcIiwgYWxpZ25JdGVtczogXCJmbGV4LXN0YXJ0XCIgfX0+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgY29sb3I6IFwiIzE2YTM0YVwiLCBmb250V2VpZ2h0OiA4MDAsIGZvbnRTaXplOiBcIjE0cHhcIiB9fT7inJM8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFdlaWdodDogNzAwLCBmb250U2l6ZTogXCIxM3B4XCIsIGNvbG9yOiBcIiMwZjE3MmFcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgUm91dGluZSBIb3VzZWtlZXBpbmcgJmFtcDsgTWlub3IgUmVwYWlyc1xyXG4gICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjEycHhcIiwgY29sb3I6IFwiIzY0NzQ4YlwiLCBsaW5lSGVpZ2h0OiBcIjEuNFwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBEYXktdG8tZGF5IG1haW50ZW5hbmNlIHN1Y2ggYXMgcmVwbGFjaW5nIGZ1c2VkIExFRCBsYW1wcywgdGFwIHdhc2hlciB3YXNoZXJzLCByb3V0aW5lIGtpdGNoZW4gY2xlYW5pbmcsIGFuZCBtYWludGFpbmluZyBzYW5pdGFyeSBmaXR0aW5ncy5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGdhcDogXCIxMHB4XCIsIGFsaWduSXRlbXM6IFwiZmxleC1zdGFydFwiIH19PlxyXG4gICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcIiMxNmEzNGFcIiwgZm9udFdlaWdodDogODAwLCBmb250U2l6ZTogXCIxNHB4XCIgfX0+4pyTPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IFwiMTNweFwiLCBjb2xvcjogXCIjMGYxNzJhXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIENvbXBsaWFuY2Ugd2l0aCBDb21tdW5pdHkgQnlsYXdzXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCIjNjQ3NDhiXCIsIGxpbmVIZWlnaHQ6IFwiMS40XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgIFN0cmljdCBhZGhlcmVuY2UgdG8gc29jaWV0eSBhc3NvY2lhdGlvbiBydWxlcyByZWdhcmRpbmcgd2FzdGUgc2VncmVnYXRpb24sIGRlc2lnbmF0ZWQgY2FyIHBhcmtpbmcgYmF5IENQLTA4LCBhbmQgcXVpZXQgcmVzaWRlbnRpYWwgaG91cnMuXHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBnYXA6IFwiMTBweFwiLCBhbGlnbkl0ZW1zOiBcImZsZXgtc3RhcnRcIiB9fT5cclxuICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBjb2xvcjogXCIjMTZhMzRhXCIsIGZvbnRXZWlnaHQ6IDgwMCwgZm9udFNpemU6IFwiMTRweFwiIH19PuKckzwvc3Bhbj5cclxuICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiBcIjEzcHhcIiwgY29sb3I6IFwiIzBmMTcyYVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICBUaW1lbHkgSW50aW1hdGlvbiBvZiBTdHJ1Y3R1cmFsIERlZmVjdHNcclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxMnB4XCIsIGNvbG9yOiBcIiM2NDc0OGJcIiwgbGluZUhlaWdodDogXCIxLjRcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgTWFuZGF0b3J5IG5vdGlmaWNhdGlvbiB0byB0aGUgbGFuZGxvcmQgdmlhIFByb3BDb25uZWN0IHBvcnRhbCB3aXRoaW4gNDggaG91cnMgb2Ygbm90aWNpbmcgYW55IHdhbGwgY3JhY2tzLCBzZWVwYWdlLCBvciBlbGVjdHJpY2FsIGlzc3Vlcy5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICA8L2Rpdj5cclxuICAgIDwvZGl2PlxyXG4gICk7XHJcbn1cclxuIl0sImZpbGUiOiJDOi9Vc2Vycy9TaXZhL0Rvd25sb2Fkcy9Qcm9wQ29ubmVjdC9mcm9udGVuZC9zcmMvcGFnZXMvc2hhcmVkL0FncmVlbWVudFBhZ2UuanN4In0=

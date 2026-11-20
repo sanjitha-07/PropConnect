@@ -1,0 +1,884 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/BillReminderBell.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=1e3aa71c"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=1e3aa71c"; const useState = __vite__cjsImport3_react["useState"]; const useEffect = __vite__cjsImport3_react["useEffect"]; const useRef = __vite__cjsImport3_react["useRef"]; const useContext = __vite__cjsImport3_react["useContext"];
+import { useNavigate } from "/node_modules/.vite/deps/react-router-dom.js?v=1e3aa71c";
+import { AuthContext } from "/src/context/AuthContext.jsx";
+import { SettingsContext } from "/src/context/SettingsContext.jsx";
+import { fetchRemindersSummary, sendAllReminders, remindRent } from "/src/utils/apiClient.js";
+import { Bell } from "/node_modules/.vite/deps/lucide-react.js?v=1e3aa71c";
+export default function BillReminderBell() {
+  _s();
+  const { user } = useContext(AuthContext);
+  const { t } = useContext(SettingsContext);
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [remindedMap, setRemindedMap] = useState({});
+  const [summaryData, setSummaryData] = useState(null);
+  const [actionNotice, setActionNotice] = useState(null);
+  const containerRef = useRef(null);
+  const role = (user?.role || "tenant").toLowerCase();
+  const userId = user?.entityId || user?.entity_id || user?.id || (role === "landlord" ? "LDL001" : "TEN001");
+  const loadReminders = async () => {
+    try {
+      setLoading(true);
+      const res = await fetchRemindersSummary({
+        role,
+        userId,
+        tenantId: role === "tenant" ? userId : void 0,
+        landlordId: role === "landlord" ? userId : void 0
+      });
+      if (res && res.success) {
+        setSummaryData(res);
+      }
+    } catch (err) {
+      console.warn("Could not load reminders summary:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    loadReminders();
+    const interval = setInterval(loadReminders, 6e4);
+    return () => clearInterval(interval);
+  }, [role, userId]);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+  const summary = summaryData?.summary || {
+    totalUrgentCount: 0,
+    totalBillsCount: 0,
+    overdueCount: 0,
+    dueSoonCount: 0,
+    totalPendingAmount: 0
+  };
+  const items = summaryData?.items || [];
+  const urgentCount = summary.totalUrgentCount || 0;
+  const isLandlord = role === "landlord" || role === "admin";
+  const handleRemindAll = async () => {
+    try {
+      setSendingAll(true);
+      const res = await sendAllReminders(userId);
+      if (res && res.success) {
+        setActionNotice(`✓ ${res.message || "Reminders dispatched to all tenants!"}`);
+        const newMap = {};
+        items.forEach((it) => {
+          newMap[it.id] = true;
+        });
+        setRemindedMap(newMap);
+        setTimeout(() => setActionNotice(null), 5e3);
+      }
+    } catch (err) {
+      setActionNotice("Failed to send reminders. Please try again.");
+    } finally {
+      setSendingAll(false);
+    }
+  };
+  const handleRemindSingle = async (item) => {
+    try {
+      setRemindedMap((prev) => ({ ...prev, [item.id]: "sending" }));
+      if (item.billType === "rent" && item.leaseId) {
+        await remindRent(item.leaseId, `Friendly Reminder: Your monthly rent of ₹${item.amount.toLocaleString("en-IN")} is ${item.isOverdue ? `overdue by ${item.daysOverdue} days` : `due on ${item.dueDateFormatted}`}.`);
+      } else if (item.remindEndpoint) {
+        await fetch(`http://localhost:5000${item.remindEndpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      setRemindedMap((prev) => ({ ...prev, [item.id]: "sent" }));
+      setActionNotice(`✓ Reminder sent to ${item.tenantName || "tenant"}!`);
+      setTimeout(() => setActionNotice(null), 4e3);
+    } catch (err) {
+      setRemindedMap((prev) => ({ ...prev, [item.id]: "failed" }));
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "bill-reminder-bell-wrapper", ref: containerRef, style: { position: "relative" }, children: [
+    /* @__PURE__ */ jsxDEV(
+      "button",
+      {
+        type: "button",
+        className: "icon-btn reminder-bell-btn",
+        onClick: () => {
+          setIsOpen(!isOpen);
+          if (!isOpen) loadReminders();
+        },
+        title: isLandlord ? `Tenant Reminders: ${urgentCount} pending/overdue bill(s)` : `Bill Reminders: ${urgentCount} urgent bill(s) due`,
+        "aria-label": "Bill Reminders",
+        style: {
+          position: "relative",
+          background: urgentCount > 0 ? "rgba(239, 68, 68, 0.08)" : "transparent",
+          border: urgentCount > 0 ? "1px solid rgba(239, 68, 68, 0.25)" : "none",
+          borderRadius: "8px",
+          width: "38px",
+          height: "38px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "17px",
+          cursor: "pointer",
+          transition: "all 0.2s ease"
+        },
+        children: [
+          /* @__PURE__ */ jsxDEV(Bell, { size: 18, strokeWidth: 2.2 }, void 0, false, {
+            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+            lineNumber: 167,
+            columnNumber: 9
+          }, this),
+          urgentCount > 0 && /* @__PURE__ */ jsxDEV(
+            "span",
+            {
+              style: {
+                position: "absolute",
+                top: "-4px",
+                right: "-4px",
+                background: "#ef4444",
+                color: "#ffffff",
+                fontSize: "11px",
+                fontWeight: "700",
+                minWidth: "18px",
+                height: "18px",
+                lineHeight: "18px",
+                borderRadius: "9px",
+                padding: "0 5px",
+                textAlign: "center",
+                boxShadow: "0 2px 5px rgba(239, 68, 68, 0.4)",
+                animation: "pulse 2s infinite"
+              },
+              children: urgentCount > 99 ? "99+" : urgentCount
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 169,
+              columnNumber: 9
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+        lineNumber: 139,
+        columnNumber: 7
+      },
+      this
+    ),
+    isOpen && /* @__PURE__ */ jsxDEV(
+      "div",
+      {
+        className: "reminder-dropdown-panel animate-fade-in",
+        style: {
+          position: "absolute",
+          top: "calc(100% + 10px)",
+          right: 0,
+          width: "390px",
+          maxWidth: "92vw",
+          maxHeight: "560px",
+          background: "var(--bg-card, #ffffff)",
+          borderRadius: "14px",
+          border: "1px solid var(--border-subtle, #e2e8f0)",
+          boxShadow: "0 12px 36px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08)",
+          zIndex: 1e3,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          color: "var(--ink-primary, #0f172a)"
+        },
+        children: [
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "16px 18px",
+                borderBottom: "1px solid var(--border-subtle, #f1f5f9)",
+                background: "var(--bg-subtle, #f8fafc)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                    /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "18px" }, children: "🔔" }, void 0, false, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 228,
+                      columnNumber: 17
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("h4", { style: { margin: 0, fontSize: "15px", fontWeight: "700" }, children: isLandlord ? "Tenant Dues & Bill Reminders" : "Bill & Rent Reminders" }, void 0, false, {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 229,
+                      columnNumber: 17
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 227,
+                    columnNumber: 15
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("p", { style: { margin: "2px 0 0", fontSize: "11.5px", color: "var(--ink-muted, #64748b)" }, children: isLandlord ? "Track pending rent cycles & EB bills across tenants" : "Urgent dues, upcoming rent cycles & EB bills" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 233,
+                    columnNumber: 15
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 226,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                  /* @__PURE__ */ jsxDEV(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: loadReminders,
+                      title: "Refresh Reminders",
+                      style: {
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        padding: "4px",
+                        borderRadius: "4px",
+                        opacity: loading ? 0.5 : 0.8
+                      },
+                      children: "🔄"
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 240,
+                      columnNumber: 15
+                    },
+                    this
+                  ),
+                  /* @__PURE__ */ jsxDEV(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setIsOpen(false),
+                      title: "Close",
+                      style: {
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "18px",
+                        lineHeight: "1",
+                        color: "var(--ink-muted, #64748b)",
+                        padding: "4px 8px"
+                      },
+                      children: "×"
+                    },
+                    void 0,
+                    false,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 256,
+                      columnNumber: 15
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 239,
+                  columnNumber: 13
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 216,
+              columnNumber: 11
+            },
+            this
+          ),
+          actionNotice && /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "8px 16px",
+                background: "#ecfdf5",
+                color: "#065f46",
+                fontSize: "12px",
+                fontWeight: "600",
+                borderBottom: "1px solid #a7f3d0"
+              },
+              children: actionNotice
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 277,
+              columnNumber: 9
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "12px 18px",
+                background: "var(--bg-subtle, #f8fafc)",
+                borderBottom: "1px solid var(--border-subtle, #f1f5f9)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "8px"
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11px", color: "var(--ink-muted, #64748b)", textTransform: "uppercase", fontWeight: "600" }, children: isLandlord ? "Total Tenant Dues" : "Total Outstanding" }, void 0, false, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 305,
+                    columnNumber: 15
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "17px", fontWeight: "800", color: "#dc2626" }, children: [
+                    "₹",
+                    Number(summary.totalPendingAmount || 0).toLocaleString("en-IN")
+                  ] }, void 0, true, {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 308,
+                    columnNumber: 15
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 304,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", gap: "6px" }, children: [
+                  summary.overdueCount > 0 && /* @__PURE__ */ jsxDEV(
+                    "span",
+                    {
+                      style: {
+                        background: "#fef2f2",
+                        color: "#b91c1c",
+                        border: "1px solid #fecaca",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        padding: "3px 8px",
+                        borderRadius: "6px"
+                      },
+                      children: [
+                        "⚠️ ",
+                        summary.overdueCount,
+                        " Overdue"
+                      ]
+                    },
+                    void 0,
+                    true,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 315,
+                      columnNumber: 13
+                    },
+                    this
+                  ),
+                  summary.dueSoonCount > 0 && /* @__PURE__ */ jsxDEV(
+                    "span",
+                    {
+                      style: {
+                        background: "#fffbeb",
+                        color: "#b45309",
+                        border: "1px solid #fde68a",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        padding: "3px 8px",
+                        borderRadius: "6px"
+                      },
+                      children: [
+                        "⏰ ",
+                        summary.dueSoonCount,
+                        " Due Soon"
+                      ]
+                    },
+                    void 0,
+                    true,
+                    {
+                      fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                      lineNumber: 330,
+                      columnNumber: 13
+                    },
+                    this
+                  )
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 313,
+                  columnNumber: 13
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 292,
+              columnNumber: 11
+            },
+            this
+          ),
+          isLandlord && items.length > 0 && /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "8px 18px",
+                background: "rgba(2, 132, 199, 0.05)",
+                borderBottom: "1px solid var(--border-subtle, #e2e8f0)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "12px", color: "var(--ink-secondary, #475569)" }, children: [
+                  items.length,
+                  " pending bill",
+                  items.length === 1 ? "" : "s",
+                  " across tenants"
+                ] }, void 0, true, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 359,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: handleRemindAll,
+                    disabled: sendingAll,
+                    style: {
+                      background: "#0284c7",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      cursor: sendingAll ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    },
+                    children: sendingAll ? "Dispatching..." : "🔔 Remind All Tenants"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 362,
+                    columnNumber: 15
+                  },
+                  this
+                )
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 349,
+              columnNumber: 9
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "12px 16px",
+                overflowY: "auto",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px"
+              },
+              children: loading && items.length === 0 ? /* @__PURE__ */ jsxDEV("div", { style: { textAlign: "center", padding: "28px 0", color: "var(--ink-muted)" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "20px", display: "block", marginBottom: "6px" }, children: "⏳" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 398,
+                  columnNumber: 17
+                }, this),
+                "Checking active bills and due dates..."
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                lineNumber: 397,
+                columnNumber: 11
+              }, this) : items.length === 0 ? /* @__PURE__ */ jsxDEV("div", { style: { textAlign: "center", padding: "32px 16px", color: "var(--ink-muted)" }, children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "32px", display: "block", marginBottom: "8px" }, children: "✨" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 403,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { style: { fontWeight: "700", fontSize: "14px", color: "var(--ink-primary)" }, children: isLandlord ? "All Tenant Dues Settled!" : "All Caught Up!" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 404,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("p", { style: { margin: "4px 0 0", fontSize: "12px" }, children: isLandlord ? "There are currently no overdue or pending rent or EB bills for your properties." : "You have no outstanding or overdue rent or utility bills at this time." }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 407,
+                  columnNumber: 17
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                lineNumber: 402,
+                columnNumber: 11
+              }, this) : items.map((it) => {
+                const isOverdue = it.isOverdue;
+                const isDueSoon = it.isDueSoon;
+                const isRent = it.billType === "rent";
+                const remindStatus = remindedMap[it.id];
+                return /* @__PURE__ */ jsxDEV(
+                  "div",
+                  {
+                    style: {
+                      background: isOverdue ? "#fff5f5" : isDueSoon ? "#fffdf5" : "var(--bg-subtle, #f8fafc)",
+                      border: isOverdue ? "1px solid #fecaca" : isDueSoon ? "1px solid #fed7aa" : "1px solid var(--border-subtle, #e2e8f0)",
+                      borderLeft: isOverdue ? "4px solid #dc2626" : isDueSoon ? "4px solid #f59e0b" : "4px solid #0284c7",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                      transition: "transform 0.15s ease"
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }, children: [
+                        /* @__PURE__ */ jsxDEV("div", { children: [
+                          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "13.5px", fontWeight: "700", color: "var(--ink-primary)" }, children: [
+                            isRent ? "🏠" : "⚡",
+                            " ",
+                            it.title
+                          ] }, void 0, true, {
+                            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                            lineNumber: 442,
+                            columnNumber: 25
+                          }, this),
+                          isLandlord ? /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "var(--ink-muted)" }, children: [
+                            "Tenant: ",
+                            /* @__PURE__ */ jsxDEV("strong", { style: { color: "var(--ink-primary)" }, children: it.tenantName || "Tenant" }, void 0, false, {
+                              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                              lineNumber: 447,
+                              columnNumber: 37
+                            }, this),
+                            " · ",
+                            it.propertyName
+                          ] }, void 0, true, {
+                            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                            lineNumber: 446,
+                            columnNumber: 21
+                          }, this) : /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "11.5px", color: "var(--ink-muted)" }, children: it.subtitle || it.propertyName }, void 0, false, {
+                            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                            lineNumber: 450,
+                            columnNumber: 21
+                          }, this)
+                        ] }, void 0, true, {
+                          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                          lineNumber: 441,
+                          columnNumber: 23
+                        }, this),
+                        /* @__PURE__ */ jsxDEV("div", { style: { textAlign: "right" }, children: [
+                          /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "15px", fontWeight: "800", color: isOverdue ? "#dc2626" : "#059669" }, children: [
+                            "₹",
+                            Number(it.amount || 0).toLocaleString("en-IN")
+                          ] }, void 0, true, {
+                            fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                            lineNumber: 457,
+                            columnNumber: 25
+                          }, this),
+                          /* @__PURE__ */ jsxDEV(
+                            "span",
+                            {
+                              style: {
+                                fontSize: "10px",
+                                fontWeight: "700",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                background: isOverdue ? "#fee2e2" : isDueSoon ? "#fef3c7" : "#e0f2fe",
+                                color: isOverdue ? "#991b1b" : isDueSoon ? "#92400e" : "#0369a1"
+                              },
+                              children: isOverdue ? `Overdue (${it.daysOverdue}d)` : isDueSoon ? `Due Soon (${it.daysUntilDue}d)` : "Pending"
+                            },
+                            void 0,
+                            false,
+                            {
+                              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                              lineNumber: 460,
+                              columnNumber: 25
+                            },
+                            this
+                          )
+                        ] }, void 0, true, {
+                          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                          lineNumber: 456,
+                          columnNumber: 23
+                        }, this)
+                      ] }, void 0, true, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                        lineNumber: 440,
+                        columnNumber: 21
+                      }, this),
+                      /* @__PURE__ */ jsxDEV(
+                        "div",
+                        {
+                          style: {
+                            fontSize: "11px",
+                            color: isOverdue ? "#991b1b" : "var(--ink-muted)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px"
+                          },
+                          children: [
+                            /* @__PURE__ */ jsxDEV("span", { children: [
+                              "📅 Due: ",
+                              /* @__PURE__ */ jsxDEV("strong", { children: it.dueDateFormatted || it.dueDate }, void 0, false, {
+                                fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                                lineNumber: 489,
+                                columnNumber: 37
+                              }, this)
+                            ] }, void 0, true, {
+                              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                              lineNumber: 489,
+                              columnNumber: 23
+                            }, this),
+                            it.periodLabel && /* @__PURE__ */ jsxDEV("span", { children: [
+                              "· Period: ",
+                              it.periodLabel
+                            ] }, void 0, true, {
+                              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                              lineNumber: 490,
+                              columnNumber: 42
+                            }, this)
+                          ]
+                        },
+                        void 0,
+                        true,
+                        {
+                          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                          lineNumber: 480,
+                          columnNumber: 21
+                        },
+                        this
+                      ),
+                      /* @__PURE__ */ jsxDEV("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "2px" }, children: isLandlord ? /* @__PURE__ */ jsxDEV(
+                        "button",
+                        {
+                          type: "button",
+                          onClick: () => handleRemindSingle(it),
+                          disabled: remindStatus === "sending" || remindStatus === "sent",
+                          style: {
+                            background: remindStatus === "sent" ? "#10b981" : "#ffffff",
+                            color: remindStatus === "sent" ? "#ffffff" : "#0284c7",
+                            border: remindStatus === "sent" ? "1px solid #10b981" : "1px solid #0284c7",
+                            padding: "4px 10px",
+                            borderRadius: "5px",
+                            fontSize: "11.5px",
+                            fontWeight: "600",
+                            cursor: remindStatus === "sent" ? "default" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          },
+                          children: remindStatus === "sending" ? "Sending..." : remindStatus === "sent" ? "✓ Reminded" : "🔔 Remind Tenant"
+                        },
+                        void 0,
+                        false,
+                        {
+                          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                          lineNumber: 496,
+                          columnNumber: 19
+                        },
+                        this
+                      ) : /* @__PURE__ */ jsxDEV(
+                        "button",
+                        {
+                          type: "button",
+                          onClick: () => {
+                            setIsOpen(false);
+                            if (it.actionUrl) {
+                              navigate(it.actionUrl);
+                            } else if (isRent) {
+                              navigate("/payments");
+                            } else {
+                              navigate("/utility-bills");
+                            }
+                          },
+                          style: {
+                            background: isOverdue ? "#dc2626" : "#0284c7",
+                            color: "#ffffff",
+                            border: "none",
+                            padding: "5px 12px",
+                            borderRadius: "5px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          },
+                          children: isRent ? "💳 Pay Rent Now" : "⚡ Pay Bill Now"
+                        },
+                        void 0,
+                        false,
+                        {
+                          fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                          lineNumber: 521,
+                          columnNumber: 19
+                        },
+                        this
+                      ) }, void 0, false, {
+                        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                        lineNumber: 494,
+                        columnNumber: 21
+                      }, this)
+                    ]
+                  },
+                  it.id,
+                  true,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 421,
+                    columnNumber: 15
+                  },
+                  this
+                );
+              })
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 386,
+              columnNumber: 11
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "div",
+            {
+              style: {
+                padding: "10px 16px",
+                borderTop: "1px solid var(--border-subtle, #f1f5f9)",
+                background: "var(--bg-subtle, #f8fafc)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "12px"
+              },
+              children: [
+                /* @__PURE__ */ jsxDEV("span", { style: { color: "var(--ink-muted)" }, children: isLandlord ? "PropConnect Billing Guard" : "Automated Move-In Billing" }, void 0, false, {
+                  fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                  lineNumber: 569,
+                  columnNumber: 13
+                }, this),
+                /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => {
+                      setIsOpen(false);
+                      if (isLandlord) {
+                        navigate("/leases");
+                      } else {
+                        navigate("/payments");
+                      }
+                    },
+                    style: {
+                      background: "transparent",
+                      border: "none",
+                      color: "#0284c7",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      padding: "2px 6px"
+                    },
+                    children: isLandlord ? "View All Leases →" : "View Payment History →"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+                    lineNumber: 572,
+                    columnNumber: 13
+                  },
+                  this
+                )
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+              lineNumber: 558,
+              columnNumber: 11
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+        lineNumber: 195,
+        columnNumber: 7
+      },
+      this
+    )
+  ] }, void 0, true, {
+    fileName: "C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx",
+    lineNumber: 137,
+    columnNumber: 5
+  }, this);
+}
+_s(BillReminderBell, "8mB+hLPgOIm1ghZsJwlG8xeGNrQ=", false, function() {
+  return [useNavigate];
+});
+_c = BillReminderBell;
+var _c;
+$RefreshReg$(_c, "BillReminderBell");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/Siva/Downloads/PropConnect/frontend/src/components/BillReminderBell.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBQSxLQUhOTztBQUFnQixJQUFBOEg7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlU3RhdGUiLCJ1c2VFZmZlY3QiLCJ1c2VSZWYiLCJ1c2VDb250ZXh0IiwidXNlTmF2aWdhdGUiLCJBdXRoQ29udGV4dCIsIlNldHRpbmdzQ29udGV4dCIsImZldGNoUmVtaW5kZXJzU3VtbWFyeSIsInNlbmRBbGxSZW1pbmRlcnMiLCJyZW1pbmRSZW50IiwiQmVsbCIsIkJpbGxSZW1pbmRlckJlbGwiLCJfcyIsInVzZXIiLCJ0IiwibmF2aWdhdGUiLCJpc09wZW4iLCJzZXRJc09wZW4iLCJsb2FkaW5nIiwic2V0TG9hZGluZyIsInNlbmRpbmdBbGwiLCJzZXRTZW5kaW5nQWxsIiwicmVtaW5kZWRNYXAiLCJzZXRSZW1pbmRlZE1hcCIsInN1bW1hcnlEYXRhIiwic2V0U3VtbWFyeURhdGEiLCJhY3Rpb25Ob3RpY2UiLCJzZXRBY3Rpb25Ob3RpY2UiLCJjb250YWluZXJSZWYiLCJyb2xlIiwidG9Mb3dlckNhc2UiLCJ1c2VySWQiLCJlbnRpdHlJZCIsImVudGl0eV9pZCIsImlkIiwibG9hZFJlbWluZGVycyIsInJlcyIsInRlbmFudElkIiwidW5kZWZpbmVkIiwibGFuZGxvcmRJZCIsInN1Y2Nlc3MiLCJlcnIiLCJjb25zb2xlIiwid2FybiIsImludGVydmFsIiwic2V0SW50ZXJ2YWwiLCJjbGVhckludGVydmFsIiwiaGFuZGxlQ2xpY2tPdXRzaWRlIiwiZSIsImN1cnJlbnQiLCJjb250YWlucyIsInRhcmdldCIsImRvY3VtZW50IiwiYWRkRXZlbnRMaXN0ZW5lciIsInJlbW92ZUV2ZW50TGlzdGVuZXIiLCJzdW1tYXJ5IiwidG90YWxVcmdlbnRDb3VudCIsInRvdGFsQmlsbHNDb3VudCIsIm92ZXJkdWVDb3VudCIsImR1ZVNvb25Db3VudCIsInRvdGFsUGVuZGluZ0Ftb3VudCIsIml0ZW1zIiwidXJnZW50Q291bnQiLCJpc0xhbmRsb3JkIiwiaGFuZGxlUmVtaW5kQWxsIiwibWVzc2FnZSIsIm5ld01hcCIsImZvckVhY2giLCJpdCIsInNldFRpbWVvdXQiLCJoYW5kbGVSZW1pbmRTaW5nbGUiLCJpdGVtIiwicHJldiIsImJpbGxUeXBlIiwibGVhc2VJZCIsImFtb3VudCIsInRvTG9jYWxlU3RyaW5nIiwiaXNPdmVyZHVlIiwiZGF5c092ZXJkdWUiLCJkdWVEYXRlRm9ybWF0dGVkIiwicmVtaW5kRW5kcG9pbnQiLCJmZXRjaCIsIm1ldGhvZCIsImhlYWRlcnMiLCJ0ZW5hbnROYW1lIiwicG9zaXRpb24iLCJiYWNrZ3JvdW5kIiwiYm9yZGVyIiwiYm9yZGVyUmFkaXVzIiwid2lkdGgiLCJoZWlnaHQiLCJkaXNwbGF5IiwiYWxpZ25JdGVtcyIsImp1c3RpZnlDb250ZW50IiwiZm9udFNpemUiLCJjdXJzb3IiLCJ0cmFuc2l0aW9uIiwidG9wIiwicmlnaHQiLCJjb2xvciIsImZvbnRXZWlnaHQiLCJtaW5XaWR0aCIsImxpbmVIZWlnaHQiLCJwYWRkaW5nIiwidGV4dEFsaWduIiwiYm94U2hhZG93IiwiYW5pbWF0aW9uIiwibWF4V2lkdGgiLCJtYXhIZWlnaHQiLCJ6SW5kZXgiLCJmbGV4RGlyZWN0aW9uIiwib3ZlcmZsb3ciLCJib3JkZXJCb3R0b20iLCJnYXAiLCJtYXJnaW4iLCJvcGFjaXR5IiwiZmxleFdyYXAiLCJ0ZXh0VHJhbnNmb3JtIiwiTnVtYmVyIiwibGVuZ3RoIiwib3ZlcmZsb3dZIiwiZmxleCIsIm1hcmdpbkJvdHRvbSIsIm1hcCIsImlzRHVlU29vbiIsImlzUmVudCIsInJlbWluZFN0YXR1cyIsImJvcmRlckxlZnQiLCJ0aXRsZSIsInByb3BlcnR5TmFtZSIsInN1YnRpdGxlIiwiZGF5c1VudGlsRHVlIiwiZHVlRGF0ZSIsInBlcmlvZExhYmVsIiwibWFyZ2luVG9wIiwiYWN0aW9uVXJsIiwiYm9yZGVyVG9wIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiQmlsbFJlbWluZGVyQmVsbC5qc3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgdXNlU3RhdGUsIHVzZUVmZmVjdCwgdXNlUmVmLCB1c2VDb250ZXh0IH0gZnJvbSBcInJlYWN0XCI7XHJcbmltcG9ydCB7IHVzZU5hdmlnYXRlIH0gZnJvbSBcInJlYWN0LXJvdXRlci1kb21cIjtcclxuaW1wb3J0IHsgQXV0aENvbnRleHQgfSBmcm9tIFwiLi4vY29udGV4dC9BdXRoQ29udGV4dC5qc3hcIjtcclxuaW1wb3J0IHsgU2V0dGluZ3NDb250ZXh0IH0gZnJvbSBcIi4uL2NvbnRleHQvU2V0dGluZ3NDb250ZXh0LmpzeFwiO1xyXG5pbXBvcnQgeyBmZXRjaFJlbWluZGVyc1N1bW1hcnksIHNlbmRBbGxSZW1pbmRlcnMsIHJlbWluZFJlbnQgfSBmcm9tIFwiLi4vdXRpbHMvYXBpQ2xpZW50LmpzXCI7XHJcbmltcG9ydCB7IEJlbGwgfSBmcm9tIFwibHVjaWRlLXJlYWN0XCI7XHJcblxyXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBCaWxsUmVtaW5kZXJCZWxsKCkge1xyXG4gIGNvbnN0IHsgdXNlciB9ID0gdXNlQ29udGV4dChBdXRoQ29udGV4dCk7XHJcbiAgY29uc3QgeyB0IH0gPSB1c2VDb250ZXh0KFNldHRpbmdzQ29udGV4dCk7XHJcbiAgY29uc3QgbmF2aWdhdGUgPSB1c2VOYXZpZ2F0ZSgpO1xyXG5cclxuICBjb25zdCBbaXNPcGVuLCBzZXRJc09wZW5dID0gdXNlU3RhdGUoZmFsc2UpO1xyXG4gIGNvbnN0IFtsb2FkaW5nLCBzZXRMb2FkaW5nXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuICBjb25zdCBbc2VuZGluZ0FsbCwgc2V0U2VuZGluZ0FsbF0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgW3JlbWluZGVkTWFwLCBzZXRSZW1pbmRlZE1hcF0gPSB1c2VTdGF0ZSh7fSk7XHJcbiAgY29uc3QgW3N1bW1hcnlEYXRhLCBzZXRTdW1tYXJ5RGF0YV0gPSB1c2VTdGF0ZShudWxsKTtcclxuICBjb25zdCBbYWN0aW9uTm90aWNlLCBzZXRBY3Rpb25Ob3RpY2VdID0gdXNlU3RhdGUobnVsbCk7XHJcbiAgY29uc3QgY29udGFpbmVyUmVmID0gdXNlUmVmKG51bGwpO1xyXG5cclxuICBjb25zdCByb2xlID0gKHVzZXI/LnJvbGUgfHwgXCJ0ZW5hbnRcIikudG9Mb3dlckNhc2UoKTtcclxuICBjb25zdCB1c2VySWQgPSB1c2VyPy5lbnRpdHlJZCB8fCB1c2VyPy5lbnRpdHlfaWQgfHwgdXNlcj8uaWQgfHwgKHJvbGUgPT09IFwibGFuZGxvcmRcIiA/IFwiTERMMDAxXCIgOiBcIlRFTjAwMVwiKTtcclxuXHJcbiAgY29uc3QgbG9hZFJlbWluZGVycyA9IGFzeW5jICgpID0+IHtcclxuICAgIHRyeSB7XHJcbiAgICAgIHNldExvYWRpbmcodHJ1ZSk7XHJcbiAgICAgIGNvbnN0IHJlcyA9IGF3YWl0IGZldGNoUmVtaW5kZXJzU3VtbWFyeSh7XHJcbiAgICAgICAgcm9sZSxcclxuICAgICAgICB1c2VySWQsXHJcbiAgICAgICAgdGVuYW50SWQ6IHJvbGUgPT09IFwidGVuYW50XCIgPyB1c2VySWQgOiB1bmRlZmluZWQsXHJcbiAgICAgICAgbGFuZGxvcmRJZDogcm9sZSA9PT0gXCJsYW5kbG9yZFwiID8gdXNlcklkIDogdW5kZWZpbmVkLFxyXG4gICAgICB9KTtcclxuICAgICAgaWYgKHJlcyAmJiByZXMuc3VjY2Vzcykge1xyXG4gICAgICAgIHNldFN1bW1hcnlEYXRhKHJlcyk7XHJcbiAgICAgIH1cclxuICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICBjb25zb2xlLndhcm4oXCJDb3VsZCBub3QgbG9hZCByZW1pbmRlcnMgc3VtbWFyeTpcIiwgZXJyKTtcclxuICAgIH0gZmluYWxseSB7XHJcbiAgICAgIHNldExvYWRpbmcoZmFsc2UpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBsb2FkUmVtaW5kZXJzKCk7XHJcbiAgICAvLyBSZWZyZXNoIGV2ZXJ5IDYwIHNlY29uZHNcclxuICAgIGNvbnN0IGludGVydmFsID0gc2V0SW50ZXJ2YWwobG9hZFJlbWluZGVycywgNjAwMDApO1xyXG4gICAgcmV0dXJuICgpID0+IGNsZWFySW50ZXJ2YWwoaW50ZXJ2YWwpO1xyXG4gIH0sIFtyb2xlLCB1c2VySWRdKTtcclxuXHJcbiAgLy8gQ2xvc2UgZHJvcGRvd24gb24gb3V0c2lkZSBjbGlja1xyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBmdW5jdGlvbiBoYW5kbGVDbGlja091dHNpZGUoZSkge1xyXG4gICAgICBpZiAoY29udGFpbmVyUmVmLmN1cnJlbnQgJiYgIWNvbnRhaW5lclJlZi5jdXJyZW50LmNvbnRhaW5zKGUudGFyZ2V0KSkge1xyXG4gICAgICAgIHNldElzT3BlbihmYWxzZSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIGlmIChpc09wZW4pIHtcclxuICAgICAgZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcihcIm1vdXNlZG93blwiLCBoYW5kbGVDbGlja091dHNpZGUpO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuICgpID0+IHtcclxuICAgICAgZG9jdW1lbnQucmVtb3ZlRXZlbnRMaXN0ZW5lcihcIm1vdXNlZG93blwiLCBoYW5kbGVDbGlja091dHNpZGUpO1xyXG4gICAgfTtcclxuICB9LCBbaXNPcGVuXSk7XHJcblxyXG4gIGNvbnN0IHN1bW1hcnkgPSBzdW1tYXJ5RGF0YT8uc3VtbWFyeSB8fCB7XHJcbiAgICB0b3RhbFVyZ2VudENvdW50OiAwLFxyXG4gICAgdG90YWxCaWxsc0NvdW50OiAwLFxyXG4gICAgb3ZlcmR1ZUNvdW50OiAwLFxyXG4gICAgZHVlU29vbkNvdW50OiAwLFxyXG4gICAgdG90YWxQZW5kaW5nQW1vdW50OiAwLFxyXG4gIH07XHJcblxyXG4gIGNvbnN0IGl0ZW1zID0gc3VtbWFyeURhdGE/Lml0ZW1zIHx8IFtdO1xyXG4gIGNvbnN0IHVyZ2VudENvdW50ID0gc3VtbWFyeS50b3RhbFVyZ2VudENvdW50IHx8IDA7XHJcbiAgY29uc3QgaXNMYW5kbG9yZCA9IHJvbGUgPT09IFwibGFuZGxvcmRcIiB8fCByb2xlID09PSBcImFkbWluXCI7XHJcblxyXG4gIGNvbnN0IGhhbmRsZVJlbWluZEFsbCA9IGFzeW5jICgpID0+IHtcclxuICAgIHRyeSB7XHJcbiAgICAgIHNldFNlbmRpbmdBbGwodHJ1ZSk7XHJcbiAgICAgIGNvbnN0IHJlcyA9IGF3YWl0IHNlbmRBbGxSZW1pbmRlcnModXNlcklkKTtcclxuICAgICAgaWYgKHJlcyAmJiByZXMuc3VjY2Vzcykge1xyXG4gICAgICAgIHNldEFjdGlvbk5vdGljZShg4pyTICR7cmVzLm1lc3NhZ2UgfHwgXCJSZW1pbmRlcnMgZGlzcGF0Y2hlZCB0byBhbGwgdGVuYW50cyFcIn1gKTtcclxuICAgICAgICAvLyBNYXJrIGFsbCBpdGVtcyBhcyByZW1pbmRlZFxyXG4gICAgICAgIGNvbnN0IG5ld01hcCA9IHt9O1xyXG4gICAgICAgIGl0ZW1zLmZvckVhY2goKGl0KSA9PiB7XHJcbiAgICAgICAgICBuZXdNYXBbaXQuaWRdID0gdHJ1ZTtcclxuICAgICAgICB9KTtcclxuICAgICAgICBzZXRSZW1pbmRlZE1hcChuZXdNYXApO1xyXG4gICAgICAgIHNldFRpbWVvdXQoKCkgPT4gc2V0QWN0aW9uTm90aWNlKG51bGwpLCA1MDAwKTtcclxuICAgICAgfVxyXG4gICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgIHNldEFjdGlvbk5vdGljZShcIkZhaWxlZCB0byBzZW5kIHJlbWluZGVycy4gUGxlYXNlIHRyeSBhZ2Fpbi5cIik7XHJcbiAgICB9IGZpbmFsbHkge1xyXG4gICAgICBzZXRTZW5kaW5nQWxsKGZhbHNlKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVSZW1pbmRTaW5nbGUgPSBhc3luYyAoaXRlbSkgPT4ge1xyXG4gICAgdHJ5IHtcclxuICAgICAgc2V0UmVtaW5kZWRNYXAoKHByZXYpID0+ICh7IC4uLnByZXYsIFtpdGVtLmlkXTogXCJzZW5kaW5nXCIgfSkpO1xyXG4gICAgICBpZiAoaXRlbS5iaWxsVHlwZSA9PT0gXCJyZW50XCIgJiYgaXRlbS5sZWFzZUlkKSB7XHJcbiAgICAgICAgYXdhaXQgcmVtaW5kUmVudChpdGVtLmxlYXNlSWQsIGBGcmllbmRseSBSZW1pbmRlcjogWW91ciBtb250aGx5IHJlbnQgb2Yg4oK5JHtpdGVtLmFtb3VudC50b0xvY2FsZVN0cmluZyhcImVuLUlOXCIpfSBpcyAke2l0ZW0uaXNPdmVyZHVlID8gYG92ZXJkdWUgYnkgJHtpdGVtLmRheXNPdmVyZHVlfSBkYXlzYCA6IGBkdWUgb24gJHtpdGVtLmR1ZURhdGVGb3JtYXR0ZWR9YH0uYCk7XHJcbiAgICAgIH0gZWxzZSBpZiAoaXRlbS5yZW1pbmRFbmRwb2ludCkge1xyXG4gICAgICAgIGF3YWl0IGZldGNoKGBodHRwOi8vbG9jYWxob3N0OjUwMDAke2l0ZW0ucmVtaW5kRW5kcG9pbnR9YCwge1xyXG4gICAgICAgICAgbWV0aG9kOiBcIlBPU1RcIixcclxuICAgICAgICAgIGhlYWRlcnM6IHsgXCJDb250ZW50LVR5cGVcIjogXCJhcHBsaWNhdGlvbi9qc29uXCIgfSxcclxuICAgICAgICB9KTtcclxuICAgICAgfVxyXG4gICAgICBzZXRSZW1pbmRlZE1hcCgocHJldikgPT4gKHsgLi4ucHJldiwgW2l0ZW0uaWRdOiBcInNlbnRcIiB9KSk7XHJcbiAgICAgIHNldEFjdGlvbk5vdGljZShg4pyTIFJlbWluZGVyIHNlbnQgdG8gJHtpdGVtLnRlbmFudE5hbWUgfHwgXCJ0ZW5hbnRcIn0hYCk7XHJcbiAgICAgIHNldFRpbWVvdXQoKCkgPT4gc2V0QWN0aW9uTm90aWNlKG51bGwpLCA0MDAwKTtcclxuICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICBzZXRSZW1pbmRlZE1hcCgocHJldikgPT4gKHsgLi4ucHJldiwgW2l0ZW0uaWRdOiBcImZhaWxlZFwiIH0pKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICByZXR1cm4gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJiaWxsLXJlbWluZGVyLWJlbGwtd3JhcHBlclwiIHJlZj17Y29udGFpbmVyUmVmfSBzdHlsZT17eyBwb3NpdGlvbjogXCJyZWxhdGl2ZVwiIH19PlxyXG4gICAgICB7LyogQmVsbCBUcmlnZ2VyIEJ1dHRvbiAqL31cclxuICAgICAgPGJ1dHRvblxyXG4gICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgIGNsYXNzTmFtZT1cImljb24tYnRuIHJlbWluZGVyLWJlbGwtYnRuXCJcclxuICAgICAgICBvbkNsaWNrPXsoKSA9PiB7XHJcbiAgICAgICAgICBzZXRJc09wZW4oIWlzT3Blbik7XHJcbiAgICAgICAgICBpZiAoIWlzT3BlbikgbG9hZFJlbWluZGVycygpO1xyXG4gICAgICAgIH19XHJcbiAgICAgICAgdGl0bGU9e1xyXG4gICAgICAgICAgaXNMYW5kbG9yZFxyXG4gICAgICAgICAgICA/IGBUZW5hbnQgUmVtaW5kZXJzOiAke3VyZ2VudENvdW50fSBwZW5kaW5nL292ZXJkdWUgYmlsbChzKWBcclxuICAgICAgICAgICAgOiBgQmlsbCBSZW1pbmRlcnM6ICR7dXJnZW50Q291bnR9IHVyZ2VudCBiaWxsKHMpIGR1ZWBcclxuICAgICAgICB9XHJcbiAgICAgICAgYXJpYS1sYWJlbD1cIkJpbGwgUmVtaW5kZXJzXCJcclxuICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgcG9zaXRpb246IFwicmVsYXRpdmVcIixcclxuICAgICAgICAgIGJhY2tncm91bmQ6IHVyZ2VudENvdW50ID4gMCA/IFwicmdiYSgyMzksIDY4LCA2OCwgMC4wOClcIiA6IFwidHJhbnNwYXJlbnRcIixcclxuICAgICAgICAgIGJvcmRlcjogdXJnZW50Q291bnQgPiAwID8gXCIxcHggc29saWQgcmdiYSgyMzksIDY4LCA2OCwgMC4yNSlcIiA6IFwibm9uZVwiLFxyXG4gICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjhweFwiLFxyXG4gICAgICAgICAgd2lkdGg6IFwiMzhweFwiLFxyXG4gICAgICAgICAgaGVpZ2h0OiBcIjM4cHhcIixcclxuICAgICAgICAgIGRpc3BsYXk6IFwiaW5saW5lLWZsZXhcIixcclxuICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICBqdXN0aWZ5Q29udGVudDogXCJjZW50ZXJcIixcclxuICAgICAgICAgIGZvbnRTaXplOiBcIjE3cHhcIixcclxuICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXHJcbiAgICAgICAgICB0cmFuc2l0aW9uOiBcImFsbCAwLjJzIGVhc2VcIixcclxuICAgICAgICB9fVxyXG4gICAgICA+XHJcbiAgICAgICAgPEJlbGwgc2l6ZT17MTh9IHN0cm9rZVdpZHRoPXsyLjJ9IC8+XHJcbiAgICAgICAge3VyZ2VudENvdW50ID4gMCAmJiAoXHJcbiAgICAgICAgICA8c3BhblxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIHBvc2l0aW9uOiBcImFic29sdXRlXCIsXHJcbiAgICAgICAgICAgICAgdG9wOiBcIi00cHhcIixcclxuICAgICAgICAgICAgICByaWdodDogXCItNHB4XCIsXHJcbiAgICAgICAgICAgICAgYmFja2dyb3VuZDogXCIjZWY0NDQ0XCIsXHJcbiAgICAgICAgICAgICAgY29sb3I6IFwiI2ZmZmZmZlwiLFxyXG4gICAgICAgICAgICAgIGZvbnRTaXplOiBcIjExcHhcIixcclxuICAgICAgICAgICAgICBmb250V2VpZ2h0OiBcIjcwMFwiLFxyXG4gICAgICAgICAgICAgIG1pbldpZHRoOiBcIjE4cHhcIixcclxuICAgICAgICAgICAgICBoZWlnaHQ6IFwiMThweFwiLFxyXG4gICAgICAgICAgICAgIGxpbmVIZWlnaHQ6IFwiMThweFwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlclJhZGl1czogXCI5cHhcIixcclxuICAgICAgICAgICAgICBwYWRkaW5nOiBcIjAgNXB4XCIsXHJcbiAgICAgICAgICAgICAgdGV4dEFsaWduOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICAgIGJveFNoYWRvdzogXCIwIDJweCA1cHggcmdiYSgyMzksIDY4LCA2OCwgMC40KVwiLFxyXG4gICAgICAgICAgICAgIGFuaW1hdGlvbjogXCJwdWxzZSAycyBpbmZpbml0ZVwiLFxyXG4gICAgICAgICAgICB9fVxyXG4gICAgICAgICAgPlxyXG4gICAgICAgICAgICB7dXJnZW50Q291bnQgPiA5OSA/IFwiOTkrXCIgOiB1cmdlbnRDb3VudH1cclxuICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICApfVxyXG4gICAgICA8L2J1dHRvbj5cclxuXHJcbiAgICAgIHsvKiBGbG9hdGluZyBEcm9wZG93biBNb2RhbCAqL31cclxuICAgICAge2lzT3BlbiAmJiAoXHJcbiAgICAgICAgPGRpdlxyXG4gICAgICAgICAgY2xhc3NOYW1lPVwicmVtaW5kZXItZHJvcGRvd24tcGFuZWwgYW5pbWF0ZS1mYWRlLWluXCJcclxuICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgIHBvc2l0aW9uOiBcImFic29sdXRlXCIsXHJcbiAgICAgICAgICAgIHRvcDogXCJjYWxjKDEwMCUgKyAxMHB4KVwiLFxyXG4gICAgICAgICAgICByaWdodDogMCxcclxuICAgICAgICAgICAgd2lkdGg6IFwiMzkwcHhcIixcclxuICAgICAgICAgICAgbWF4V2lkdGg6IFwiOTJ2d1wiLFxyXG4gICAgICAgICAgICBtYXhIZWlnaHQ6IFwiNTYwcHhcIixcclxuICAgICAgICAgICAgYmFja2dyb3VuZDogXCJ2YXIoLS1iZy1jYXJkLCAjZmZmZmZmKVwiLFxyXG4gICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiMTRweFwiLFxyXG4gICAgICAgICAgICBib3JkZXI6IFwiMXB4IHNvbGlkIHZhcigtLWJvcmRlci1zdWJ0bGUsICNlMmU4ZjApXCIsXHJcbiAgICAgICAgICAgIGJveFNoYWRvdzogXCIwIDEycHggMzZweCByZ2JhKDAsIDAsIDAsIDAuMTYpLCAwIDRweCAxMnB4IHJnYmEoMCwgMCwgMCwgMC4wOClcIixcclxuICAgICAgICAgICAgekluZGV4OiAxMDAwLFxyXG4gICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgICAgZmxleERpcmVjdGlvbjogXCJjb2x1bW5cIixcclxuICAgICAgICAgICAgb3ZlcmZsb3c6IFwiaGlkZGVuXCIsXHJcbiAgICAgICAgICAgIGNvbG9yOiBcInZhcigtLWluay1wcmltYXJ5LCAjMGYxNzJhKVwiLFxyXG4gICAgICAgICAgfX1cclxuICAgICAgICA+XHJcbiAgICAgICAgICB7LyogSGVhZGVyICovfVxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIHBhZGRpbmc6IFwiMTZweCAxOHB4XCIsXHJcbiAgICAgICAgICAgICAgYm9yZGVyQm90dG9tOiBcIjFweCBzb2xpZCB2YXIoLS1ib3JkZXItc3VidGxlLCAjZjFmNWY5KVwiLFxyXG4gICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwidmFyKC0tYmctc3VidGxlLCAjZjhmYWZjKVwiLFxyXG4gICAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxyXG4gICAgICAgICAgICAgIGp1c3RpZnlDb250ZW50OiBcInNwYWNlLWJldHdlZW5cIixcclxuICAgICAgICAgICAgICBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLFxyXG4gICAgICAgICAgICB9fVxyXG4gICAgICAgICAgPlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogXCJmbGV4XCIsIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsIGdhcDogXCI4cHhcIiB9fT5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOiBcIjE4cHhcIiB9fT7wn5SUPC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgPGg0IHN0eWxlPXt7IG1hcmdpbjogMCwgZm9udFNpemU6IFwiMTVweFwiLCBmb250V2VpZ2h0OiBcIjcwMFwiIH19PlxyXG4gICAgICAgICAgICAgICAgICB7aXNMYW5kbG9yZCA/IFwiVGVuYW50IER1ZXMgJiBCaWxsIFJlbWluZGVyc1wiIDogXCJCaWxsICYgUmVudCBSZW1pbmRlcnNcIn1cclxuICAgICAgICAgICAgICAgIDwvaDQ+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPHAgc3R5bGU9e3sgbWFyZ2luOiBcIjJweCAwIDBcIiwgZm9udFNpemU6IFwiMTEuNXB4XCIsIGNvbG9yOiBcInZhcigtLWluay1tdXRlZCwgIzY0NzQ4YilcIiB9fT5cclxuICAgICAgICAgICAgICAgIHtpc0xhbmRsb3JkXHJcbiAgICAgICAgICAgICAgICAgID8gXCJUcmFjayBwZW5kaW5nIHJlbnQgY3ljbGVzICYgRUIgYmlsbHMgYWNyb3NzIHRlbmFudHNcIlxyXG4gICAgICAgICAgICAgICAgICA6IFwiVXJnZW50IGR1ZXMsIHVwY29taW5nIHJlbnQgY3ljbGVzICYgRUIgYmlsbHNcIn1cclxuICAgICAgICAgICAgICA8L3A+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBhbGlnbkl0ZW1zOiBcImNlbnRlclwiLCBnYXA6IFwiNnB4XCIgfX0+XHJcbiAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXtsb2FkUmVtaW5kZXJzfVxyXG4gICAgICAgICAgICAgICAgdGl0bGU9XCJSZWZyZXNoIFJlbWluZGVyc1wiXHJcbiAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInRyYW5zcGFyZW50XCIsXHJcbiAgICAgICAgICAgICAgICAgIGJvcmRlcjogXCJub25lXCIsXHJcbiAgICAgICAgICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXHJcbiAgICAgICAgICAgICAgICAgIGZvbnRTaXplOiBcIjE0cHhcIixcclxuICAgICAgICAgICAgICAgICAgcGFkZGluZzogXCI0cHhcIixcclxuICAgICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjRweFwiLFxyXG4gICAgICAgICAgICAgICAgICBvcGFjaXR5OiBsb2FkaW5nID8gMC41IDogMC44LFxyXG4gICAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICDwn5SEXHJcbiAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRJc09wZW4oZmFsc2UpfVxyXG4gICAgICAgICAgICAgICAgdGl0bGU9XCJDbG9zZVwiXHJcbiAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInRyYW5zcGFyZW50XCIsXHJcbiAgICAgICAgICAgICAgICAgIGJvcmRlcjogXCJub25lXCIsXHJcbiAgICAgICAgICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXHJcbiAgICAgICAgICAgICAgICAgIGZvbnRTaXplOiBcIjE4cHhcIixcclxuICAgICAgICAgICAgICAgICAgbGluZUhlaWdodDogXCIxXCIsXHJcbiAgICAgICAgICAgICAgICAgIGNvbG9yOiBcInZhcigtLWluay1tdXRlZCwgIzY0NzQ4YilcIixcclxuICAgICAgICAgICAgICAgICAgcGFkZGluZzogXCI0cHggOHB4XCIsXHJcbiAgICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIMOXXHJcbiAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgey8qIEFjdGlvbiBub3RpY2UgYmFubmVyICovfVxyXG4gICAgICAgICAge2FjdGlvbk5vdGljZSAmJiAoXHJcbiAgICAgICAgICAgIDxkaXZcclxuICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgcGFkZGluZzogXCI4cHggMTZweFwiLFxyXG4gICAgICAgICAgICAgICAgYmFja2dyb3VuZDogXCIjZWNmZGY1XCIsXHJcbiAgICAgICAgICAgICAgICBjb2xvcjogXCIjMDY1ZjQ2XCIsXHJcbiAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMnB4XCIsXHJcbiAgICAgICAgICAgICAgICBmb250V2VpZ2h0OiBcIjYwMFwiLFxyXG4gICAgICAgICAgICAgICAgYm9yZGVyQm90dG9tOiBcIjFweCBzb2xpZCAjYTdmM2QwXCIsXHJcbiAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgIHthY3Rpb25Ob3RpY2V9XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKX1cclxuXHJcbiAgICAgICAgICB7LyogU3VtbWFyeSBNZXRyaWMgU3RyaXAgKi99XHJcbiAgICAgICAgICA8ZGl2XHJcbiAgICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgICAgcGFkZGluZzogXCIxMnB4IDE4cHhcIixcclxuICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInZhcigtLWJnLXN1YnRsZSwgI2Y4ZmFmYylcIixcclxuICAgICAgICAgICAgICBib3JkZXJCb3R0b206IFwiMXB4IHNvbGlkIHZhcigtLWJvcmRlci1zdWJ0bGUsICNmMWY1ZjkpXCIsXHJcbiAgICAgICAgICAgICAgZGlzcGxheTogXCJmbGV4XCIsXHJcbiAgICAgICAgICAgICAganVzdGlmeUNvbnRlbnQ6IFwic3BhY2UtYmV0d2VlblwiLFxyXG4gICAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICAgICAgZmxleFdyYXA6IFwid3JhcFwiLFxyXG4gICAgICAgICAgICAgIGdhcDogXCI4cHhcIixcclxuICAgICAgICAgICAgfX1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExcHhcIiwgY29sb3I6IFwidmFyKC0taW5rLW11dGVkLCAjNjQ3NDhiKVwiLCB0ZXh0VHJhbnNmb3JtOiBcInVwcGVyY2FzZVwiLCBmb250V2VpZ2h0OiBcIjYwMFwiIH19PlxyXG4gICAgICAgICAgICAgICAge2lzTGFuZGxvcmQgPyBcIlRvdGFsIFRlbmFudCBEdWVzXCIgOiBcIlRvdGFsIE91dHN0YW5kaW5nXCJ9XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxN3B4XCIsIGZvbnRXZWlnaHQ6IFwiODAwXCIsIGNvbG9yOiBcIiNkYzI2MjZcIiB9fT5cclxuICAgICAgICAgICAgICAgIOKCuXtOdW1iZXIoc3VtbWFyeS50b3RhbFBlbmRpbmdBbW91bnQgfHwgMCkudG9Mb2NhbGVTdHJpbmcoXCJlbi1JTlwiKX1cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBnYXA6IFwiNnB4XCIgfX0+XHJcbiAgICAgICAgICAgICAge3N1bW1hcnkub3ZlcmR1ZUNvdW50ID4gMCAmJiAoXHJcbiAgICAgICAgICAgICAgICA8c3BhblxyXG4gICAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiI2ZlZjJmMlwiLFxyXG4gICAgICAgICAgICAgICAgICAgIGNvbG9yOiBcIiNiOTFjMWNcIixcclxuICAgICAgICAgICAgICAgICAgICBib3JkZXI6IFwiMXB4IHNvbGlkICNmZWNhY2FcIixcclxuICAgICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMXB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgZm9udFdlaWdodDogXCI3MDBcIixcclxuICAgICAgICAgICAgICAgICAgICBwYWRkaW5nOiBcIjNweCA4cHhcIixcclxuICAgICAgICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiNnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICAgIOKaoO+4jyB7c3VtbWFyeS5vdmVyZHVlQ291bnR9IE92ZXJkdWVcclxuICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICApfVxyXG4gICAgICAgICAgICAgIHtzdW1tYXJ5LmR1ZVNvb25Db3VudCA+IDAgJiYgKFxyXG4gICAgICAgICAgICAgICAgPHNwYW5cclxuICAgICAgICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcIiNmZmZiZWJcIixcclxuICAgICAgICAgICAgICAgICAgICBjb2xvcjogXCIjYjQ1MzA5XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgYm9yZGVyOiBcIjFweCBzb2xpZCAjZmRlNjhhXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgZm9udFNpemU6IFwiMTFweFwiLFxyXG4gICAgICAgICAgICAgICAgICAgIGZvbnRXZWlnaHQ6IFwiNzAwXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgcGFkZGluZzogXCIzcHggOHB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjZweFwiLFxyXG4gICAgICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgICDij7Age3N1bW1hcnkuZHVlU29vbkNvdW50fSBEdWUgU29vblxyXG4gICAgICAgICAgICAgICAgPC9zcGFuPlxyXG4gICAgICAgICAgICAgICl9XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgey8qIExhbmRsb3JkIFF1aWNrIEFjdGlvbjogUmVtaW5kIEFsbCAqL31cclxuICAgICAgICAgIHtpc0xhbmRsb3JkICYmIGl0ZW1zLmxlbmd0aCA+IDAgJiYgKFxyXG4gICAgICAgICAgICA8ZGl2XHJcbiAgICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiOHB4IDE4cHhcIixcclxuICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwicmdiYSgyLCAxMzIsIDE5OSwgMC4wNSlcIixcclxuICAgICAgICAgICAgICAgIGJvcmRlckJvdHRvbTogXCIxcHggc29saWQgdmFyKC0tYm9yZGVyLXN1YnRsZSwgI2UyZThmMClcIixcclxuICAgICAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxyXG4gICAgICAgICAgICAgICAganVzdGlmeUNvbnRlbnQ6IFwic3BhY2UtYmV0d2VlblwiLFxyXG4gICAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9e3sgZm9udFNpemU6IFwiMTJweFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstc2Vjb25kYXJ5LCAjNDc1NTY5KVwiIH19PlxyXG4gICAgICAgICAgICAgICAge2l0ZW1zLmxlbmd0aH0gcGVuZGluZyBiaWxse2l0ZW1zLmxlbmd0aCA9PT0gMSA/IFwiXCIgOiBcInNcIn0gYWNyb3NzIHRlbmFudHNcclxuICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVSZW1pbmRBbGx9XHJcbiAgICAgICAgICAgICAgICBkaXNhYmxlZD17c2VuZGluZ0FsbH1cclxuICAgICAgICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IFwiIzAyODRjN1wiLFxyXG4gICAgICAgICAgICAgICAgICBjb2xvcjogXCIjZmZmZmZmXCIsXHJcbiAgICAgICAgICAgICAgICAgIGJvcmRlcjogXCJub25lXCIsXHJcbiAgICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiNXB4IDEycHhcIixcclxuICAgICAgICAgICAgICAgICAgYm9yZGVyUmFkaXVzOiBcIjZweFwiLFxyXG4gICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgIGZvbnRXZWlnaHQ6IFwiNjAwXCIsXHJcbiAgICAgICAgICAgICAgICAgIGN1cnNvcjogc2VuZGluZ0FsbCA/IFwibm90LWFsbG93ZWRcIiA6IFwicG9pbnRlclwiLFxyXG4gICAgICAgICAgICAgICAgICBkaXNwbGF5OiBcImlubGluZS1mbGV4XCIsXHJcbiAgICAgICAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICAgICAgICAgIGdhcDogXCI0cHhcIixcclxuICAgICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAge3NlbmRpbmdBbGwgPyBcIkRpc3BhdGNoaW5nLi4uXCIgOiBcIvCflJQgUmVtaW5kIEFsbCBUZW5hbnRzXCJ9XHJcbiAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgKX1cclxuXHJcbiAgICAgICAgICB7LyogU2Nyb2xsYWJsZSBJdGVtcyBMaXN0ICovfVxyXG4gICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgIHBhZGRpbmc6IFwiMTJweCAxNnB4XCIsXHJcbiAgICAgICAgICAgICAgb3ZlcmZsb3dZOiBcImF1dG9cIixcclxuICAgICAgICAgICAgICBmbGV4OiAxLFxyXG4gICAgICAgICAgICAgIGRpc3BsYXk6IFwiZmxleFwiLFxyXG4gICAgICAgICAgICAgIGZsZXhEaXJlY3Rpb246IFwiY29sdW1uXCIsXHJcbiAgICAgICAgICAgICAgZ2FwOiBcIjEwcHhcIixcclxuICAgICAgICAgICAgfX1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAge2xvYWRpbmcgJiYgaXRlbXMubGVuZ3RoID09PSAwID8gKFxyXG4gICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgdGV4dEFsaWduOiBcImNlbnRlclwiLCBwYWRkaW5nOiBcIjI4cHggMFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstbXV0ZWQpXCIgfX0+XHJcbiAgICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17eyBmb250U2l6ZTogXCIyMHB4XCIsIGRpc3BsYXk6IFwiYmxvY2tcIiwgbWFyZ2luQm90dG9tOiBcIjZweFwiIH19PuKPszwvc3Bhbj5cclxuICAgICAgICAgICAgICAgIENoZWNraW5nIGFjdGl2ZSBiaWxscyBhbmQgZHVlIGRhdGVzLi4uXHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICkgOiBpdGVtcy5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyB0ZXh0QWxpZ246IFwiY2VudGVyXCIsIHBhZGRpbmc6IFwiMzJweCAxNnB4XCIsIGNvbG9yOiBcInZhcigtLWluay1tdXRlZClcIiB9fT5cclxuICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOiBcIjMycHhcIiwgZGlzcGxheTogXCJibG9ja1wiLCBtYXJnaW5Cb3R0b206IFwiOHB4XCIgfX0+4pyoPC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250V2VpZ2h0OiBcIjcwMFwiLCBmb250U2l6ZTogXCIxNHB4XCIsIGNvbG9yOiBcInZhcigtLWluay1wcmltYXJ5KVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICB7aXNMYW5kbG9yZCA/IFwiQWxsIFRlbmFudCBEdWVzIFNldHRsZWQhXCIgOiBcIkFsbCBDYXVnaHQgVXAhXCJ9XHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgIDxwIHN0eWxlPXt7IG1hcmdpbjogXCI0cHggMCAwXCIsIGZvbnRTaXplOiBcIjEycHhcIiB9fT5cclxuICAgICAgICAgICAgICAgICAge2lzTGFuZGxvcmRcclxuICAgICAgICAgICAgICAgICAgICA/IFwiVGhlcmUgYXJlIGN1cnJlbnRseSBubyBvdmVyZHVlIG9yIHBlbmRpbmcgcmVudCBvciBFQiBiaWxscyBmb3IgeW91ciBwcm9wZXJ0aWVzLlwiXHJcbiAgICAgICAgICAgICAgICAgICAgOiBcIllvdSBoYXZlIG5vIG91dHN0YW5kaW5nIG9yIG92ZXJkdWUgcmVudCBvciB1dGlsaXR5IGJpbGxzIGF0IHRoaXMgdGltZS5cIn1cclxuICAgICAgICAgICAgICAgIDwvcD5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgICBpdGVtcy5tYXAoKGl0KSA9PiB7XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc092ZXJkdWUgPSBpdC5pc092ZXJkdWU7XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc0R1ZVNvb24gPSBpdC5pc0R1ZVNvb247XHJcbiAgICAgICAgICAgICAgICBjb25zdCBpc1JlbnQgPSBpdC5iaWxsVHlwZSA9PT0gXCJyZW50XCI7XHJcbiAgICAgICAgICAgICAgICBjb25zdCByZW1pbmRTdGF0dXMgPSByZW1pbmRlZE1hcFtpdC5pZF07XHJcblxyXG4gICAgICAgICAgICAgICAgcmV0dXJuIChcclxuICAgICAgICAgICAgICAgICAgPGRpdlxyXG4gICAgICAgICAgICAgICAgICAgIGtleT17aXQuaWR9XHJcbiAgICAgICAgICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IGlzT3ZlcmR1ZSA/IFwiI2ZmZjVmNVwiIDogaXNEdWVTb29uID8gXCIjZmZmZGY1XCIgOiBcInZhcigtLWJnLXN1YnRsZSwgI2Y4ZmFmYylcIixcclxuICAgICAgICAgICAgICAgICAgICAgIGJvcmRlcjogaXNPdmVyZHVlXHJcbiAgICAgICAgICAgICAgICAgICAgICAgID8gXCIxcHggc29saWQgI2ZlY2FjYVwiXHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDogaXNEdWVTb29uXHJcbiAgICAgICAgICAgICAgICAgICAgICAgID8gXCIxcHggc29saWQgI2ZlZDdhYVwiXHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDogXCIxcHggc29saWQgdmFyKC0tYm9yZGVyLXN1YnRsZSwgI2UyZThmMClcIixcclxuICAgICAgICAgICAgICAgICAgICAgIGJvcmRlckxlZnQ6IGlzT3ZlcmR1ZSA/IFwiNHB4IHNvbGlkICNkYzI2MjZcIiA6IGlzRHVlU29vbiA/IFwiNHB4IHNvbGlkICNmNTllMGJcIiA6IFwiNHB4IHNvbGlkICMwMjg0YzdcIixcclxuICAgICAgICAgICAgICAgICAgICAgIGJvcmRlclJhZGl1czogXCI4cHhcIixcclxuICAgICAgICAgICAgICAgICAgICAgIHBhZGRpbmc6IFwiMTBweCAxMnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgICAgICAgICAgICAgIGZsZXhEaXJlY3Rpb246IFwiY29sdW1uXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICBnYXA6IFwiNnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICB0cmFuc2l0aW9uOiBcInRyYW5zZm9ybSAwLjE1cyBlYXNlXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgICAgIHsvKiBUb3AgUm93OiBUaXRsZSAmIEFtb3VudCAqL31cclxuICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBqdXN0aWZ5Q29udGVudDogXCJzcGFjZS1iZXR3ZWVuXCIsIGFsaWduSXRlbXM6IFwiZmxleC1zdGFydFwiLCBnYXA6IFwiOHB4XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjEzLjVweFwiLCBmb250V2VpZ2h0OiBcIjcwMFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstcHJpbWFyeSlcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICB7aXNSZW50ID8gXCLwn4+gXCIgOiBcIuKaoVwifSB7aXQudGl0bGV9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICB7aXNMYW5kbG9yZCA/IChcclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExLjVweFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstbXV0ZWQpXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBUZW5hbnQ6IDxzdHJvbmcgc3R5bGU9e3sgY29sb3I6IFwidmFyKC0taW5rLXByaW1hcnkpXCIgfX0+e2l0LnRlbmFudE5hbWUgfHwgXCJUZW5hbnRcIn08L3N0cm9uZz4gwrcge2l0LnByb3BlcnR5TmFtZX1cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGZvbnRTaXplOiBcIjExLjVweFwiLCBjb2xvcjogXCJ2YXIoLS1pbmstbXV0ZWQpXCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICB7aXQuc3VidGl0bGUgfHwgaXQucHJvcGVydHlOYW1lfVxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICApfVxyXG4gICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyB0ZXh0QWxpZ246IFwicmlnaHRcIiB9fT5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogXCIxNXB4XCIsIGZvbnRXZWlnaHQ6IFwiODAwXCIsIGNvbG9yOiBpc092ZXJkdWUgPyBcIiNkYzI2MjZcIiA6IFwiIzA1OTY2OVwiIH19PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIOKCuXtOdW1iZXIoaXQuYW1vdW50IHx8IDApLnRvTG9jYWxlU3RyaW5nKFwiZW4tSU5cIil9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8c3BhblxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMHB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb250V2VpZ2h0OiBcIjcwMFwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFkZGluZzogXCIycHggNnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiNHB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBpc092ZXJkdWUgPyBcIiNmZWUyZTJcIiA6IGlzRHVlU29vbiA/IFwiI2ZlZjNjN1wiIDogXCIjZTBmMmZlXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2xvcjogaXNPdmVyZHVlID8gXCIjOTkxYjFiXCIgOiBpc0R1ZVNvb24gPyBcIiM5MjQwMGVcIiA6IFwiIzAzNjlhMVwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIH19XHJcbiAgICAgICAgICAgICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICB7aXNPdmVyZHVlXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICA/IGBPdmVyZHVlICgke2l0LmRheXNPdmVyZHVlfWQpYFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgOiBpc0R1ZVNvb25cclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgID8gYER1ZSBTb29uICgke2l0LmRheXNVbnRpbER1ZX1kKWBcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIDogXCJQZW5kaW5nXCJ9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgICAgICAgICB7LyogTWlkZGxlIFJvdzogRHVlIERhdGUgZGV0YWlscyAqL31cclxuICAgICAgICAgICAgICAgICAgICA8ZGl2XHJcbiAgICAgICAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMXB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgIGNvbG9yOiBpc092ZXJkdWUgPyBcIiM5OTFiMWJcIiA6IFwidmFyKC0taW5rLW11dGVkKVwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgZ2FwOiBcIjZweFwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8c3Bhbj7wn5OFIER1ZTogPHN0cm9uZz57aXQuZHVlRGF0ZUZvcm1hdHRlZCB8fCBpdC5kdWVEYXRlfTwvc3Ryb25nPjwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgIHtpdC5wZXJpb2RMYWJlbCAmJiA8c3Bhbj7CtyBQZXJpb2Q6IHtpdC5wZXJpb2RMYWJlbH08L3NwYW4+fVxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgICAgICAgICB7LyogQm90dG9tIFJvdzogQWN0aW9uIEJ1dHRvbiAqL31cclxuICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6IFwiZmxleFwiLCBqdXN0aWZ5Q29udGVudDogXCJmbGV4LWVuZFwiLCBtYXJnaW5Ub3A6IFwiMnB4XCIgfX0+XHJcbiAgICAgICAgICAgICAgICAgICAgICB7aXNMYW5kbG9yZCA/IChcclxuICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IGhhbmRsZVJlbWluZFNpbmdsZShpdCl9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgZGlzYWJsZWQ9e3JlbWluZFN0YXR1cyA9PT0gXCJzZW5kaW5nXCIgfHwgcmVtaW5kU3RhdHVzID09PSBcInNlbnRcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgYmFja2dyb3VuZDogcmVtaW5kU3RhdHVzID09PSBcInNlbnRcIiA/IFwiIzEwYjk4MVwiIDogXCIjZmZmZmZmXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2xvcjogcmVtaW5kU3RhdHVzID09PSBcInNlbnRcIiA/IFwiI2ZmZmZmZlwiIDogXCIjMDI4NGM3XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBib3JkZXI6IHJlbWluZFN0YXR1cyA9PT0gXCJzZW50XCIgPyBcIjFweCBzb2xpZCAjMTBiOTgxXCIgOiBcIjFweCBzb2xpZCAjMDI4NGM3XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBwYWRkaW5nOiBcIjRweCAxMHB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiNXB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMS41cHhcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZvbnRXZWlnaHQ6IFwiNjAwXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjdXJzb3I6IHJlbWluZFN0YXR1cyA9PT0gXCJzZW50XCIgPyBcImRlZmF1bHRcIiA6IFwicG9pbnRlclwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgZGlzcGxheTogXCJpbmxpbmUtZmxleFwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGdhcDogXCI0cHhcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAge3JlbWluZFN0YXR1cyA9PT0gXCJzZW5kaW5nXCJcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgID8gXCJTZW5kaW5nLi4uXCJcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIDogcmVtaW5kU3RhdHVzID09PSBcInNlbnRcIlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgPyBcIuKckyBSZW1pbmRlZFwiXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICA6IFwi8J+UlCBSZW1pbmQgVGVuYW50XCJ9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICAgICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHtcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNldElzT3BlbihmYWxzZSk7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiAoaXQuYWN0aW9uVXJsKSB7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG5hdmlnYXRlKGl0LmFjdGlvblVybCk7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICB9IGVsc2UgaWYgKGlzUmVudCkge1xyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICBuYXZpZ2F0ZShcIi9wYXltZW50c1wiKTtcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG5hdmlnYXRlKFwiL3V0aWxpdHktYmlsbHNcIik7XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICB9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgICAgICAgICAgICAgICBzdHlsZT17e1xyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgYmFja2dyb3VuZDogaXNPdmVyZHVlID8gXCIjZGMyNjI2XCIgOiBcIiMwMjg0YzdcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvbG9yOiBcIiNmZmZmZmZcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJvcmRlcjogXCJub25lXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBwYWRkaW5nOiBcIjVweCAxMnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBib3JkZXJSYWRpdXM6IFwiNXB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMnB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb250V2VpZ2h0OiBcIjYwMFwiLFxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgY3Vyc29yOiBcInBvaW50ZXJcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGRpc3BsYXk6IFwiaW5saW5lLWZsZXhcIixcclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsaWduSXRlbXM6IFwiY2VudGVyXCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBnYXA6IFwiNHB4XCIsXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgfX1cclxuICAgICAgICAgICAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHtpc1JlbnQgPyBcIvCfkrMgUGF5IFJlbnQgTm93XCIgOiBcIuKaoSBQYXkgQmlsbCBOb3dcIn1cclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgICAgICAgICAgICApfVxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICk7XHJcbiAgICAgICAgICAgICAgfSlcclxuICAgICAgICAgICAgKX1cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIHsvKiBGb290ZXIgVmlldyBBbGwgbGluayAqL31cclxuICAgICAgICAgIDxkaXZcclxuICAgICAgICAgICAgc3R5bGU9e3tcclxuICAgICAgICAgICAgICBwYWRkaW5nOiBcIjEwcHggMTZweFwiLFxyXG4gICAgICAgICAgICAgIGJvcmRlclRvcDogXCIxcHggc29saWQgdmFyKC0tYm9yZGVyLXN1YnRsZSwgI2YxZjVmOSlcIixcclxuICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInZhcigtLWJnLXN1YnRsZSwgI2Y4ZmFmYylcIixcclxuICAgICAgICAgICAgICBkaXNwbGF5OiBcImZsZXhcIixcclxuICAgICAgICAgICAgICBqdXN0aWZ5Q29udGVudDogXCJzcGFjZS1iZXR3ZWVuXCIsXHJcbiAgICAgICAgICAgICAgYWxpZ25JdGVtczogXCJjZW50ZXJcIixcclxuICAgICAgICAgICAgICBmb250U2l6ZTogXCIxMnB4XCIsXHJcbiAgICAgICAgICAgIH19XHJcbiAgICAgICAgICA+XHJcbiAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGNvbG9yOiBcInZhcigtLWluay1tdXRlZClcIiB9fT5cclxuICAgICAgICAgICAgICB7aXNMYW5kbG9yZCA/IFwiUHJvcENvbm5lY3QgQmlsbGluZyBHdWFyZFwiIDogXCJBdXRvbWF0ZWQgTW92ZS1JbiBCaWxsaW5nXCJ9XHJcbiAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHtcclxuICAgICAgICAgICAgICAgIHNldElzT3BlbihmYWxzZSk7XHJcbiAgICAgICAgICAgICAgICBpZiAoaXNMYW5kbG9yZCkge1xyXG4gICAgICAgICAgICAgICAgICBuYXZpZ2F0ZShcIi9sZWFzZXNcIik7XHJcbiAgICAgICAgICAgICAgICB9IGVsc2Uge1xyXG4gICAgICAgICAgICAgICAgICBuYXZpZ2F0ZShcIi9wYXltZW50c1wiKTtcclxuICAgICAgICAgICAgICAgIH1cclxuICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgIHN0eWxlPXt7XHJcbiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiBcInRyYW5zcGFyZW50XCIsXHJcbiAgICAgICAgICAgICAgICBib3JkZXI6IFwibm9uZVwiLFxyXG4gICAgICAgICAgICAgICAgY29sb3I6IFwiIzAyODRjN1wiLFxyXG4gICAgICAgICAgICAgICAgZm9udFdlaWdodDogXCI2MDBcIixcclxuICAgICAgICAgICAgICAgIGN1cnNvcjogXCJwb2ludGVyXCIsXHJcbiAgICAgICAgICAgICAgICBwYWRkaW5nOiBcIjJweCA2cHhcIixcclxuICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAge2lzTGFuZGxvcmQgPyBcIlZpZXcgQWxsIExlYXNlcyDihpJcIiA6IFwiVmlldyBQYXltZW50IEhpc3Rvcnkg4oaSXCJ9XHJcbiAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgICl9XHJcbiAgICA8L2Rpdj5cclxuICApO1xyXG59XHJcbiJdLCJmaWxlIjoiQzovVXNlcnMvU2l2YS9Eb3dubG9hZHMvUHJvcENvbm5lY3QvZnJvbnRlbmQvc3JjL2NvbXBvbmVudHMvQmlsbFJlbWluZGVyQmVsbC5qc3gifQ==

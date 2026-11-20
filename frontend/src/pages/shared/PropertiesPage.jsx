@@ -1,12 +1,13 @@
-import { useContext, useState, useMemo, useEffect } from "react";
+import { useContext, useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext.jsx";
 import { SettingsContext } from "../../context/SettingsContext.jsx";
 import DataTable from "../../components/DataTable.jsx";
-import PageHero from "../../components/PageHero.jsx";
 import FindHomePreferenceFlow from "../../components/discovery/FindHomePreferenceFlow.jsx";
-import PropertyChatModal from "../../components/chat/PropertyChatModal.jsx";
-import ScheduleVisitModal from "../../components/chat/ScheduleVisitModal.jsx";
+import PropertyMapView from "../../components/discovery/PropertyMapView.jsx";
+import PropertyCompareTray from "../../components/discovery/PropertyCompareTray.jsx";
+import PropertyCompareModal from "../../components/discovery/PropertyCompareModal.jsx";
+import RecentlyViewedBar from "../../components/discovery/RecentlyViewedBar.jsx";
 import {
   fetchProperties,
   createProperty,
@@ -20,8 +21,28 @@ import {
   toggleFavoriteApi,
 } from "../../utils/apiClient.js";
 import { rankPropertiesClient } from "../../utils/clientMatchingEngine.js";
-import { PROPERTIES as INITIAL_PROPERTIES, TENANTS as INITIAL_TENANTS } from "../../data/db.js";
+import { PROPERTIES as INITIAL_PROPERTIES, TENANTS as INITIAL_TENANTS, landlordById } from "../../data/db.js";
 import { useEscapeKey } from "../../utils/useEscapeKey.js";
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Heart,
+  Scale,
+  Building,
+  RotateCcw,
+  Plus,
+  Compass,
+  Check,
+  X,
+  Map as MapIcon,
+  Grid as GridIcon,
+  ShieldCheck,
+  Home,
+} from "lucide-react";
+import "./PropertiesDiscovery.css";
 
 const TN_CITIES = [
   { id: "all", label: "All Regions" },
@@ -41,10 +62,37 @@ const BHK_FILTERS = [
   { id: "4+", label: "4+ BHK / Villa" },
 ];
 
+const PROPERTY_TYPES = [
+  { id: "all", label: "All Types" },
+  { id: "Apartment", label: "Apartment / Flat" },
+  { id: "Villa", label: "Independent Villa" },
+  { id: "Gated Community", label: "Gated Community" },
+  { id: "Penthouse", label: "Penthouse" },
+];
+
+const FURNISHING_OPTIONS = [
+  { id: "all", label: "All Furnishing" },
+  { id: "Furnished", label: "Fully Furnished" },
+  { id: "Semi-Furnished", label: "Semi-Furnished" },
+  { id: "Unfurnished", label: "Unfurnished" },
+];
+
+const COMMON_AMENITIES = [
+  "Covered Car Parking",
+  "Elevator Lift",
+  "24x7 Power Backup",
+  "24x7 Water Supply",
+  "CCTV Surveillance",
+  "Gym/Clubhouse",
+  "Swimming Pool",
+  "Rainwater Harvesting",
+];
+
 export default function PropertiesPage() {
   const { user } = useContext(AuthContext);
   const { t, formatCurrency } = useContext(SettingsContext);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isTenant = user?.role === "tenant";
 
@@ -53,14 +101,10 @@ export default function PropertiesPage() {
   const [tenantsList, setTenantsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Tenant Preference & Discovery states
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [viewSavedOnly, setViewSavedOnly] = useState(() => searchParams.get("view") === "saved");
+  // Tenant Preferences & AI Matching
   const [tenantPreferences, setTenantPreferences] = useState(null);
   const [showPreferenceFlow, setShowPreferenceFlow] = useState(false);
   const [matchedProperties, setMatchedProperties] = useState([]);
-  const [browseAllMode, setBrowseAllMode] = useState(false);
-  const [sortBy, setSortBy] = useState("bestMatch"); // 'bestMatch' | 'lowestRent' | 'highestRent' | 'newest' | 'location'
   const [savedFavorites, setSavedFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("propconnect_saved_favorites") || "[]");
@@ -69,38 +113,66 @@ export default function PropertiesPage() {
     }
   });
 
-  // Sync viewSavedOnly if search params change
+  // Recently Viewed Properties
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("propconnect_recently_viewed") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  // Compare Properties (up to 3)
+  const [compareList, setCompareList] = useState([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  // View Mode: 'grid' | 'map'
+  const [discoveryViewMode, setDiscoveryViewMode] = useState("grid");
+  const [viewSavedOnly, setViewSavedOnly] = useState(
+    () => searchParams.get("view") === "saved" || searchParams.get("tab") === "saved"
+  );
+
+  // Sync viewSavedOnly, add modal, or table view if query params change
   useEffect(() => {
-    if (searchParams.get("view") === "saved") {
-      setViewSavedOnly(true);
+    const isSaved = searchParams.get("view") === "saved" || searchParams.get("tab") === "saved";
+    setViewSavedOnly(isSaved);
+
+    if (searchParams.get("tab") === "add" || searchParams.get("action") === "add") {
+      setShowAddModal(true);
+    }
+    if (searchParams.get("tab") === "units") {
+      setAdminViewMode("table");
     }
   }, [searchParams]);
 
-  // Property Chat and Visit Modals
-  const [activeChatProperty, setActiveChatProperty] = useState(null);
-  const [activeVisitProperty, setActiveVisitProperty] = useState(null);
-
-  // Admin / Landlord View controls
-  const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'table'
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [selectedCity, setSelectedCity] = useState("all");
   const [selectedBhk, setSelectedBhk] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'available' | 'occupied'
+  const [selectedPropertyType, setSelectedPropertyType] = useState("all");
+  const [selectedFurnishing, setSelectedFurnishing] = useState("all");
+  const [minRentInput, setMinRentInput] = useState("");
+  const [maxRentInput, setMaxRentInput] = useState("");
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
 
-  // CRUD Modals
+  // Sorting: 'bestMatch' | 'lowestRent' | 'highestRent' | 'newest'
+  const [sortBy, setSortBy] = useState("bestMatch");
+
+  // Admin / Landlord View controls
+  const [adminViewMode, setAdminViewMode] = useState("grid"); // 'grid' | 'table'
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
   const [deletingProp, setDeletingProp] = useState(null);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
-  // Esc key closes modals
   useEscapeKey(() => {
     if (showAddModal) setShowAddModal(false);
     if (editingProp) setEditingProp(null);
     if (deletingProp) setDeletingProp(null);
-    if (activeChatProperty) setActiveChatProperty(null);
-    if (activeVisitProperty) setActiveVisitProperty(null);
-  }, showAddModal || !!editingProp || !!deletingProp || !!activeChatProperty || !!activeVisitProperty);
+    if (isCompareModalOpen) setIsCompareModalOpen(false);
+  }, showAddModal || !!editingProp || !!deletingProp || isCompareModalOpen);
 
   const [newProp, setNewProp] = useState({
     name: "",
@@ -120,11 +192,8 @@ export default function PropertiesPage() {
     rent: 25000,
     deposit: 90000,
     area: 1250,
-    sqft: 1250,
     status: "Available",
     tenantId: "",
-    waterSupply: "24/7 Metro Water + Borewell",
-    preferredTenants: "Family / Working Professionals",
   });
 
   const showToast = (message, type = "success") => {
@@ -132,19 +201,20 @@ export default function PropertiesPage() {
     setTimeout(() => setToast({ message: "", type: "success" }), 3500);
   };
 
-  // 1. Initial Load of Properties, Favorites & Tenant Preferences
-  const loadData = async () => {
+  // 1. Initial Load of Properties, Favorites, Preferences & Recently Viewed
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const userId = user?.id || user?.entityId || "TEN001";
       const [props, tenants, favData] = await Promise.all([
-        fetchProperties(),
-        fetchTenants(),
-        fetchFavorites(userId),
+        fetchProperties().catch(() => null),
+        fetchTenants().catch(() => null),
+        fetchFavorites(userId).catch(() => null),
       ]);
-      const validProps = props && props.length > 0 ? props : INITIAL_PROPERTIES;
+
+      const validProps = Array.isArray(props) && props.length > 0 ? props : INITIAL_PROPERTIES;
       setPropertiesList(validProps);
-      setTenantsList(tenants && tenants.length > 0 ? tenants : INITIAL_TENANTS);
+      setTenantsList(Array.isArray(tenants) && tenants.length > 0 ? tenants : INITIAL_TENANTS);
 
       if (favData && Array.isArray(favData.propertyIds)) {
         setSavedFavorites(favData.propertyIds);
@@ -152,38 +222,38 @@ export default function PropertiesPage() {
 
       // Check tenant preferences
       if (isTenant) {
-        const savedPref = await fetchTenantPreferences(userId);
+        const savedPref = await fetchTenantPreferences(userId).catch(() => null);
         if (savedPref && savedPref.city) {
           setTenantPreferences(savedPref);
-          // Run matching
           const ranked = rankPropertiesClient(validProps, savedPref);
           setMatchedProperties(ranked);
-          setShowPreferenceFlow(false);
-        } else {
-          // No saved preferences yet: open "Find Your Home" flow first!
-          setShowPreferenceFlow(true);
         }
       }
-    } catch {
+    } catch (err) {
+      console.warn("Error loading property data:", err);
       setPropertiesList(INITIAL_PROPERTIES);
       setTenantsList(INITIAL_TENANTS);
-      if (isTenant) {
-        setShowPreferenceFlow(true);
-      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isTenant]);
 
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [loadData]);
+
+  // Refresh recently viewed from localStorage periodically
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("propconnect_recently_viewed") || "[]");
+      setRecentlyViewedIds(stored);
+    } catch {}
+  }, []);
 
   // Handle Preference Submission from Flow
   const handlePreferenceSubmit = async (newPrefs) => {
     setTenantPreferences(newPrefs);
     setShowPreferenceFlow(false);
-    setBrowseAllMode(false);
 
     try {
       await saveTenantPreferences({
@@ -191,27 +261,25 @@ export default function PropertiesPage() {
         userId: user?.id || user?.entityId || "TEN001",
       });
 
-      // Try API matching first
-      const serverRanked = await matchProperties(newPrefs);
-      if (serverRanked && serverRanked.length > 0) {
+      const serverRanked = await matchProperties(newPrefs).catch(() => null);
+      if (Array.isArray(serverRanked) && serverRanked.length > 0) {
         setMatchedProperties(serverRanked);
       } else {
         const clientRanked = rankPropertiesClient(propertiesList, newPrefs);
         setMatchedProperties(clientRanked);
       }
-      showToast(`Found ${propertiesList.length} properties matching your preferences!`);
+      showToast("Updated your home matching preferences!");
     } catch {
       const clientRanked = rankPropertiesClient(propertiesList, newPrefs);
       setMatchedProperties(clientRanked);
     }
   };
 
-  // Toggle favorite / saved property (Database-backed via MongoDB)
+  // Toggle favorite property (persists to MongoDB & localStorage)
   const toggleFavorite = async (propId) => {
     const userId = user?.id || user?.entityId || "TEN001";
     const wasFav = savedFavorites.includes(propId);
 
-    // Optimistic UI state update
     setSavedFavorites((prev) => {
       const updated = wasFav ? prev.filter((id) => id !== propId) : [...prev, propId];
       try {
@@ -225,13 +293,81 @@ export default function PropertiesPage() {
       if (res && res.propertyIds) {
         setSavedFavorites(res.propertyIds);
       }
-      showToast(wasFav ? "Property removed from saved" : "Property saved to your favourites!");
+      showToast(wasFav ? "Removed from saved properties" : "Saved to your favourites!");
     } catch (err) {
       console.warn("Favorite API sync error:", err);
     }
   };
 
-  // Filter based on landlord ownership
+  // Compare selection toggle (up to 3)
+  const toggleCompare = (property) => {
+    setCompareList((prev) => {
+      const exists = prev.some((p) => p.id === property.id);
+      if (exists) {
+        return prev.filter((p) => p.id !== property.id);
+      }
+      if (prev.length >= 3) {
+        showToast("You can compare up to 3 properties at a time.", "error");
+        return prev;
+      }
+      return [...prev, property];
+    });
+  };
+
+  const removeCompareItem = (propId) => {
+    setCompareList((prev) => prev.filter((p) => p.id !== propId));
+  };
+
+  const clearAllCompare = () => {
+    setCompareList([]);
+    setIsCompareModalOpen(false);
+  };
+
+  // Toggle amenity filter
+  const toggleAmenityFilter = (amenity) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]
+    );
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setSelectedCity("all");
+    setSelectedBhk("all");
+    setStatusFilter("all");
+    setSelectedPropertyType("all");
+    setSelectedFurnishing("all");
+    setMinRentInput("");
+    setMaxRentInput("");
+    setSelectedAmenities([]);
+    setSearchQuery("");
+    setSortBy("bestMatch");
+  };
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedCity !== "all") count++;
+    if (selectedBhk !== "all") count++;
+    if (statusFilter !== "all") count++;
+    if (selectedPropertyType !== "all") count++;
+    if (selectedFurnishing !== "all") count++;
+    if (minRentInput !== "") count++;
+    if (maxRentInput !== "") count++;
+    count += selectedAmenities.length;
+    return count;
+  }, [
+    selectedCity,
+    selectedBhk,
+    statusFilter,
+    selectedPropertyType,
+    selectedFurnishing,
+    minRentInput,
+    maxRentInput,
+    selectedAmenities,
+  ]);
+
+  // Base rows based on landlord role scope
   let baseRows = propertiesList;
   if (user?.role === "landlord") {
     const landlordId = user.entityId || "LDL001";
@@ -250,16 +386,16 @@ export default function PropertiesPage() {
     if (viewSavedOnly) {
       return baseRows.filter((p) => savedFavorites.includes(p.id));
     }
-    if (isTenant && !browseAllMode && matchedProperties.length > 0) {
+    if (isTenant && matchedProperties.length > 0) {
       return matchedProperties;
     }
     return baseRows;
-  }, [viewSavedOnly, isTenant, browseAllMode, matchedProperties, baseRows, savedFavorites]);
+  }, [viewSavedOnly, isTenant, matchedProperties, baseRows, savedFavorites]);
 
   // Apply Search, Filters, and Sorting
   const filteredAndSortedProperties = useMemo(() => {
     let result = sourceProperties.filter((p) => {
-      // City filter
+      // 1. City / Location Filter
       if (selectedCity !== "all") {
         if (selectedCity === "other") {
           const major = ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem"];
@@ -269,7 +405,7 @@ export default function PropertiesPage() {
         }
       }
 
-      // BHK filter
+      // 2. BHK Filter
       if (selectedBhk !== "all") {
         if (selectedBhk === "4+") {
           if ((p.bedrooms || 0) < 4) return false;
@@ -278,47 +414,83 @@ export default function PropertiesPage() {
         }
       }
 
-      // Status filter
-      if (statusFilter !== "all" && (p.status || "").toLowerCase() !== statusFilter.toLowerCase()) {
-        return false;
+      // 3. Availability Filter
+      if (statusFilter !== "all") {
+        if (statusFilter === "available" && (p.status || "").toLowerCase() !== "available") return false;
+        if (statusFilter === "occupied" && (p.status || "").toLowerCase() !== "occupied") return false;
       }
 
-      // Search query
+      // 4. Property Type Filter
+      if (selectedPropertyType !== "all") {
+        const pType = (p.propertyType || p.type || "Apartment").toLowerCase();
+        if (!pType.includes(selectedPropertyType.toLowerCase())) return false;
+      }
+
+      // 5. Furnishing Filter
+      if (selectedFurnishing !== "all") {
+        const pFurnish = (p.furnishing || "Unfurnished").toLowerCase();
+        if (!pFurnish.includes(selectedFurnishing.toLowerCase())) return false;
+      }
+
+      // 6. Min and Max Rent Filter
+      const rent = Number(p.rent || 0);
+      if (minRentInput !== "" && rent < Number(minRentInput)) return false;
+      if (maxRentInput !== "" && rent > Number(maxRentInput)) return false;
+
+      // 7. Amenities Filter (Must match all selected amenities)
+      if (selectedAmenities.length > 0) {
+        const pAmenities = Array.isArray(p.amenities) ? p.amenities : [];
+        const hasAll = selectedAmenities.every((req) =>
+          pAmenities.some((item) => item.toLowerCase().includes(req.toLowerCase()))
+        );
+        if (!hasAll) return false;
+      }
+
+      // 8. Keyword Search (Location and Property keywords)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchName = (p.name || "").toLowerCase().includes(q);
-        const matchBuilding = (p.building || "").toLowerCase().includes(q);
-        const matchLoc = (p.location || p.locality || "").toLowerCase().includes(q);
-        const matchCity = (p.city || "").toLowerCase().includes(q);
-        const matchBuilder = (p.builder || "").toLowerCase().includes(q);
-        const matchId = (p.id || "").toLowerCase().includes(q);
-        if (!matchName && !matchBuilding && !matchLoc && !matchCity && !matchBuilder && !matchId) {
-          return false;
-        }
+        const text = `${p.name || ""} ${p.building || ""} ${p.locality || ""} ${p.location || ""} ${p.city || ""} ${p.builder || ""} ${(p.amenities || []).join(" ")}`.toLowerCase();
+        if (!text.includes(q)) return false;
       }
 
       return true;
     });
 
-    // Apply Sorting
+    // Apply Sorting: Best Match, Rent (Low/High), Recently Added
     return result.sort((a, b) => {
       if (sortBy === "bestMatch") {
-        const scoreA = a.matchScore || 70;
-        const scoreB = b.matchScore || 70;
+        const scoreA = a.matchScore || (a.status === "Available" ? 85 : 70);
+        const scoreB = b.matchScore || (b.status === "Available" ? 85 : 70);
         if (scoreB !== scoreA) return scoreB - scoreA;
-        if (a.status === "Available" && b.status !== "Available") return -1;
-        if (b.status === "Available" && a.status !== "Available") return 1;
-        return a.rent - b.rent;
+        return (a.rent || 0) - (b.rent || 0);
       }
-      if (sortBy === "lowestRent") return a.rent - b.rent;
-      if (sortBy === "highestRent") return b.rent - a.rent;
+      if (sortBy === "lowestRent") return (a.rent || 0) - (b.rent || 0);
+      if (sortBy === "highestRent") return (b.rent || 0) - (a.rent || 0);
       if (sortBy === "newest") return (b.yearBuilt || 2022) - (a.yearBuilt || 2022);
-      if (sortBy === "location") return (a.city || "").localeCompare(b.city || "");
       return 0;
     });
-  }, [sourceProperties, selectedCity, selectedBhk, statusFilter, searchQuery, sortBy]);
+  }, [
+    sourceProperties,
+    selectedCity,
+    selectedBhk,
+    statusFilter,
+    selectedPropertyType,
+    selectedFurnishing,
+    minRentInput,
+    maxRentInput,
+    selectedAmenities,
+    searchQuery,
+    sortBy,
+  ]);
 
-  // Handle Add Property Submit
+  // Recently Viewed Properties Objects
+  const recentlyViewedProperties = useMemo(() => {
+    return recentlyViewedIds
+      .map((id) => propertiesList.find((p) => p.id === id))
+      .filter(Boolean);
+  }, [recentlyViewedIds, propertiesList]);
+
+  // Handle Add Property Submit (Landlord/Admin)
   const handleAddProperty = async (e) => {
     e.preventDefault();
     if (!newProp.name || !newProp.location) {
@@ -338,27 +510,13 @@ export default function PropertiesPage() {
       const created = await createProperty(payload);
       setPropertiesList((prev) => [created, ...prev]);
       setShowAddModal(false);
-      setNewProp({
-        name: "",
-        city: "Chennai",
-        locality: "",
-        location: "",
-        builder: "",
-        bedrooms: 2,
-        bathrooms: 2,
-        rent: 25000,
-        deposit: 90000,
-        area: 1250,
-        status: "Available",
-        tenantId: "",
-      });
       showToast(`Property "${created.name}" registered successfully!`);
     } catch (err) {
       showToast(`Failed to add property: ${err.message}`, "error");
     }
   };
 
-  // Handle Edit Property Submit
+  // Handle Edit Property Submit (Landlord/Admin)
   const handleEditProperty = async (e) => {
     e.preventDefault();
     if (!editingProp) return;
@@ -373,7 +531,7 @@ export default function PropertiesPage() {
     }
   };
 
-  // Handle Delete Property
+  // Handle Delete Property (Landlord/Admin)
   const handleDeleteConfirm = async () => {
     if (!deletingProp) return;
     try {
@@ -386,7 +544,7 @@ export default function PropertiesPage() {
     }
   };
 
-  // Table columns for Admin / Landlord view
+  // Admin Table Columns
   const tableColumns = [
     {
       key: "name",
@@ -399,156 +557,63 @@ export default function PropertiesPage() {
             style={{ width: "42px", height: "42px", borderRadius: "6px", objectFit: "cover" }}
           />
           <div>
-            <strong style={{ color: "var(--brand-blue)", cursor: "pointer" }} onClick={() => navigate(`${r.id}`)}>
-              {r.name}
-            </strong>
-            <div className="sub-text">{r.locality || r.location || r.city}</div>
+            <div style={{ fontWeight: 600 }}>{r.name}</div>
+            <div style={{ fontSize: "12px", color: "var(--ink-muted)" }}>{r.city}</div>
           </div>
         </div>
       ),
     },
-    { key: "city", label: "City" },
-    {
-      key: "type",
-      label: "Config",
-      render: (r) => <span>{r.bedrooms ? `${r.bedrooms} BHK` : "Special Unit"}</span>,
-    },
+    { key: "city", label: t("city") },
     {
       key: "rent",
       label: t("rent"),
-      render: (r) => <strong>{formatCurrency(r.rent)}/mo</strong>,
+      render: (r) => `${formatCurrency(r.rent)}/mo`,
+    },
+    {
+      key: "bedrooms",
+      label: "BHK",
+      render: (r) => `${r.bedrooms || 2} BHK`,
     },
     {
       key: "status",
       label: t("status"),
-      render: (r) => {
-        const cls = (r.status || "").toLowerCase() === "occupied" ? "paid" : "active";
-        return <span className={`pill ${cls}`}>{r.status}</span>;
-      },
+      render: (r) => (
+        <span className={`pill ${(r.status || "").toLowerCase() === "available" ? "active" : "paid"}`}>
+          {r.status || "Available"}
+        </span>
+      ),
     },
     {
       key: "actions",
       label: "Actions",
       render: (r) => (
         <div style={{ display: "flex", gap: "6px" }}>
-          <button className="btn-outline" style={{ padding: "4px 8px", fontSize: "11px" }} onClick={() => navigate(`${r.id}`)}>
+          <button className="btn-outline" style={{ padding: "4px 8px" }} onClick={() => navigate(`${r.id}`)}>
             View
           </button>
-          <button
-            className="btn-outline"
-            style={{ padding: "4px 8px", fontSize: "11px", color: "var(--brand-blue)" }}
-            onClick={() => setActiveChatProperty(r)}
-            title="Ask About This Property"
-          >
-            💬 Chat
+          <button className="btn-outline" style={{ padding: "4px 8px" }} onClick={() => setEditingProp(r)}>
+            Edit
           </button>
-          {!isTenant && (
-            <>
-              <button className="btn-outline" style={{ padding: "4px 8px", fontSize: "11px" }} onClick={() => setEditingProp(r)}>
-                ✏️
-              </button>
-              <button
-                className="btn-outline"
-                style={{ padding: "4px 8px", fontSize: "11px", color: "var(--red)" }}
-                onClick={() => setDeletingProp(r)}
-              >
-                🗑️
-              </button>
-            </>
-          )}
         </div>
       ),
     },
   ];
 
-  // If Tenant enters and needs to fill preferences flow:
-  if (isTenant && showPreferenceFlow) {
+  if (showPreferenceFlow && isTenant) {
     return (
-      <div>
+      <div style={{ maxWidth: "860px", margin: "20px auto", padding: "0 16px" }}>
         <FindHomePreferenceFlow
           initialPreferences={tenantPreferences}
           onSubmit={handlePreferenceSubmit}
-          onSkip={() => {
-            setShowPreferenceFlow(false);
-            setBrowseAllMode(true);
-          }}
+          onSkip={() => setShowPreferenceFlow(false)}
         />
       </div>
     );
   }
 
   return (
-    <div className="properties-page-container">
-      {/* Page Hero */}
-      <PageHero
-        badge={isTenant ? (viewSavedOnly ? "Saved Homes" : "Property Discovery") : "Asset Registry"}
-        title={
-          viewSavedOnly
-            ? "My Saved Properties"
-            : isTenant && !browseAllMode
-            ? "Properties Matching Your Preferences"
-            : "Residential & Commercial Properties"
-        }
-        subtitle={
-          viewSavedOnly
-            ? `You have ${savedFavorites.length} saved residence${savedFavorites.length === 1 ? "" : "s"} in your personal favorites list.`
-            : isTenant && !browseAllMode
-            ? `Top home recommendations based on your preferences in ${tenantPreferences?.city || "Tamil Nadu"}. Ranked by real database matching.`
-            : "Explore vetted residential apartments, independent villas, and complexes across Tamil Nadu."
-        }
-        actions={
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-            {isTenant ? (
-              <>
-                <button
-                  type="button"
-                  className={viewSavedOnly ? "btn-primary" : "btn-outline"}
-                  onClick={() => {
-                    setViewSavedOnly((v) => !v);
-                    if (browseAllMode) setBrowseAllMode(false);
-                  }}
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  <span>{viewSavedOnly ? "❤️ Showing Saved" : "♡ My Saved"}</span>
-                  <span className="badge-pill-count">{savedFavorites.length}</span>
-                </button>
-                <button
-                  type="button"
-                  className={!viewSavedOnly && browseAllMode ? "btn-primary" : "btn-outline"}
-                  onClick={() => {
-                    setViewSavedOnly(false);
-                    setBrowseAllMode((v) => !v);
-                  }}
-                >
-                  {!viewSavedOnly && browseAllMode ? "✓ Showing All Properties" : "🌐 View All Properties"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => setShowPreferenceFlow(true)}
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  ⚙️ Update Preferences
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn-outline"
-                  onClick={() => setShowPreferenceFlow(true)}
-                  title="Test Tenant Discovery Preference Flow"
-                >
-                  🔍 Tenant Discovery Preview
-                </button>
-                <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-                  + Register Property
-                </button>
-              </>
-            )}
-          </div>
-        }
-      />
-
+    <div className="properties-discovery-container">
+      {/* Toast Notification */}
       {toast.message && (
         <div className="app-toast-container">
           <div className={`app-toast ${toast.type}`}>
@@ -557,564 +622,518 @@ export default function PropertiesPage() {
         </div>
       )}
 
-      {/* Tenant Active Preferences Banner */}
-      {isTenant && tenantPreferences && !browseAllMode && (
-        <div className="card pref-active-banner">
-          <div className="pref-banner-left">
-            <span className="pref-badge">🎯 Matching Filter Active</span>
-            <div className="pref-tag-list">
-              <span className="pref-tag">📍 {tenantPreferences.city}</span>
-              {tenantPreferences.locality && (
-                <span className="pref-tag">📌 {tenantPreferences.locality}</span>
-              )}
-              <span className="pref-tag">🛏️ {tenantPreferences.bhk} BHK</span>
-              <span className="pref-tag">💰 {tenantPreferences.budgetRange}</span>
-              {tenantPreferences.furnishing && tenantPreferences.furnishing !== "No preference" && (
-                <span className="pref-tag">🛋️ {tenantPreferences.furnishing}</span>
-              )}
-              {tenantPreferences.amenities?.length > 0 && (
-                <span className="pref-tag">✨ {tenantPreferences.amenities.slice(0, 2).join(", ")}</span>
-              )}
-            </div>
+      {/* ======================================================================
+          1. COMPACT PAGE HEADER
+          ====================================================================== */}
+      <header className="pd-compact-header">
+        <div className="pd-header-titles">
+          <h1>
+            <Home size={20} color="#2563eb" />
+            <span>
+              {viewSavedOnly
+                ? "Saved Properties"
+                : isTenant
+                ? "Property Discovery"
+                : "Property Asset Directory"}
+            </span>
+          </h1>
+          <p>
+            {viewSavedOnly
+              ? `${savedFavorites.length} saved residence${savedFavorites.length === 1 ? "" : "s"} in your personal collection.`
+              : `${filteredAndSortedProperties.length} verified residences across Tamil Nadu matching your search.`}
+          </p>
+        </div>
+
+        <div className="pd-header-actions">
+          {/* Grid / Map View Switcher */}
+          <div className="pd-view-toggle-group">
+            <button
+              type="button"
+              className={`pd-view-btn ${discoveryViewMode === "grid" ? "active" : ""}`}
+              onClick={() => setDiscoveryViewMode("grid")}
+            >
+              <GridIcon size={14} />
+              <span>Grid View</span>
+            </button>
+            <button
+              type="button"
+              className={`pd-view-btn ${discoveryViewMode === "map" ? "active" : ""}`}
+              onClick={() => setDiscoveryViewMode("map")}
+            >
+              <MapIcon size={14} />
+              <span>Map View</span>
+            </button>
           </div>
+
+          {/* Saved Properties Pill */}
           <button
             type="button"
-            className="btn-text edit-pref-link"
-            onClick={() => setShowPreferenceFlow(true)}
+            className={`pd-pill-btn ${viewSavedOnly ? "active" : ""}`}
+            onClick={() => {
+              const next = !viewSavedOnly;
+              setViewSavedOnly(next);
+              setSearchParams(next ? { tab: "saved" } : {});
+            }}
           >
-            Modify Preferences ✏️
+            <Heart size={14} fill={viewSavedOnly ? "#2563eb" : "none"} color={viewSavedOnly ? "#2563eb" : "#475569"} />
+            <span>Saved</span>
+            <span className="pd-pill-badge">{savedFavorites.length}</span>
           </button>
+
+          {/* Compare Button if items are selected */}
+          {compareList.length > 0 && (
+            <button
+              type="button"
+              className="pd-pill-btn active"
+              onClick={() => setIsCompareModalOpen(true)}
+            >
+              <Scale size={14} />
+              <span>Compare</span>
+              <span className="pd-pill-badge">{compareList.length}/3</span>
+            </button>
+          )}
+
+          {/* Tenant Matching Preference Button */}
+          {isTenant ? (
+            <button
+              type="button"
+              className="pd-pill-btn"
+              onClick={() => setShowPreferenceFlow(true)}
+              title="Update your residential matching criteria"
+            >
+              <Compass size={14} />
+              <span>Preferences</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary"
+              style={{ padding: "7px 14px", fontSize: "12.5px" }}
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={14} /> Register Property
+            </button>
+          )}
         </div>
+      </header>
+
+      {/* ======================================================================
+          RECENTLY VIEWED PROPERTIES STRIP
+          ====================================================================== */}
+      {!viewSavedOnly && recentlyViewedProperties.length > 0 && (
+        <RecentlyViewedBar
+          recentlyViewed={recentlyViewedProperties}
+          onNavigateDetails={(id) => navigate(`${id}`)}
+          formatCurrency={formatCurrency}
+        />
       )}
 
-      {/* Filter and Controls Toolbar */}
-      <div className="card property-controls-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
-        <div className="controls-row">
-          <div className="search-wrap">
+      {/* ======================================================================
+          2. SEARCH BAR & EXPANDABLE FILTER TOOLBAR
+          ====================================================================== */}
+      <section className="pd-search-filter-card">
+        {/* Main Search Row */}
+        <div className="pd-search-main-row">
+          {/* Keyword and Location Search */}
+          <div className="pd-search-input-box">
+            <Search size={16} color="#64748b" />
             <input
-              className="search-input"
+              type="text"
+              className="pd-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search properties by name, locality, city, or builder…"
+              placeholder="Search by property name, locality (e.g. T. Nagar, Peelamedu), city, or builder…"
             />
             {searchQuery && (
-              <button className="clear-search-btn" onClick={() => setSearchQuery("")}>
-                ✕
+              <button
+                type="button"
+                className="pd-search-clear"
+                onClick={() => setSearchQuery("")}
+              >
+                <X size={14} />
               </button>
             )}
           </div>
 
-          <div className="status-filter-group">
-            <label>Sort By:</label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="bestMatch">Best Match (Score %)</option>
-              <option value="lowestRent">Lowest Rent</option>
-              <option value="highestRent">Highest Rent</option>
-              <option value="newest">Newest Listed</option>
-              <option value="location">Location (A-Z)</option>
+          {/* Filter Toggle Button */}
+          <button
+            type="button"
+            className={`pd-filter-toggle-btn ${activeFiltersCount > 0 ? "has-active" : ""}`}
+            onClick={() => setFiltersExpanded((prev) => !prev)}
+          >
+            <Filter size={14} />
+            <span>
+              Filters {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ""}
+            </span>
+            {filtersExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {/* Sort By Dropdown */}
+          <div className="pd-sort-dropdown-wrap">
+            <label htmlFor="pd-sort-select">Sort By:</label>
+            <select
+              id="pd-sort-select"
+              className="pd-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="bestMatch">Best Match (AI Score)</option>
+              <option value="lowestRent">Rent: Low to High</option>
+              <option value="highestRent">Rent: High to Low</option>
+              <option value="newest">Recently Added</option>
             </select>
           </div>
+        </div>
 
-          <div className="status-filter-group">
-            <label>City:</label>
-            <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
-              {TN_CITIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* 3. Expandable Filters Panel */}
+        {filtersExpanded && (
+          <div className="pd-expandable-filters-panel">
+            {/* Col 1: Location */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">Location / City</span>
+              <select
+                className="pd-select"
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+              >
+                {TN_CITIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="status-filter-group">
-            <label>BHK:</label>
-            <select value={selectedBhk} onChange={(e) => setSelectedBhk(e.target.value)}>
-              {BHK_FILTERS.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Col 2: BHK Configuration */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">BHK</span>
+              <select
+                className="pd-select"
+                value={selectedBhk}
+                onChange={(e) => setSelectedBhk(e.target.value)}
+              >
+                {BHK_FILTERS.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="status-filter-group">
-            <label>Status:</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="available">Available</option>
-              <option value="occupied">Occupied</option>
-            </select>
-          </div>
+            {/* Col 3: Furnishing */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">Furnishing</span>
+              <select
+                className="pd-select"
+                value={selectedFurnishing}
+                onChange={(e) => setSelectedFurnishing(e.target.value)}
+              >
+                {FURNISHING_OPTIONS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {!isTenant && (
-            <div className="view-mode-toggle">
+            {/* Col 4: Property Type */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">Property Type</span>
+              <select
+                className="pd-select"
+                value={selectedPropertyType}
+                onChange={(e) => setSelectedPropertyType(e.target.value)}
+              >
+                {PROPERTY_TYPES.map((pt) => (
+                  <option key={pt.id} value={pt.id}>
+                    {pt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Col 5: Rent Range */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">Min &amp; Max Monthly Rent</span>
+              <div className="pd-rent-range-inputs">
+                <input
+                  type="number"
+                  className="pd-rent-input"
+                  placeholder="Min ₹"
+                  value={minRentInput}
+                  onChange={(e) => setMinRentInput(e.target.value)}
+                />
+                <span style={{ color: "#94a3b8" }}>–</span>
+                <input
+                  type="number"
+                  className="pd-rent-input"
+                  placeholder="Max ₹"
+                  value={maxRentInput}
+                  onChange={(e) => setMaxRentInput(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Col 6: Availability Status */}
+            <div className="pd-filter-col">
+              <span className="pd-filter-label">Availability</span>
+              <select
+                className="pd-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Units</option>
+                <option value="available">Available Only</option>
+                <option value="occupied">Occupied</option>
+              </select>
+            </div>
+
+            {/* Amenities Checkboxes Strip */}
+            <div className="pd-amenities-tags-grid">
+              <span className="pd-filter-label" style={{ width: "100%", marginBottom: "2px" }}>
+                Key Amenities:
+              </span>
+              {COMMON_AMENITIES.map((amenity) => {
+                const isSelected = selectedAmenities.includes(amenity);
+                return (
+                  <button
+                    key={amenity}
+                    type="button"
+                    className={`pd-amenity-pill-toggle ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleAmenityFilter(amenity)}
+                  >
+                    <span>{isSelected ? "✓" : "+"}</span>
+                    <span>{amenity}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer with Reset Action */}
+            <div className="pd-filters-footer">
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                Showing {filteredAndSortedProperties.length} matching properties
+              </span>
               <button
                 type="button"
-                className={`view-btn ${viewMode === "grid" ? "active" : ""}`}
-                onClick={() => setViewMode("grid")}
+                className="pd-btn-reset-filters"
+                onClick={resetFilters}
               >
-                ⊞ Grid
-              </button>
-              <button
-                type="button"
-                className={`view-btn ${viewMode === "table" ? "active" : ""}`}
-                onClick={() => setViewMode("table")}
-              >
-                ☰ Table
+                Reset All Filters
               </button>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </section>
 
-      {/* Main Content Area */}
-      {viewMode === "table" && !isTenant ? (
-        <DataTable
-          title="Properties Directory"
-          columns={tableColumns}
-          rows={filteredAndSortedProperties}
-          searchKeys={["name", "city", "locality", "location", "builder"]}
-          searchPlaceholder="Search properties…"
-          pageSize={10}
+      {/* ======================================================================
+          MAIN VIEW: MAP VIEW vs. GRID VIEW
+          ====================================================================== */}
+      {discoveryViewMode === "map" ? (
+        <PropertyMapView
+          properties={filteredAndSortedProperties}
+          onNavigateDetails={(id) => navigate(`${id}`)}
+          formatCurrency={formatCurrency}
         />
       ) : (
-        /* Grid Mode: Premium Cards with Match % and Why it Matches */
-        <div className="property-results-grid">
+        /* GRID VIEW: Responsive Property Cards */
+        <div className="pd-properties-grid">
           {filteredAndSortedProperties.map((p) => {
             const isFav = savedFavorites.includes(p.id);
+            const isComparing = compareList.some((item) => item.id === p.id);
             const isAvailable = (p.status || "").toLowerCase() === "available";
+            const landlord = landlordById(p.landlordId);
+            const isVerified = landlord?.status === "Verified" || Boolean(p.isVerified);
 
             return (
-              <div key={p.id} className="prop-match-card card">
-                {/* Image Wrap with Badges & Save Action */}
-                <div className="prop-card-media" onClick={() => navigate(`${p.id}`)}>
+              <div key={p.id} className="pd-property-card">
+                {/* 4a. Consistent Image Dimensions Media Box */}
+                <div
+                  className="pd-card-media-wrap"
+                  onClick={() => navigate(`${p.id}`)}
+                  title="Click to view full property specifications"
+                >
                   <img
-                    src={p.image || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80"}
+                    src={
+                      p.image ||
+                      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80"
+                    }
                     alt={p.name}
-                    className="prop-card-img"
+                    className="pd-card-img"
                     loading="lazy"
                     onError={(e) => {
-                      e.target.src = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80";
+                      e.target.src =
+                        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80";
                     }}
                   />
 
                   {/* Top Floating Badges */}
-                  <div className="prop-media-badges">
-                    {/* Match Score Badge */}
-                    {p.matchScore ? (
-                      <span className={`match-score-badge ${p.matchScore >= 90 ? "high" : "medium"}`}>
+                  <div className="pd-card-top-badges">
+                    {/* 8. AI Match Score Badge */}
+                    {p.matchScore && (
+                      <span className="pd-badge-match">
                         ⭐ {p.matchScore}% Match
                       </span>
-                    ) : (
-                      <span className="mini-city-badge">{p.city}</span>
                     )}
 
-                    <span className={`pill ${isAvailable ? "active" : "paid"} mini-pill`}>
+                    {/* 7. Verified Status (Rendered ONLY when verified exists) */}
+                    {isVerified && (
+                      <span className="pd-badge-verified">
+                        <ShieldCheck size={12} /> Verified
+                      </span>
+                    )}
+
+                    {/* 6. Availability Status */}
+                    <span
+                      className={`pd-badge-availability ${
+                        isAvailable ? "available" : "occupied"
+                      }`}
+                    >
                       {isAvailable ? "Available" : "Occupied"}
                     </span>
                   </div>
 
-                  {/* Save / Favorite Heart Button */}
+                  {/* 9. Favourite Heart Action */}
                   <button
                     type="button"
-                    className={`prop-fav-btn ${isFav ? "active" : ""}`}
+                    className={`pd-card-fav-btn ${isFav ? "favorited" : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleFavorite(p.id);
                     }}
-                    title={isFav ? "Remove from saved" : "Save this property"}
+                    title={isFav ? "Remove from saved properties" : "Save this property"}
                   >
-                    {isFav ? "❤️" : "🤍"}
+                    <Heart
+                      size={15}
+                      fill={isFav ? "#dc2626" : "none"}
+                      color={isFav ? "#dc2626" : "#475569"}
+                    />
                   </button>
                 </div>
 
-                {/* Content Details */}
-                <div className="prop-card-body">
-                  <div className="prop-price-row">
+                {/* 4b. Card Content Body */}
+                <div className="pd-card-body">
+                  {/* 5. Rent & BHK Row */}
+                  <div className="pd-card-price-row">
                     <div>
-                      <span className="prop-rent-val">{formatCurrency(p.rent)}</span>
-                      <span className="prop-rent-period">/mo</span>
+                      <span className="pd-card-rent">
+                        {formatCurrency(p.rent)}
+                      </span>
+                      <span className="pd-card-rent-period">/mo</span>
                     </div>
-                    <span className="prop-config-badge">
+                    <span className="pd-card-bhk-tag">
                       {p.bedrooms ? `${p.bedrooms} BHK` : "Special Unit"}
                     </span>
                   </div>
 
-                  <h3 className="prop-name" onClick={() => navigate(`${p.id}`)}>
+                  {/* Property Name */}
+                  <h3
+                    className="pd-card-title"
+                    onClick={() => navigate(`${p.id}`)}
+                    title={p.name}
+                  >
                     {p.name}
                   </h3>
 
-                  <p className="prop-location">
-                    <span>📍</span> {p.locality || p.location || p.city}
-                  </p>
-
-                  <div className="prop-specs-pills" style={{ flexWrap: "wrap", gap: "6px" }}>
-                    <span>📐 {p.sqft || p.area || 800} sqft</span>
-                    <span>🛁 {p.bathrooms || 1} Bath</span>
-                    <span>🧭 {p.facingDirection || "East Facing"}</span>
-                    <span>🚗 {p.carParking || "Covered Parking"}</span>
-                    {p.propertyType && <span style={{ background: "rgba(37,99,235,0.08)", color: "#1d4ed8" }}>🏢 {p.propertyType}</span>}
-                    {p.maintenanceCharges > 0 && <span style={{ background: "#f0fdf4", color: "#15803d" }}>+₹{p.maintenanceCharges} Maint</span>}
+                  {/* Location with Pin */}
+                  <div className="pd-card-location">
+                    <MapPin size={13} color="#2563eb" style={{ flexShrink: 0 }} />
+                    <span>{p.locality || p.location || p.city}</span>
                   </div>
 
-                  {/* "Why This Property Matches" Section */}
+                  {/* Area and Specs */}
+                  <div className="pd-card-specs-row">
+                    <span className="pd-spec-item">
+                      📐 {p.area || p.sqft || 1200} sqft
+                    </span>
+                    <span className="pd-spec-item">
+                      🛋️ {p.furnishing || "Semi-Furnished"}
+                    </span>
+                    {p.floor && (
+                      <span className="pd-spec-item">🏢 {p.floor}</span>
+                    )}
+                  </div>
+
+                  {/* 8. Meaningful Single-line AI Match Explanation */}
                   {p.reasons && p.reasons.length > 0 && (
-                    <div className="prop-why-matches-box">
-                      <div className="why-matches-header">Why this property matches:</div>
-                      <ul className="why-matches-list">
-                        {p.reasons.slice(0, 4).map((r, rIdx) => (
-                          <li key={rIdx}>{r}</li>
-                        ))}
-                      </ul>
+                    <div className="pd-card-match-reason" title={p.reasons[0]}>
+                      ✓ {p.reasons[0]}
                     </div>
                   )}
 
-                  {/* Actions Row */}
-                  <div className="prop-card-footer-actions">
+                  {/* 4c. Card Footer: View Details & Compare Action */}
+                  <div className="pd-card-footer">
+                    {/* 10. View Details Action */}
                     <button
                       type="button"
-                      className="btn-outline prop-action-btn"
+                      className="pd-btn-view-details"
                       onClick={() => navigate(`${p.id}`)}
                     >
                       View Details
                     </button>
 
+                    {/* 11. Compare Action */}
                     <button
                       type="button"
-                      className="btn-primary prop-action-btn chat-highlight-btn"
-                      onClick={() => setActiveChatProperty(p)}
-                      title="Ask questions about this property in English or Tamil"
+                      className={`pd-btn-compare-check ${isComparing ? "selected" : ""}`}
+                      onClick={() => toggleCompare(p)}
+                      title={
+                        isComparing
+                          ? "Remove from comparison"
+                          : "Add to side-by-side comparison"
+                      }
                     >
-                      💬 Property Chat
+                      <Scale size={13} />
+                      <span>{isComparing ? "Comparing" : "Compare"}</span>
                     </button>
-
-                    {!isTenant && (
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button
-                          type="button"
-                          className="btn-outline"
-                          style={{ padding: "6px 10px" }}
-                          onClick={() => setEditingProp(p)}
-                          title="Edit Property"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-outline"
-                          style={{ padding: "6px 10px", color: "var(--red)" }}
-                          onClick={() => setDeletingProp(p)}
-                          title="Delete Property"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             );
           })}
-
-          {filteredAndSortedProperties.length === 0 && (
-            <div className="card empty-results-card">
-              <div style={{ fontSize: "42px", marginBottom: "12px" }}>
-                {viewSavedOnly ? "❤️" : "🔍"}
-              </div>
-              <h3>
-                {viewSavedOnly
-                  ? "No saved properties yet"
-                  : "No properties match the selected criteria"}
-              </h3>
-              <p style={{ color: "var(--ink-muted)", marginBottom: "20px" }}>
-                {viewSavedOnly
-                  ? "Browse through our verified Tamil Nadu properties and click the heart icon (♡) on any card or details page to add it to your favourites list."
-                  : "Try adjusting your budget range, selected city, or BHK requirement to discover available homes."}
-              </p>
-              <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-                <button
-                  className="btn-primary"
-                  onClick={() => {
-                    setViewSavedOnly(false);
-                    setSelectedCity("all");
-                    setSelectedBhk("all");
-                    setStatusFilter("all");
-                    setSearchQuery("");
-                    setBrowseAllMode(true);
-                  }}
-                >
-                  {viewSavedOnly ? "Browse All Properties →" : "Reset Filters & View All"}
-                </button>
-                {isTenant && !viewSavedOnly && (
-                  <button className="btn-outline" onClick={() => setShowPreferenceFlow(true)}>
-                    Modify Preferences
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
-      {/* Property-Aware Chat Modal (Feature 2) */}
-      {activeChatProperty && (
-        <PropertyChatModal
-          property={activeChatProperty}
-          onClose={() => setActiveChatProperty(null)}
+      {/* Empty State */}
+      {filteredAndSortedProperties.length === 0 && (
+        <div className="pd-empty-card">
+          <div style={{ fontSize: "40px" }}>{viewSavedOnly ? "❤️" : "🔍"}</div>
+          <h3>
+            {viewSavedOnly ? "No saved properties found" : "No matching properties found"}
+          </h3>
+          <p>
+            {viewSavedOnly
+              ? "You haven't saved any properties yet. Click the heart icon (♡) on any card to save residences to your personal list."
+              : "Try broadening your filters, expanding your budget range, or clearing your keyword search query."}
+          </p>
+          <button type="button" className="btn-primary" onClick={resetFilters}>
+            {viewSavedOnly ? "Browse All Properties →" : "Reset All Filters"}
+          </button>
+        </div>
+      )}
+
+      {/* ======================================================================
+          COMPARE TRAY & MODAL (Compare up to 3 properties)
+          ====================================================================== */}
+      <PropertyCompareTray
+        compareProperties={compareList}
+        onOpenCompare={() => setIsCompareModalOpen(true)}
+        onRemove={removeCompareItem}
+        onClearAll={clearAllCompare}
+      />
+
+      {isCompareModalOpen && (
+        <PropertyCompareModal
+          compareProperties={compareList}
+          onRemove={removeCompareItem}
+          onClearAll={clearAllCompare}
+          onClose={() => setIsCompareModalOpen(false)}
+          onViewDetails={(id) => {
+            setIsCompareModalOpen(false);
+            navigate(`${id}`);
+          }}
+          formatCurrency={formatCurrency}
         />
-      )}
-
-      {/* Schedule Visit Modal */}
-      {activeVisitProperty && (
-        <ScheduleVisitModal
-          property={activeVisitProperty}
-          onClose={() => setActiveVisitProperty(null)}
-        />
-      )}
-
-      {/* Admin / Landlord Add Property Modal */}
-      {showAddModal && (
-        <div className="modal-backdrop animate-fade-in" onClick={() => setShowAddModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Register New Property</h3>
-              <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleAddProperty} style={{ padding: "20px" }}>
-              <div className="form-group" style={{ marginBottom: "12px" }}>
-                <label className="pref-field-label">Property Name</label>
-                <input
-                  type="text"
-                  className="inp"
-                  value={newProp.name}
-                  onChange={(e) => setNewProp({ ...newProp, name: e.target.value })}
-                  placeholder="e.g. Sreevatsa Gardens - Flat 401"
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div className="form-group">
-                  <label className="pref-field-label">City</label>
-                  <select
-                    className="inp"
-                    value={newProp.city}
-                    onChange={(e) => setNewProp({ ...newProp, city: e.target.value })}
-                  >
-                    <option value="Chennai">Chennai</option>
-                    <option value="Coimbatore">Coimbatore</option>
-                    <option value="Madurai">Madurai</option>
-                    <option value="Trichy">Trichy</option>
-                    <option value="Salem">Salem</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Locality / Area</label>
-                  <input
-                    type="text"
-                    className="inp"
-                    value={newProp.locality}
-                    onChange={(e) => setNewProp({ ...newProp, locality: e.target.value })}
-                    placeholder="e.g. OMR, Velachery, Peelamedu"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: "12px" }}>
-                <label className="pref-field-label">Complete Street Address</label>
-                <input
-                  type="text"
-                  className="inp"
-                  value={newProp.location}
-                  onChange={(e) => setNewProp({ ...newProp, location: e.target.value })}
-                  placeholder="Door No, Street Name, Landmark"
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div className="form-group">
-                  <label className="pref-field-label">Bedrooms (BHK)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={newProp.bedrooms}
-                    onChange={(e) => setNewProp({ ...newProp, bedrooms: Number(e.target.value) })}
-                    min={1}
-                    max={10}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Bathrooms</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={newProp.bathrooms}
-                    onChange={(e) => setNewProp({ ...newProp, bathrooms: Number(e.target.value) })}
-                    min={1}
-                    max={10}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Super Built-up (sqft)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={newProp.area}
-                    onChange={(e) => setNewProp({ ...newProp, area: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-                <div className="form-group">
-                  <label className="pref-field-label">Monthly Rent (₹)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={newProp.rent}
-                    onChange={(e) => setNewProp({ ...newProp, rent: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Security Deposit (₹)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={newProp.deposit}
-                    onChange={(e) => setNewProp({ ...newProp, deposit: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button type="button" className="btn-outline" onClick={() => setShowAddModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Save &amp; Register
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Admin / Landlord Edit Property Modal */}
-      {editingProp && (
-        <div className="modal-backdrop animate-fade-in" onClick={() => setEditingProp(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Edit Property: {editingProp.name}</h3>
-              <button className="modal-close-btn" onClick={() => setEditingProp(null)}>
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleEditProperty} style={{ padding: "20px" }}>
-              <div className="form-group" style={{ marginBottom: "12px" }}>
-                <label className="pref-field-label">Property Name</label>
-                <input
-                  type="text"
-                  className="inp"
-                  value={editingProp.name}
-                  onChange={(e) => setEditingProp({ ...editingProp, name: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div className="form-group">
-                  <label className="pref-field-label">City</label>
-                  <input
-                    type="text"
-                    className="inp"
-                    value={editingProp.city}
-                    onChange={(e) => setEditingProp({ ...editingProp, city: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Status</label>
-                  <select
-                    className="inp"
-                    value={editingProp.status}
-                    onChange={(e) => setEditingProp({ ...editingProp, status: e.target.value })}
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Occupied">Occupied</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-                <div className="form-group">
-                  <label className="pref-field-label">Monthly Rent (₹)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={editingProp.rent}
-                    onChange={(e) => setEditingProp({ ...editingProp, rent: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="pref-field-label">Security Deposit (₹)</label>
-                  <input
-                    type="number"
-                    className="inp"
-                    value={editingProp.deposit}
-                    onChange={(e) => setEditingProp({ ...editingProp, deposit: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button type="button" className="btn-outline" onClick={() => setEditingProp(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deletingProp && (
-        <div className="modal-backdrop animate-fade-in" onClick={() => setDeletingProp(null)}>
-          <div className="modal-card" style={{ maxWidth: "420px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ color: "var(--red)" }}>Confirm Removal</h3>
-              <button className="modal-close-btn" onClick={() => setDeletingProp(null)}>
-                ✕
-              </button>
-            </div>
-            <div style={{ padding: "20px" }}>
-              <p style={{ margin: "0 0 20px 0", lineHeight: "1.5" }}>
-                Are you sure you want to remove <strong>{deletingProp.name}</strong> from the database? This cannot be undone.
-              </p>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button type="button" className="btn-outline" onClick={() => setDeletingProp(null)}>
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ background: "var(--red)", borderColor: "var(--red)" }}
-                  onClick={handleDeleteConfirm}
-                >
-                  Delete Property
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

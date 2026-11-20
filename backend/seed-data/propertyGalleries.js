@@ -4,6 +4,162 @@
 // Chennai, Coimbatore, Madurai, Trichy, Salem, and other Tamil Nadu locations.
 
 export const PROPERTY_SPECIFIC_GALLERIES = {
+  // 0. The Aurelia – Premium 2BHK Apartment, Anna Nagar, Chennai
+  "TN-AURELIA": [
+    // 1. Exterior (3 images)
+    {
+      id: "TN_AURELIA_ext_1",
+      url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1600&q=80",
+      category: "Exterior",
+      caption: "Architectural facade of The Aurelia featuring warm limestone cladding and private cantilevered balconies",
+      order: 1,
+    },
+    {
+      id: "TN_AURELIA_ext_2",
+      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+      category: "Exterior",
+      caption: "Grand contemporary entrance porte-cochère with warm stone paving and landscaped planters",
+      order: 2,
+    },
+    {
+      id: "TN_AURELIA_ext_3",
+      url: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1600&q=80",
+      category: "Exterior",
+      caption: "Landscaped residential courtyard at golden hour with ambient architectural illumination",
+      order: 3,
+    },
+
+    // 2. Living Room (2 images)
+    {
+      id: "TN_AURELIA_liv_1",
+      url: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=80",
+      category: "Living Room",
+      caption: "Spacious sunlit living hall with warm cream linen seating, fluted oak wall paneling, and sheer drapes",
+      order: 4,
+    },
+    {
+      id: "TN_AURELIA_liv_2",
+      url: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1600&q=80",
+      category: "Living Room",
+      caption: "Lounge and entertainment corner featuring natural white oak cabinetry and concealed warm lighting",
+      order: 5,
+    },
+
+    // 3. Dining Area (1 image)
+    {
+      id: "TN_AURELIA_din_1",
+      url: "https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1600&q=80",
+      category: "Dining Area",
+      caption: "6-seater solid oak dining table with curved upholstered dining chairs and minimalist pendant fixture",
+      order: 6,
+    },
+
+    // 4. Master Bedroom (1 image)
+    {
+      id: "TN_AURELIA_mbr_1",
+      url: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=1600&q=80",
+      category: "Master Bedroom",
+      caption: "Master suite with bespoke oak headboard, breathable beige linens, and acoustic double-glazed windows",
+      order: 7,
+    },
+
+    // 5. Second Bedroom (1 image)
+    {
+      id: "TN_AURELIA_sbr_1",
+      url: "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=1600&q=80",
+      category: "Second Bedroom",
+      caption: "Second bedroom tailored as guest retreat or home office with built-in desk and oak wardrobe",
+      order: 8,
+    },
+
+    // 6. Kitchen (2 images)
+    {
+      id: "TN_AURELIA_kit_1",
+      url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1600&q=80",
+      category: "Kitchen",
+      caption: "Italian-designed modular kitchen with sand quartz countertops and handleless fluted oak cabinets",
+      order: 9,
+    },
+    {
+      id: "TN_AURELIA_kit_2",
+      url: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=1600&q=80",
+      category: "Kitchen",
+      caption: "Chef prep island with undermount Franke sink, induction cooktop, and built-in convection oven",
+      order: 10,
+    },
+
+    // 7. Bathrooms (2 images)
+    {
+      id: "TN_AURELIA_bth_1",
+      url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1600&q=80",
+      category: "Bathrooms",
+      caption: "Master en-suite bathroom with honed travertine tiling, floating oak double vanity, and rain shower",
+      order: 11,
+    },
+    {
+      id: "TN_AURELIA_bth_2",
+      url: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=1600&q=80",
+      category: "Bathrooms",
+      caption: "Guest powder room with brushed champagne brass fixtures and circular backlit anti-fog mirror",
+      order: 12,
+    },
+
+    // 8. Balcony (2 images)
+    {
+      id: "TN_AURELIA_bal_1",
+      url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80",
+      category: "Balcony",
+      caption: "Private covered sit-out balcony with natural teakwood deck tiles, woven armchairs, and greenery",
+      order: 13,
+    },
+    {
+      id: "TN_AURELIA_bal_2",
+      url: "https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=1600&q=80",
+      category: "Balcony",
+      caption: "Sunset view corner overlooking Anna Nagar tree-lined avenues with safety glass balustrade",
+      order: 14,
+    },
+
+    // 9. Amenities (4 images: Pool, Gym, Garden, Parking)
+    {
+      id: "TN_AURELIA_amn_1",
+      url: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1600&q=80",
+      category: "Amenities",
+      caption: "Swimming Pool – Rooftop temperature-controlled 25m infinity lap pool with cabana loungers",
+      order: 15,
+    },
+    {
+      id: "TN_AURELIA_amn_2",
+      url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80",
+      category: "Amenities",
+      caption: "Gym – Wellness fitness suite equipped with Technogym machines, free weights & yoga studio",
+      order: 16,
+    },
+    {
+      id: "TN_AURELIA_amn_3",
+      url: "https://images.unsplash.com/photo-1584738766473-61c083514bf4?auto=format&fit=crop&w=1600&q=80",
+      category: "Amenities",
+      caption: "Landscaped Garden – Zen courtyard with meditation gazebo, reflexology pathway & water cascade",
+      order: 17,
+    },
+    {
+      id: "TN_AURELIA_amn_4",
+      url: "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=1600&q=80",
+      category: "Amenities",
+      caption: "Car Parking – Dedicated covered stilt parking bay (Slot CP-14) with fast EV charging socket",
+      order: 18,
+    },
+
+    // 10. Floor Plan (1 image)
+    {
+      id: "TN_AURELIA_fp_1",
+      url: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=80",
+      category: "Floor Plan",
+      caption: "Illustrative 2D architectural blueprint layout for The Aurelia 2BHK residence (1,350 sqft)",
+      order: 19,
+    },
+  ],
+
   // 1. Sai Kala Apartments - Flat 302, T. Nagar, Chennai (2 BHK Apartment)
   TN101: [
     {
@@ -75,6 +231,13 @@ export const PROPERTY_SPECIFIC_GALLERIES = {
       category: "Common Areas",
       caption: "Schindler 8-passenger automatic elevator lobby with marble cladding",
       order: 10,
+    },
+    {
+      id: "TN101_img_11",
+      url: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80",
+      category: "Floor Plan",
+      caption: "2 BHK architectural floor plan layout with room dimensions (1200 sqft)",
+      order: 11,
     },
   ],
 
@@ -149,6 +312,13 @@ export const PROPERTY_SPECIFIC_GALLERIES = {
       category: "Garden",
       caption: "Landscaped society gardens with children play area and reflexology track",
       order: 10,
+    },
+    {
+      id: "TN102_img_11",
+      url: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80",
+      category: "Floor Plan",
+      caption: "3 BHK architectural floor plan layout with room dimensions (1650 sqft)",
+      order: 11,
     },
   ],
 

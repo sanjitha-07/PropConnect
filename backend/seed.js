@@ -293,30 +293,35 @@ export async function seedAllData() {
   }
 
   // 5. Seed Leases
-  const formattedLeases = LEASES.map((ls) => ({
-    id: ls.id,
-    propertyId: ls.propertyId,
-    property_id: ls.propertyId,
-    tenantId: ls.tenantId,
-    tenant_id: ls.tenantId,
-    landlordId: ls.landlordId || "LDL001",
-    landlord_id: ls.landlordId || "LDL001",
-    startDate: ls.startDate || "",
-    start_date: ls.startDate || "",
-    endDate: ls.endDate || "",
-    end_date: ls.endDate || "",
-    monthlyRent: Number(ls.rent || ls.monthlyRent || ls.monthly_rent || 0),
-    monthly_rent: Number(ls.rent || ls.monthlyRent || ls.monthly_rent || 0),
-    depositAmount: Number(ls.deposit || ls.depositAmount || ls.deposit_amount || 0),
-    deposit_amount: Number(ls.deposit || ls.depositAmount || ls.deposit_amount || 0),
-    status: ls.status || "Active",
-    paymentCycle: ls.paymentCycle || "Monthly",
-    payment_cycle: ls.paymentCycle || "Monthly",
-    termMonths: ls.termMonths || 11,
-    term_months: ls.termMonths || 11,
-    agreementDoc: ls.agreementDoc || "",
-    agreement_doc: ls.agreementDoc || "",
-  }));
+  const propMap = new Map(formattedProperties.map((p) => [p.id, p]));
+  const formattedLeases = LEASES.map((ls) => {
+    const prop = propMap.get(ls.propertyId);
+    const resolvedLandlordId = ls.landlordId || (prop ? (prop.landlordId || prop.landlord_id) : "LDL001");
+    return {
+      id: ls.id,
+      propertyId: ls.propertyId,
+      property_id: ls.propertyId,
+      tenantId: ls.tenantId,
+      tenant_id: ls.tenantId,
+      landlordId: resolvedLandlordId,
+      landlord_id: resolvedLandlordId,
+      startDate: ls.startDate || "",
+      start_date: ls.startDate || "",
+      endDate: ls.endDate || "",
+      end_date: ls.endDate || "",
+      monthlyRent: Number(ls.rent || ls.monthlyRent || ls.monthly_rent || 0),
+      monthly_rent: Number(ls.rent || ls.monthlyRent || ls.monthly_rent || 0),
+      depositAmount: Number(ls.deposit || ls.depositAmount || ls.deposit_amount || 0),
+      deposit_amount: Number(ls.deposit || ls.depositAmount || ls.deposit_amount || 0),
+      status: ls.status || "Active",
+      paymentCycle: ls.paymentCycle || "Monthly",
+      payment_cycle: ls.paymentCycle || "Monthly",
+      termMonths: ls.termMonths || 11,
+      term_months: ls.termMonths || 11,
+      agreementDoc: ls.agreementDoc || "",
+      agreement_doc: ls.agreementDoc || "",
+    };
+  });
   await Lease.deleteMany({});
   await Lease.insertMany(formattedLeases);
 
@@ -389,7 +394,6 @@ export async function seedAllData() {
   await SecurityDeposit.insertMany(formattedDeposits);
 
   // 9. Seed Utility Bills (EB Bills & Utility Expenses)
-  const propMap = new Map(formattedProperties.map((p) => [p.id, p]));
   const leaseMap = new Map();
   formattedLeases.forEach((l) => {
     if (l.status === "Active" || !leaseMap.has(l.propertyId)) {

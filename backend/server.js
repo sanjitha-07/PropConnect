@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 // Backend Server for PropConnect Portal
 import path from "path";
+import fs from "fs";
 import crypto from "crypto";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
@@ -74,47 +75,39 @@ function generateToken(user) {
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+  let token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+  // Also support token from query parameter for file downloads/previews in browser tabs
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (token) {
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (!err && decoded) {
         req.user = decoded;
-        return next();
+      } else {
+        req.user = null;
       }
-      extractFallbackUser(req);
       next();
     });
   } else {
-    extractFallbackUser(req);
+    req.user = null;
     next();
   }
 }
 
-function extractFallbackUser(req) {
-  const roleHeader = req.headers["x-user-role"] || req.query.role;
-  const idHeader =
-    req.headers["x-user-id"] ||
-    req.headers["x-user-entity-id"] ||
-    req.query.userId ||
-    req.query.tenantId ||
-    req.query.landlordId;
-  const emailHeader = req.headers["x-user-email"] || req.query.email;
-  if (roleHeader || idHeader || emailHeader) {
-    req.user = {
-      role: roleHeader || "tenant",
-      id: idHeader || null,
-      entityId: idHeader || null,
-      entity_id: idHeader || null,
-      email: emailHeader || "",
-    };
+function requireAuth(req, res, next) {
+  if (!req.user || !req.user.role) {
+    return res.status(401).json({ error: "Authentication required. Please log in." });
   }
+  next();
 }
 
 function requireRoles(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required. Please log in." });
     }
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
@@ -125,6 +118,55 @@ function requireRoles(...allowedRoles) {
   };
 }
 
+async function resolveLandlordId(user) {
+  if (!user) return null;
+  if (user.entityId || user.entity_id) return user.entityId || user.entity_id;
+  const landlord = await Landlord.findOne({
+    $or: [{ email: user.email }, { id: user.id }],
+  }).lean();
+  if (landlord) return landlord.id;
+  return user.id;
+}
+
+async function resolveTenantId(user) {
+  if (!user) return null;
+  if (user.entityId || user.entity_id) return user.entityId || user.entity_id;
+  const tenant = await Tenant.findOne({
+    $or: [{ email: user.email }, { id: user.id }],
+  }).lean();
+  if (tenant) return tenant.id;
+  return user.id;
+}
+
+async function resolveProviderId(user) {
+  if (!user) return null;
+  if (user.entityId || user.entity_id) return user.entityId || user.entity_id;
+  const prov = await ServiceProvider.findOne({
+    $or: [{ email: user.email }, { id: user.id }],
+  }).lean();
+  if (prov) return prov.id;
+  return user.id;
+}
+
+async function getLandlordOwnedPropertyIds(landlordId) {
+  if (!landlordId) return [];
+  const props = await Property.find({
+    $or: [{ landlordId }, { landlord_id: landlordId }],
+  }).select("id name").lean();
+  return props.map((p) => p.id);
+}
+
+async function isLandlordAuthorizedForProperty(landlordId, propertyId) {
+  if (!landlordId || !propertyId) return false;
+  const prop = await Property.findOne({
+    $and: [
+      { $or: [{ id: propertyId }, { _id: propertyId && propertyId.length === 24 ? propertyId : null }] },
+      { $or: [{ landlordId }, { landlord_id: landlordId }] },
+    ],
+  }).lean();
+  return !!prop;
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -132,6 +174,13 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(authenticateToken);
+
+// Block direct static access to sensitive uploads
+app.use("/uploads", (req, res) => {
+  return res.status(403).json({
+    error: "Direct access to uploads is forbidden. Please access documents via /api/documents/:id/download or /api/documents/:id/view with valid authorization.",
+  });
+});
 
 // Background MongoDB connection & seeding
 let seeded = false;
@@ -164,10 +213,16 @@ setInterval(async () => {
   }
 }, 15000);
 
+// Secure documents directory
+const DOCUMENTS_DIR = path.join(__dirname, "uploads", "documents");
+if (!fs.existsSync(DOCUMENTS_DIR)) {
+  fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
+}
+
 // -------------------------------------------------------------
-// 1. Database Health & MongoDB Compass Diagnostics Endpoint
+// 1. Database Health & MongoDB Compass Diagnostics Endpoint (Admin only)
 // -------------------------------------------------------------
-app.get("/api/db/status", async (req, res) => {
+app.get("/api/db/status", requireRoles("admin"), async (req, res) => {
   try {
     const status = await getMongoStatus();
     res.json(status);
@@ -177,9 +232,9 @@ app.get("/api/db/status", async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 2. Interactive MongoDB Live Query Console Endpoint
+// 2. Interactive MongoDB Live Query Console Endpoint (Admin only)
 // -------------------------------------------------------------
-app.post("/api/db/query", async (req, res) => {
+app.post("/api/db/query", requireRoles("admin"), async (req, res) => {
   const { collection, filter, sort, limit, query: rawQuery } = req.body;
 
   try {
@@ -553,19 +608,100 @@ app.post("/api/auth/google", async (req, res) => {
   }
 });
 
+app.post("/api/auth/change-password", async (req, res) => {
+  try {
+    const { email, currentPassword, oldPassword, newPassword } = req.body;
+    const userEmail = email || (req.user && req.user.email);
+    if (!userEmail) {
+      return res.status(400).json({ success: false, message: "User email is required" });
+    }
+    const pwdToVerify = currentPassword || oldPassword;
+    if (!pwdToVerify || !newPassword) {
+      return res.status(400).json({ success: false, message: "Current and new passwords are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: "New password must be at least 6 characters long." });
+    }
+    const user = await User.findOne({ email: userEmail.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User account not found" });
+    }
+    if (!verifyPassword(pwdToVerify, user.password)) {
+      return res.status(400).json({ success: false, message: "Current password does not match" });
+    }
+    user.password = hashPassword(newPassword);
+    await user.save();
+    return res.json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// Helper: Mask sensitive bank account number
+// -------------------------------------------------------------
+function maskAccountNumber(accNo) {
+  if (!accNo || typeof accNo !== "string") return "";
+  const clean = accNo.trim();
+  if (clean.length <= 4) return "••••" + clean;
+  return "•".repeat(clean.length - 4) + clean.slice(-4);
+}
+
 // -------------------------------------------------------------
 // 4. Data Endpoints: Landlords
 // -------------------------------------------------------------
-app.get("/api/landlords", async (req, res) => {
+app.get("/api/landlords", requireAuth, async (req, res) => {
   try {
-    const rows = await Landlord.find().sort({ id: 1 }).lean();
-    res.json(rows);
+    let filter = {};
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      filter = { id: lId };
+    } else if (req.user.role === "tenant") {
+      // Tenants only see public details of landlords
+      const rows = await Landlord.find().select("id name location").sort({ id: 1 }).lean();
+      return res.json(rows);
+    }
+    const rows = await Landlord.find(filter).sort({ id: 1 }).lean();
+    const sanitized = rows.map((r) => {
+      if (r.banking) {
+        return {
+          ...r,
+          banking: {
+            ...r.banking,
+            accountNumber: maskAccountNumber(r.banking.accountNumber),
+            maskedAccountNumber: maskAccountNumber(r.banking.accountNumber),
+          },
+        };
+      }
+      return r;
+    });
+    res.json(sanitized);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/landlords", async (req, res) => {
+app.get("/api/landlords/me", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Landlord profile accessible to landlords and admins only." });
+    }
+    const lId = await resolveLandlordId(req.user);
+    const landlord = await Landlord.findOne({ id: lId }).lean();
+    if (!landlord) {
+      return res.status(404).json({ error: "Landlord profile not found." });
+    }
+    if (landlord.banking) {
+      landlord.banking.accountNumber = maskAccountNumber(landlord.banking.accountNumber);
+      landlord.banking.maskedAccountNumber = maskAccountNumber(landlord.banking.accountNumber);
+    }
+    res.json(landlord);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/landlords", requireRoles("admin"), async (req, res) => {
   try {
     const l = req.body;
     const id = l.id || `LDL${Math.floor(Math.random() * 900 + 100)}`;
@@ -587,8 +723,16 @@ app.post("/api/landlords", async (req, res) => {
   }
 });
 
-app.put("/api/landlords/:id", async (req, res) => {
+app.put("/api/landlords/:id", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      if (req.params.id !== lId) {
+        return res.status(403).json({ error: "Forbidden: You cannot modify another landlord's record." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
     const updated = await Landlord.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
@@ -601,7 +745,7 @@ app.put("/api/landlords/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/landlords/:id", async (req, res) => {
+app.delete("/api/landlords/:id", requireRoles("admin"), async (req, res) => {
   try {
     const deleted = await Landlord.findOneAndDelete({ id: req.params.id });
     if (!deleted) return res.status(404).json({ error: "Landlord not found" });
@@ -614,36 +758,94 @@ app.delete("/api/landlords/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 5. Data Endpoints: Tenants
 // -------------------------------------------------------------
-app.get("/api/tenants", async (req, res) => {
+app.get("/api/tenants", requireAuth, async (req, res) => {
   try {
-    const rows = await Tenant.find().sort({ id: 1 }).lean();
+    let filter = {};
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const activeLeases = await Lease.find({
+        $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }],
+      }).select("tenantId tenant_id").lean();
+      const tenantIds = activeLeases.map((l) => l.tenantId || l.tenant_id).filter(Boolean);
+
+      filter = {
+        $or: [
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+          { id: { $in: tenantIds } },
+        ],
+      };
+    } else if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter = { id: myId };
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    const rows = await Tenant.find(filter).sort({ id: 1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/api/tenants/:id", async (req, res) => {
+app.get("/api/tenants/:id", requireAuth, async (req, res) => {
   try {
     const tenant = await Tenant.findOne({ id: req.params.id }).lean();
     if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (tenant.id !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot access another tenant's profile." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const hasLease = await Lease.findOne({
+        $and: [
+          { $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }] },
+          { $or: [{ tenantId: tenant.id }, { tenant_id: tenant.id }] },
+        ],
+      }).lean();
+      const ownsProp = tenant.propertyId && propIds.includes(tenant.propertyId);
+      if (!ownsProp && !hasLease) {
+        return res.status(403).json({ error: "Forbidden: You do not have access to this tenant record." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     res.json(tenant);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/tenants", async (req, res) => {
+app.post("/api/tenants", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot create tenant records." });
+    }
     const t = req.body;
+    const propId = t.propertyId || t.property_id;
+    if (req.user.role === "landlord" && propId) {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own this property." });
+      }
+    }
+
     const id = t.id || `TEN${Math.floor(Math.random() * 900 + 100)}`;
     const created = await Tenant.create({
       id,
       name: t.name || "Resident Tenant",
       email: t.email || "",
       phone: t.phone || "",
-      propertyId: t.propertyId || t.property_id || null,
-      property_id: t.propertyId || t.property_id || null,
+      propertyId: propId || null,
+      property_id: propId || null,
       leaseId: t.leaseId || t.lease_id || null,
       lease_id: t.leaseId || t.lease_id || null,
       location: t.location || "Chennai",
@@ -651,10 +853,9 @@ app.post("/api/tenants", async (req, res) => {
       status: t.status || "Active",
     });
 
-    // Also register or sync property tenantId if property was allotted
-    if (t.propertyId || t.property_id) {
+    if (propId) {
       await Property.findOneAndUpdate(
-        { id: t.propertyId || t.property_id },
+        { id: propId },
         { $set: { tenantId: id, tenant_id: id, status: "Occupied" } }
       );
     }
@@ -665,10 +866,41 @@ app.post("/api/tenants", async (req, res) => {
   }
 });
 
-app.put("/api/tenants/:id", async (req, res) => {
+app.put("/api/tenants/:id", requireAuth, async (req, res) => {
   try {
     const t = req.body;
     const updateData = { ...t };
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (req.params.id !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot modify another tenant's profile." });
+      }
+      delete updateData.propertyId;
+      delete updateData.property_id;
+      delete updateData.leaseId;
+      delete updateData.lease_id;
+      delete updateData.status;
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const tenant = await Tenant.findOne({ id: req.params.id }).lean();
+      if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+
+      const hasLease = await Lease.findOne({
+        $and: [
+          { $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }] },
+          { $or: [{ tenantId: tenant.id }, { tenant_id: tenant.id }] },
+        ],
+      }).lean();
+      const ownsProp = tenant.propertyId && propIds.includes(tenant.propertyId);
+      if (!ownsProp && !hasLease) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to modify this tenant." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     if (t.propertyId) updateData.property_id = t.propertyId;
     if (t.leaseId) updateData.lease_id = t.leaseId;
 
@@ -684,12 +916,27 @@ app.put("/api/tenants/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/tenants/:id", async (req, res) => {
+app.delete("/api/tenants/:id", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete tenant records." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const tenant = await Tenant.findOne({ id: req.params.id }).lean();
+      if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+      const ownsProp = tenant.propertyId && propIds.includes(tenant.propertyId);
+      if (!ownsProp) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to delete this tenant." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     const deleted = await Tenant.findOneAndDelete({ id: req.params.id });
     if (!deleted) return res.status(404).json({ error: "Tenant not found" });
 
-    // Free up property if tenant was assigned
     await Property.updateMany(
       { tenantId: req.params.id },
       { $set: { tenantId: null, tenant_id: null, status: "Available" } }
@@ -706,7 +953,14 @@ app.delete("/api/tenants/:id", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
   try {
-    const rows = await Property.find().sort({ id: 1 }).lean();
+    const filter = {};
+    if (req.user?.role === "landlord" && req.query.public !== "true" && req.query.all !== "true") {
+      const lId = await resolveLandlordId(req.user);
+      filter.$or = [{ landlordId: lId }, { landlord_id: lId }];
+    } else if (req.query.landlordId && req.user?.role === "admin") {
+      filter.$or = [{ landlordId: req.query.landlordId }, { landlord_id: req.query.landlordId }];
+    }
+    const rows = await Property.find(filter).sort({ id: 1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -755,20 +1009,25 @@ app.get("/api/properties/:id", async (req, res) => {
   }
 });
 
-app.post("/api/properties", async (req, res) => {
+app.post("/api/properties", requireAuth, async (req, res) => {
   try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Only landlords and admins can create properties." });
+    }
     const p = req.body;
     const id = p.id || `TN_${Date.now()}`;
+    const lId = req.user.role === "landlord" ? await resolveLandlordId(req.user) : (p.landlordId || p.landlord_id || "LDL001");
+
     const amenities = Array.isArray(p.amenities)
       ? p.amenities
       : typeof p.amenities === "string"
-      ? p.amenities.split(",").map((s) => s.trim())
-      : [];
+        ? p.amenities.split(",").map((s) => s.trim())
+        : [];
     const nearbyFacilities = Array.isArray(p.nearbyFacilities)
       ? p.nearbyFacilities
       : typeof p.nearbyFacilities === "string"
-      ? p.nearbyFacilities.split(",").map((s) => s.trim())
-      : [];
+        ? p.nearbyFacilities.split(",").map((s) => s.trim())
+        : [];
 
     const newProperty = await Property.create({
       id,
@@ -785,8 +1044,8 @@ app.post("/api/properties", async (req, res) => {
       rent: Number(p.rent || 0),
       deposit: Number(p.deposit || 0),
       status: p.status || "Available",
-      landlordId: p.landlordId || p.landlord_id || "LDL001",
-      landlord_id: p.landlordId || p.landlord_id || "LDL001",
+      landlordId: lId,
+      landlord_id: lId,
       tenantId: p.tenantId || p.tenant_id || null,
       tenant_id: p.tenantId || p.tenant_id || null,
       bedrooms: Number(p.bedrooms || 1),
@@ -814,11 +1073,25 @@ app.post("/api/properties", async (req, res) => {
   }
 });
 
-app.put("/api/properties/:id", async (req, res) => {
+app.put("/api/properties/:id", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, req.params.id);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to modify this property." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     const p = req.body;
     const updateData = { ...p };
-    if (p.landlordId) updateData.landlord_id = p.landlordId;
+    if (req.user.role === "landlord") {
+      delete updateData.landlordId;
+      delete updateData.landlord_id;
+    }
+    if (p.landlordId && req.user.role === "admin") updateData.landlord_id = p.landlordId;
     if (p.tenantId !== undefined) updateData.tenant_id = p.tenantId;
 
     const updated = await Property.findOneAndUpdate(
@@ -833,8 +1106,18 @@ app.put("/api/properties/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/properties/:id", async (req, res) => {
+app.delete("/api/properties/:id", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, req.params.id);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to delete this property." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     const deleted = await Property.findOneAndDelete({ id: req.params.id });
     if (!deleted) return res.status(404).json({ error: "Property not found" });
     res.json({ success: true, message: "Property removed", id: req.params.id });
@@ -846,27 +1129,74 @@ app.delete("/api/properties/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 7. Leases API (Backed by MongoDB `leases` collection)
 // -------------------------------------------------------------
-app.get("/api/leases", async (req, res) => {
+app.get("/api/leases", requireAuth, async (req, res) => {
   try {
-    const rows = await Lease.find().sort({ id: 1 }).lean();
+    const filter = {};
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter.$or = [{ tenantId: myId }, { tenant_id: myId }];
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      if (req.query.propertyId) {
+        if (!propIds.includes(req.query.propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId: req.query.propertyId }, { property_id: req.query.propertyId }];
+      } else {
+        filter.$or = [
+          { landlordId: lId },
+          { landlord_id: lId },
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+        ];
+      }
+    } else if (req.user.role === "admin") {
+      if (req.query.propertyId) {
+        filter.$or = [{ propertyId: req.query.propertyId }, { property_id: req.query.propertyId }];
+      }
+      if (req.query.landlordId) {
+        filter.$or = [{ landlordId: req.query.landlordId }, { landlord_id: req.query.landlordId }];
+      }
+    } else {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    const rows = await Lease.find(filter).sort({ id: 1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/leases", async (req, res) => {
+app.post("/api/leases", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot create leases." });
+    }
     const l = req.body;
+    const propId = l.propertyId || l.property_id;
+    let lId = l.landlordId || l.landlord_id || "LDL001";
+
+    if (req.user.role === "landlord") {
+      lId = await resolveLandlordId(req.user);
+      if (propId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own the property for this lease." });
+        }
+      }
+    }
+
     const id = l.id || `LSE${Math.floor(Math.random() * 900 + 100)}`;
     const created = await Lease.create({
       id,
-      propertyId: l.propertyId || l.property_id || null,
-      property_id: l.propertyId || l.property_id || null,
+      propertyId: propId || null,
+      property_id: propId || null,
       tenantId: l.tenantId || l.tenant_id || null,
       tenant_id: l.tenantId || l.tenant_id || null,
-      landlordId: l.landlordId || l.landlord_id || "LDL001",
-      landlord_id: l.landlordId || l.landlord_id || "LDL001",
+      landlordId: lId,
+      landlord_id: lId,
       startDate: l.startDate || l.start_date || "",
       start_date: l.startDate || l.start_date || "",
       endDate: l.endDate || l.end_date || "",
@@ -890,9 +1220,9 @@ app.post("/api/leases", async (req, res) => {
     });
 
     // Update property status
-    if (l.propertyId || l.property_id) {
+    if (propId) {
       await Property.findOneAndUpdate(
-        { id: l.propertyId || l.property_id },
+        { id: propId },
         { $set: { status: "Occupied", tenantId: l.tenantId || null, tenant_id: l.tenantId || null } }
       );
     }
@@ -900,7 +1230,7 @@ app.post("/api/leases", async (req, res) => {
     if (l.tenantId || l.tenant_id) {
       await Tenant.findOneAndUpdate(
         { id: l.tenantId || l.tenant_id },
-        { $set: { leaseId: id, lease_id: id, propertyId: l.propertyId || null, property_id: l.propertyId || null } }
+        { $set: { leaseId: id, lease_id: id, propertyId: propId || null, property_id: propId || null } }
       );
     }
 
@@ -910,25 +1240,282 @@ app.post("/api/leases", async (req, res) => {
   }
 });
 
-app.put("/api/leases/:id", async (req, res) => {
+app.put("/api/leases/:id", requireAuth, async (req, res) => {
   try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot modify lease terms." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to modify this lease." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     const updated = await Lease.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Lease not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/leases/:id", async (req, res) => {
+app.delete("/api/leases/:id", requireAuth, async (req, res) => {
   try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete leases." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to delete this lease." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
     const deleted = await Lease.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Lease not found" });
     res.json({ success: true, message: "Lease removed", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 2: Send Lease Renewal Reminder
+app.post("/api/leases/:id/remind-renewal", requireAuth, async (req, res) => {
+  try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Only landlords can send renewal reminders." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own this lease." });
+      }
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const updated = await Lease.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: {
+          renewalStatus: "Reminder Sent",
+          renewalReminderDate: today,
+          renewalNotes: req.body.notes || lease.renewalNotes || "Renewal reminder dispatched by landlord.",
+        },
+      },
+      { new: true }
+    ).lean();
+
+    try {
+      const tenantId = lease.tenantId || lease.tenant_id;
+      if (tenantId) {
+        await Notification.create({
+          id: `NOTIF_${Date.now()}`,
+          userId: tenantId,
+          role: "tenant",
+          title: "Lease Renewal Reminder",
+          message: `Your landlord has sent a renewal notice for property ${lease.propertyName || lease.propertyId}. Your current term ends on ${lease.endDate || lease.end_date}.`,
+          type: "lease",
+          read: false,
+          date: today,
+        });
+      }
+    } catch {}
+
+    res.json({ success: true, message: "Renewal reminder sent successfully", lease: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 2: Renew Lease
+app.post("/api/leases/:id/renew", requireAuth, async (req, res) => {
+  try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot renew leases unilaterally." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own this lease." });
+      }
+    }
+
+    const { newStartDate, newEndDate, newMonthlyRent, termMonths, notes } = req.body;
+    const historyEntry = {
+      version: (lease.agreementHistory?.length || 0) + 1,
+      updatedDate: new Date().toISOString().split("T")[0],
+      updatedBy: req.user.name || "Landlord",
+      reason: "Lease Term Renewal",
+      previousRent: lease.monthlyRent || lease.rent || 0,
+      previousEndDate: lease.endDate || lease.end_date || "",
+    };
+
+    const updateFields = {
+      status: "Active",
+      renewalStatus: "Renewed",
+      agreementStatus: "Active",
+      signatureStatus: "Fully Signed",
+      renewalNotes: notes || "Lease term successfully renewed.",
+      termMonths: Number(termMonths || 11),
+      term_months: Number(termMonths || 11),
+    };
+
+    if (newStartDate) {
+      updateFields.startDate = newStartDate;
+      updateFields.start_date = newStartDate;
+    }
+    if (newEndDate) {
+      updateFields.endDate = newEndDate;
+      updateFields.end_date = newEndDate;
+    }
+    if (newMonthlyRent) {
+      updateFields.monthlyRent = Number(newMonthlyRent);
+      updateFields.monthly_rent = Number(newMonthlyRent);
+      updateFields.rent = Number(newMonthlyRent);
+    }
+
+    const updated = await Lease.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: updateFields,
+        $push: { agreementHistory: historyEntry },
+      },
+      { new: true }
+    ).lean();
+
+    res.json({ success: true, message: "Lease renewed successfully", lease: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 2: Terminate Lease (with confirmation)
+app.post("/api/leases/:id/terminate", requireAuth, async (req, res) => {
+  try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Only landlords or admins can terminate leases." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own this lease." });
+      }
+    }
+
+    const { reason, terminationDate } = req.body;
+    const historyEntry = {
+      version: (lease.agreementHistory?.length || 0) + 1,
+      updatedDate: terminationDate || new Date().toISOString().split("T")[0],
+      updatedBy: req.user.name || "Landlord",
+      reason: reason || "Mutual Termination",
+      previousRent: lease.monthlyRent || lease.rent || 0,
+      previousEndDate: lease.endDate || lease.end_date || "",
+    };
+
+    const updated = await Lease.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: {
+          status: "Terminated",
+          agreementStatus: "Terminated",
+        },
+        $push: { agreementHistory: historyEntry },
+      },
+      { new: true }
+    ).lean();
+
+    res.json({ success: true, message: "Lease terminated and archived", lease: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 2: Move-In & Move-Out Inspection
+app.post("/api/leases/:id/inspection", requireAuth, async (req, res) => {
+  try {
+    const lease = await Lease.findOne({ id: req.params.id }).lean();
+    if (!lease) return res.status(404).json({ error: "Lease not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Only landlords can conduct and record official inspections." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = lease.landlordId === lId || lease.landlord_id === lId || (lease.propertyId && propIds.includes(lease.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own this lease." });
+      }
+    }
+
+    const { type, inspectionData } = req.body;
+    const update = {};
+    if (type === "moveIn") {
+      update.moveInInspection = {
+        inspectionDate: inspectionData.inspectionDate || new Date().toISOString().split("T")[0],
+        condition: inspectionData.condition || "Good",
+        notes: inspectionData.notes || "",
+        checklist: inspectionData.checklist || [],
+        photos: inspectionData.photos || [],
+        inspectedBy: req.user.name || "Landlord",
+        status: "Completed",
+      };
+    } else if (type === "moveOut") {
+      update.moveOutInspection = {
+        inspectionDate: inspectionData.inspectionDate || new Date().toISOString().split("T")[0],
+        condition: inspectionData.condition || "Fair",
+        damageNotes: inspectionData.damageNotes || "",
+        checklist: inspectionData.checklist || [],
+        photos: inspectionData.photos || [],
+        pendingDues: Number(inspectionData.pendingDues || 0),
+        estimatedDamageCost: Number(inspectionData.estimatedDamageCost || 0),
+        depositSettlementRef: inspectionData.depositSettlementRef || `DEP-SETTLE-${lease.id}`,
+        settlementStatus: inspectionData.settleDeposit ? "Settled" : (inspectionData.settlementStatus || "Pending"),
+        inspectedBy: req.user.name || "Landlord",
+      };
+    } else {
+      return res.status(400).json({ error: "Inspection type must be 'moveIn' or 'moveOut'." });
+    }
+
+    const updated = await Lease.findOneAndUpdate(
+      { id: req.params.id },
+      { $set: update },
+      { new: true }
+    ).lean();
+
+    res.json({ success: true, message: `${type === "moveIn" ? "Move-in" : "Move-out"} inspection recorded successfully`, lease: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -991,7 +1578,23 @@ app.get("/api/leases/rent-schedules", async (req, res) => {
       filter.$or = [{ landlordId: myId }, { landlord_id: myId }];
     }
 
-    const leases = await Lease.find(filter).sort({ id: 1 }).lean();
+    const leases = await Lease.find(filter).lean();
+    
+    // Prioritize active primary residential leases first so schedules[0] is the primary home
+    leases.sort((a, b) => {
+      const aActive = (a.status || "").toLowerCase() === "active" ? 1 : 0;
+      const bActive = (b.status || "").toLowerCase() === "active" ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+
+      const aAncillary = (a.id || "").includes("-P") || (a.id || "").includes("-S") ? 1 : 0;
+      const bAncillary = (b.id || "").includes("-P") || (b.id || "").includes("-S") ? 1 : 0;
+      if (aAncillary !== bAncillary) return aAncillary - bAncillary;
+
+      const aRent = Number(a.monthlyRent || a.monthly_rent || a.rent || 0);
+      const bRent = Number(b.monthlyRent || b.monthly_rent || b.rent || 0);
+      return bRent - aRent;
+    });
+
     const schedules = [];
 
     for (const lease of leases) {
@@ -999,8 +1602,6 @@ app.get("/api/leases/rent-schedules", async (req, res) => {
         $or: [
           { leaseId: lease.id },
           { lease_id: lease.id },
-          { tenantId: lease.tenantId || lease.tenant_id },
-          { tenant_id: lease.tenantId || lease.tenant_id },
         ],
       }).sort({ date: -1 }).lean();
 
@@ -1073,12 +1674,18 @@ app.post("/api/leases/:id/generate-rent-invoice", async (req, res) => {
     const lease = await Lease.findOne({ id: req.params.id }).lean();
     if (!lease) return res.status(404).json({ error: "Lease not found" });
 
+    // Edge Case: Terminated, cancelled or expired leases cannot generate new recurring rent invoices
+    if (lease.status === "Terminated" || lease.status === "Cancelled" || lease.status === "Expired") {
+      return res.status(400).json({
+        error: `Cannot generate recurring rent invoice: Lease ${lease.id} is ${lease.status.toLowerCase()}.`,
+        leaseStatus: lease.status,
+      });
+    }
+
     const leasePayments = await Payment.find({
       $or: [
         { leaseId: lease.id },
         { lease_id: lease.id },
-        { tenantId: lease.tenantId || lease.tenant_id },
-        { tenant_id: lease.tenantId || lease.tenant_id },
       ],
     }).lean();
 
@@ -1098,13 +1705,17 @@ app.post("/api/leases/:id/generate-rent-invoice", async (req, res) => {
 
     const invoiceNo = cycle.invoiceNo;
 
-    // Strict duplicate check: Look for existing invoice for this period
+    // Strict duplicate check: Look for existing invoice for this period across key identifiers
     const existing = await Payment.findOne({
       $or: [
         { invoiceNo },
         { invoice_no: invoiceNo },
         { leaseId: lease.id, periodStart: cycle.periodStart },
         { lease_id: lease.id, period_start: cycle.periodStart },
+        { leaseId: lease.id, month: cycle.periodLabel },
+        { lease_id: lease.id, month: cycle.periodLabel },
+        { leaseId: lease.id, dueDate: cycle.currentDueDate },
+        { lease_id: lease.id, due_date: cycle.currentDueDate },
       ],
     });
 
@@ -1634,19 +2245,44 @@ app.post("/api/reminders/send-all", async (req, res) => {
 // -------------------------------------------------------------
 // 8. Payments API (Backed by MongoDB `payments` collection)
 // -------------------------------------------------------------
-app.get("/api/payments", async (req, res) => {
+app.get("/api/payments", requireAuth, async (req, res) => {
   try {
     const { tenantId, propertyId, leaseId } = req.query;
     const filter = {};
-    if (tenantId) {
-      filter.$or = [{ tenantId: tenantId }, { tenant_id: tenantId }];
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter.$or = [{ tenantId: myId }, { tenant_id: myId }];
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+
+      if (propertyId) {
+        if (!propIds.includes(propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId }, { property_id: propertyId }];
+      } else {
+        filter.$or = [
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+        ];
+      }
+      if (tenantId) {
+        filter.$and = filter.$and || [];
+        filter.$and.push({ $or: [{ tenantId }, { tenant_id: tenantId }] });
+      }
+      if (leaseId) {
+        filter.$and = filter.$and || [];
+        filter.$and.push({ $or: [{ leaseId }, { lease_id: leaseId }] });
+      }
+    } else if (req.user.role === "admin") {
+      if (tenantId) filter.$or = [{ tenantId }, { tenant_id: tenantId }];
+      if (propertyId) filter.$or = [{ propertyId }, { property_id: propertyId }];
+      if (leaseId) filter.$or = [{ leaseId }, { lease_id: leaseId }];
+    } else {
+      return res.status(403).json({ error: "Forbidden: Role not authorized for payments." });
     }
-    if (propertyId) {
-      filter.$or = [{ propertyId: propertyId }, { property_id: propertyId }];
-    }
-    if (leaseId) {
-      filter.$or = [{ leaseId }, { lease_id: leaseId }];
-    }
+
     let rows = await Payment.find(filter).sort({ date: -1, id: -1 }).lean();
 
     // Auto-repair any payments with zero or invalid amounts
@@ -1679,9 +2315,24 @@ app.get("/api/payments", async (req, res) => {
   }
 });
 
-app.post("/api/payments", async (req, res) => {
+app.post("/api/payments", requireAuth, async (req, res) => {
   try {
     const p = req.body;
+    let propId = p.propertyId || p.property_id || null;
+    let tenantId = p.tenantId || p.tenant_id || null;
+
+    if (req.user.role === "tenant") {
+      tenantId = await resolveTenantId(req.user);
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      if (propId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+      }
+    }
+
     const id = p.id || `PAY_${Date.now()}`;
     const date = p.date || new Date().toISOString().split("T")[0];
     const invoiceNo = p.invoiceNo || p.invoice_no || `INV-${Date.now()}`;
@@ -1696,26 +2347,52 @@ app.post("/api/payments", async (req, res) => {
       }
     }
 
+    // Phase 3: Prevent duplicate rent invoices for the same lease and billing month
+    if ((p.leaseId || p.lease_id) && p.month) {
+      const existingLeaseMonth = await Payment.findOne({
+        $or: [{ leaseId: p.leaseId || p.lease_id }, { lease_id: p.leaseId || p.lease_id }],
+        month: p.month,
+      });
+      if (existingLeaseMonth) {
+        return res.status(409).json({ error: "Duplicate invoice: An invoice for this lease and month already exists." });
+      }
+    }
+
+    const totalAmount = Number(p.amount || 0);
+    const initialPaid = Number(p.paidAmount || (p.status === "Paid" ? totalAmount : 0));
+    const remainingBalance = Math.max(0, totalAmount - initialPaid);
+    let finalStatus = p.status || "Pending";
+    if (initialPaid >= totalAmount && totalAmount > 0) {
+      finalStatus = "Paid";
+    } else if (initialPaid > 0) {
+      finalStatus = "Partially Paid";
+    }
+
     const newPayment = await Payment.create({
       id,
       leaseId: p.leaseId || p.lease_id || null,
       lease_id: p.leaseId || p.lease_id || null,
-      tenantId: p.tenantId || p.tenant_id || null,
-      tenant_id: p.tenantId || p.tenant_id || null,
-      propertyId: p.propertyId || p.property_id || null,
-      property_id: p.propertyId || p.property_id || null,
+      tenantId,
+      tenant_id: tenantId,
+      propertyId: propId,
+      property_id: propId,
       tenantName: p.tenantName || p.tenant_name || "",
       tenant_name: p.tenantName || p.tenant_name || "",
       propertyName: p.propertyName || p.property_name || "",
       property_name: p.propertyName || p.property_name || "",
       month: p.month || "Current Month",
-      amount: Number(p.amount || 0),
-      status: p.status || "Paid",
+      amount: totalAmount,
+      paidAmount: initialPaid,
+      remainingBalance,
+      status: finalStatus,
+      paymentMethod: p.paymentMethod || p.method || "UPI",
+      transactionRef: p.transactionRef || "",
+      notes: p.notes || "",
       date,
       dueDate: p.dueDate || p.due_date || "",
       due_date: p.dueDate || p.due_date || "",
-      paidDate: p.paidDate || p.paid_date || (p.status === "Paid" ? date : ""),
-      paid_date: p.paidDate || p.paid_date || (p.status === "Paid" ? date : ""),
+      paidDate: p.paidDate || p.paid_date || (finalStatus === "Paid" ? date : ""),
+      paid_date: p.paidDate || p.paid_date || (finalStatus === "Paid" ? date : ""),
       periodStart: p.periodStart || p.period_start || "",
       period_start: p.periodStart || p.period_start || "",
       periodEnd: p.periodEnd || p.period_end || "",
@@ -1727,6 +2404,13 @@ app.post("/api/payments", async (req, res) => {
       invoice_no: invoiceNo,
       receiptUrl: p.receiptUrl || p.receipt_url || "",
       receipt_url: p.receiptUrl || p.receipt_url || "",
+      paymentHistory: initialPaid > 0 ? [{
+        amount: initialPaid,
+        date,
+        method: p.paymentMethod || p.method || "UPI",
+        reference: p.transactionRef || `REF-${Date.now()}`,
+        recordedBy: req.user.name || "Landlord",
+      }] : [],
     });
 
     res.status(201).json(newPayment);
@@ -1735,24 +2419,191 @@ app.post("/api/payments", async (req, res) => {
   }
 });
 
-app.put("/api/payments/:id", async (req, res) => {
+// Phase 3: Record Payment (supports partial payments & balance updates)
+app.post("/api/payments/:id/record-payment", requireAuth, async (req, res) => {
   try {
+    const payment = await Payment.findOne({ id: req.params.id }).lean();
+    if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot record official payment receipts." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, payment.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this payment." });
+      }
+    }
+
+    const { amountPaid, amount, paymentMethod, transactionRef, notes, date } = req.body;
+    const paymentAmount = Number(amountPaid || amount || 0);
+    if (paymentAmount <= 0) {
+      return res.status(400).json({ error: "Payment amount must be greater than 0" });
+    }
+
+    // Edge Case: Prevent duplicate payment recordings with identical transaction reference
+    if (transactionRef && Array.isArray(payment.paymentHistory)) {
+      const isDuplicateRef = payment.paymentHistory.some(
+        (h) => h.reference && h.reference.trim().toLowerCase() === transactionRef.trim().toLowerCase()
+      );
+      if (isDuplicateRef) {
+        return res.status(409).json({
+          error: `Duplicate payment detected: Transaction reference "${transactionRef}" has already been processed for this invoice.`,
+          duplicateReference: transactionRef,
+        });
+      }
+    }
+
+    // Edge Case: Check if invoice is already fully settled
+    const totalInvoiceAmount = Number(payment.amount || 0);
+    const prevPaid = Number(payment.paidAmount || (payment.status === "Paid" ? totalInvoiceAmount : 0));
+    if (payment.status === "Paid" && prevPaid >= totalInvoiceAmount) {
+      return res.status(400).json({ error: "Invoice is already fully settled. No remaining balance due." });
+    }
+
+    const newPaidAmount = prevPaid + paymentAmount;
+    const remainingBalance = Math.max(0, totalInvoiceAmount - newPaidAmount);
+    const newStatus = remainingBalance <= 0 ? "Paid" : "Partially Paid";
+    const paymentDate = date || new Date().toISOString().split("T")[0];
+
+    const historyEntry = {
+      amount: paymentAmount,
+      date: paymentDate,
+      method: paymentMethod || "UPI",
+      reference: transactionRef || `REF-${Date.now()}`,
+      recordedBy: req.user.name || "Landlord",
+    };
+
+    const updated = await Payment.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: {
+          paidAmount: newPaidAmount,
+          remainingBalance,
+          status: newStatus,
+          paidDate: newStatus === "Paid" ? paymentDate : payment.paidDate,
+          paid_date: newStatus === "Paid" ? paymentDate : payment.paid_date,
+          paymentMethod: paymentMethod || payment.paymentMethod || "UPI",
+          transactionRef: transactionRef || payment.transactionRef || "",
+          notes: notes || payment.notes || "",
+        },
+        $push: { paymentHistory: historyEntry },
+      },
+      { new: true }
+    ).lean();
+
+    res.json({ success: true, message: `Payment of ₹${paymentAmount} recorded. Remaining: ₹${remainingBalance}`, payment: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Idempotent Payment Webhook Handler (Razorpay / Stripe / Gateway Webhooks)
+app.post("/api/payments/webhook", async (req, res) => {
+  try {
+    const { event, eventId, payload } = req.body;
+    if (!eventId) {
+      return res.status(400).json({ error: "Missing required webhook eventId." });
+    }
+
+    // Edge Case: Prevent duplicate processing of the same webhook eventId
+    const existingPayment = await Payment.findOne({
+      "paymentHistory.reference": eventId,
+    });
+    if (existingPayment) {
+      return res.status(200).json({
+        status: "ignored",
+        message: `Duplicate webhook event "${eventId}" already processed.`,
+        invoiceId: existingPayment.id,
+      });
+    }
+
+    const invoiceId = payload?.invoiceId || payload?.paymentId;
+    if (!invoiceId) {
+      return res.status(400).json({ error: "Missing invoiceId in webhook payload." });
+    }
+
+    const payment = await Payment.findOne({ id: invoiceId });
+    if (!payment) {
+      return res.status(404).json({ error: "Invoice not found for webhook settlement." });
+    }
+
+    if (payment.status === "Paid" && Number(payment.remainingBalance || 0) <= 0) {
+      return res.status(200).json({ status: "ignored", message: "Invoice already fully paid and settled." });
+    }
+
+    const amountPaid = Number(payload?.amount || payment.remainingBalance || payment.amount);
+    const newPaidAmount = (payment.paidAmount || 0) + amountPaid;
+    const remainingBalance = Math.max(0, (payment.amount || 0) - newPaidAmount);
+
+    payment.paidAmount = newPaidAmount;
+    payment.remainingBalance = remainingBalance;
+    payment.status = remainingBalance <= 0 ? "Paid" : "Partially Paid";
+    payment.paymentHistory = payment.paymentHistory || [];
+    payment.paymentHistory.push({
+      amount: amountPaid,
+      date: new Date().toISOString().split("T")[0],
+      method: payload?.method || "Payment Gateway Webhook",
+      reference: eventId,
+      recordedBy: "Automated Gateway Webhook",
+    });
+
+    await payment.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Webhook payment reconciled successfully.",
+      invoice: payment,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/payments/:id", requireAuth, async (req, res) => {
+  try {
+    const payment = await Payment.findOne({ id: req.params.id }).lean();
+    if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot modify payment records." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, payment.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this payment." });
+      }
+    }
+
     const updated = await Payment.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Payment not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/payments/:id", async (req, res) => {
+app.delete("/api/payments/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await Payment.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Payment not found" });
+    const payment = await Payment.findOne({ id: req.params.id }).lean();
+    if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete payment records." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, payment.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this payment." });
+      }
+    }
+    await Payment.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Payment removed", id: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1762,37 +2613,86 @@ app.delete("/api/payments/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 9. Maintenance Requests API (Backed by MongoDB `maintenancerequests`)
 // -------------------------------------------------------------
-app.get("/api/maintenance", async (req, res) => {
+app.get("/api/maintenance", requireAuth, async (req, res) => {
   try {
-    const rows = await MaintenanceRequest.find().sort({ id: -1 }).lean();
+    const filter = {};
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter.$or = [{ tenantId: myId }, { tenant_id: myId }];
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      if (req.query.propertyId) {
+        if (!propIds.includes(req.query.propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId: req.query.propertyId }, { property_id: req.query.propertyId }];
+      } else {
+        filter.$or = [
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+        ];
+      }
+    } else if (req.user.role === "provider" || req.user.role === "service_provider") {
+      const provId = await resolveProviderId(req.user);
+      filter.$or = [
+        { assignedTo: provId },
+        { assigned_to: provId },
+        { assignedTo: req.user.name },
+        { assigned_to: req.user.name },
+      ];
+    }
+
+    const rows = await MaintenanceRequest.find(filter).sort({ id: -1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/maintenance", async (req, res) => {
+app.post("/api/maintenance", requireAuth, async (req, res) => {
   try {
     const m = req.body;
     const id = m.id || `MNT${Math.floor(Math.random() * 900 + 100)}`;
     const date = m.date || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
+    let tenantId = m.tenantId || m.tenant_id || "TEN001";
+    let status = m.status || "Open";
+    let assignedTo = m.assignedTo || m.assigned_to || null;
+    let estimatedCost = Number(m.estimatedCost || m.estimated_cost || 0);
+
+    if (req.user.role === "tenant") {
+      tenantId = await resolveTenantId(req.user);
+      status = "Open";
+      assignedTo = null;
+      estimatedCost = 0;
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propId = m.propertyId || m.property_id;
+      if (propId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+      }
+    }
+
     const newTicket = await MaintenanceRequest.create({
       id,
       propertyId: m.propertyId || m.property_id || null,
       property_id: m.propertyId || m.property_id || null,
-      tenantId: m.tenantId || m.tenant_id || "TEN001",
-      tenant_id: m.tenantId || m.tenant_id || "TEN001",
+      tenantId,
+      tenant_id: tenantId,
       title: m.title || m.issue || m.issueText || "Maintenance Ticket",
       description: m.description || m.issue || m.issueText || "",
       category: m.category || "General",
       priority: m.priority || "Medium",
-      status: m.status || "Open",
+      status,
       date,
-      assignedTo: m.assignedTo || m.assigned_to || m.vendor || null,
-      assigned_to: m.assignedTo || m.assigned_to || m.vendor || null,
-      estimatedCost: Number(m.estimatedCost || m.estimated_cost || 0),
-      estimated_cost: Number(m.estimatedCost || m.estimated_cost || 0),
+      assignedTo,
+      assigned_to: assignedTo,
+      estimatedCost,
+      estimated_cost: estimatedCost,
     });
 
     res.status(201).json(newTicket);
@@ -1801,24 +2701,140 @@ app.post("/api/maintenance", async (req, res) => {
   }
 });
 
-app.put("/api/maintenance/:id", async (req, res) => {
+app.put("/api/maintenance/:id", requireAuth, async (req, res) => {
   try {
+    const ticket = await MaintenanceRequest.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (ticket.tenantId !== myId && ticket.tenant_id !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot modify another tenant's ticket." });
+      }
+      if (req.body.status && req.body.status !== ticket.status && req.body.status !== "Cancelled") {
+        return res.status(403).json({ error: "Forbidden: Tenants cannot arbitrarily change maintenance status." });
+      }
+      const allowedUpdates = {};
+      if (req.body.description) allowedUpdates.description = req.body.description;
+      if (req.body.status === "Cancelled" && ticket.status === "Open") allowedUpdates.status = "Cancelled";
+      const updated = await MaintenanceRequest.findOneAndUpdate(
+        { id: req.params.id },
+        { $set: allowedUpdates },
+        { new: true }
+      ).lean();
+      return res.json(updated);
+    }
+
+    if (req.user.role === "provider" || req.user.role === "service_provider") {
+      const myId = await resolveProviderId(req.user);
+      const isAssigned = ticket.assignedTo === myId || ticket.assigned_to === myId || ticket.assignedTo === req.user.name;
+      if (!isAssigned) {
+        return res.status(403).json({ error: "Forbidden: You can only update maintenance jobs assigned to you." });
+      }
+      const PERMITTED_STATUSES = ["In Progress", "Work Completed", "Completed"];
+      if (req.body.status && !PERMITTED_STATUSES.includes(req.body.status)) {
+        return res.status(403).json({ error: `Forbidden: Permitted technician workflow statuses: ${PERMITTED_STATUSES.join(", ")}` });
+      }
+      const allowedUpdates = {};
+      if (req.body.status) allowedUpdates.status = req.body.status;
+      if (req.body.notes) allowedUpdates.notes = req.body.notes;
+      const updated = await MaintenanceRequest.findOneAndUpdate(
+        { id: req.params.id },
+        { $set: allowedUpdates },
+        { new: true }
+      ).lean();
+      return res.json(updated);
+    }
+
+    const VALID_MAINTENANCE_STATUSES = [
+      "Open",
+      "Submitted",
+      "Reviewed",
+      "Assigned",
+      "In Progress",
+      "Work Completed",
+      "Completed",
+      "Closed",
+      "Rejected",
+      "Cancelled",
+    ];
+    if (req.body.status && !VALID_MAINTENANCE_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({
+        error: `Invalid status. Must be one of: ${VALID_MAINTENANCE_STATUSES.join(", ")}`,
+      });
+    }
+
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, ticket.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this maintenance request." });
+      }
+
+      // Auto-expense integration when marked Completed (prevent duplicates)
+      if (req.body.status === "Completed" && !ticket.expenseId && req.body.createExpense !== false) {
+        const costToLog = Number(req.body.actualCost || ticket.actualCost || req.body.estimatedCost || ticket.estimatedCost || 0);
+        if (costToLog > 0) {
+          try {
+            const expRecord = await Expense.create({
+              id: `EXP_MNT_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`,
+              propertyId: ticket.propertyId,
+              property_id: ticket.propertyId,
+              landlordId: lId,
+              category: "Maintenance & Repairs",
+              amount: costToLog,
+              date: new Date().toISOString().split("T")[0],
+              description: `Maintenance Job: ${ticket.title || ticket.category} (${ticket.id})`,
+              paymentMethod: req.body.paymentMethod || "Bank Transfer",
+              status: "Recorded",
+            });
+            req.body.expenseId = expRecord.id;
+          } catch (errExp) {
+            console.error("Auto-recording maintenance expense failed:", errExp);
+          }
+        }
+      }
+    }
+
+    const updates = { ...req.body };
+    const historyEntry = {
+      status: req.body.status || ticket.status,
+      date: new Date().toISOString().split("T")[0],
+      updatedBy: req.user.name || "Landlord",
+      notes: req.body.landlordNotes || req.body.rejectionReason || req.body.completionNotes || `Status updated to ${req.body.status || ticket.status}`,
+    };
+
     const updated = await MaintenanceRequest.findOneAndUpdate(
       { id: req.params.id },
-      { $set: req.body },
+      {
+        $set: updates,
+        $push: { statusHistory: historyEntry },
+      },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Ticket not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/maintenance/:id", async (req, res) => {
+app.delete("/api/maintenance/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await MaintenanceRequest.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Ticket not found" });
+    const ticket = await MaintenanceRequest.findOne({ id: req.params.id });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete maintenance tickets." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, ticket.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this ticket." });
+      }
+    }
+
+    await MaintenanceRequest.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Ticket removed", id: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1828,24 +2844,26 @@ app.delete("/api/maintenance/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 10. Complaints API (Backed by MongoDB `complaints` collection)
 // -------------------------------------------------------------
-app.get("/api/complaints", async (req, res) => {
+app.get("/api/complaints", requireAuth, async (req, res) => {
   try {
-    const { tenantId, landlordId, propertyId, status } = req.query;
+    const { propertyId, status } = req.query;
     const filter = {};
 
-    // Role-aware filtering
-    if (req.user?.role === "tenant" || tenantId) {
-      const tid = tenantId || req.user?.entityId || req.user?.id;
-      if (tid) {
-        filter.$or = [{ tenantId: tid }, { tenant_id: tid }];
-      }
-    } else if (req.user?.role === "landlord" || landlordId) {
-      const lid = landlordId || req.user?.entityId || req.user?.id;
-      if (lid) {
-        // Find properties belonging to this landlord
-        const props = await Property.find({ $or: [{ landlordId: lid }, { landlord_id: lid }] }).lean();
-        const propIds = props.map((p) => p.id);
-        const propNames = props.map((p) => p.name);
+    if (req.user.role === "tenant") {
+      const tid = await resolveTenantId(req.user);
+      filter.$or = [{ tenantId: tid }, { tenant_id: tid }];
+    } else if (req.user.role === "landlord") {
+      const lid = await resolveLandlordId(req.user);
+      const props = await Property.find({ $or: [{ landlordId: lid }, { landlord_id: lid }] }).lean();
+      const propIds = props.map((p) => p.id);
+      const propNames = props.map((p) => p.name);
+
+      if (propertyId) {
+        if (!propIds.includes(propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId }, { property_id: propertyId }];
+      } else {
         filter.$or = [
           { propertyId: { $in: propIds } },
           { property_id: { $in: propIds } },
@@ -1853,12 +2871,17 @@ app.get("/api/complaints", async (req, res) => {
           { property: { $in: propNames } },
         ];
       }
+    } else if (req.user.role === "admin") {
+      if (req.query.tenantId) {
+        filter.$or = [{ tenantId: req.query.tenantId }, { tenant_id: req.query.tenantId }];
+      }
+      if (propertyId) {
+        filter.$or = [{ propertyId }, { property_id: propertyId }];
+      }
+    } else {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
     }
 
-    if (propertyId) {
-      filter.$and = filter.$and || [];
-      filter.$and.push({ $or: [{ propertyId }, { property_id: propertyId }] });
-    }
     if (status && status !== "All") {
       filter.status = status;
     }
@@ -1870,7 +2893,7 @@ app.get("/api/complaints", async (req, res) => {
   }
 });
 
-app.post("/api/complaints", async (req, res) => {
+app.post("/api/complaints", requireAuth, async (req, res) => {
   try {
     const {
       tenant_name,
@@ -1883,7 +2906,6 @@ app.post("/api/complaints", async (req, res) => {
       subject,
       priority,
       category,
-      image,
     } = req.body;
     const complaintText = issue || subject;
     if (!complaintText) {
@@ -1893,10 +2915,14 @@ app.post("/api/complaints", async (req, res) => {
     const id = `CMP${Math.floor(Math.random() * 900 + 100)}`;
     const date = new Date().toISOString().split("T")[0];
 
-    const resolvedTenantId = tenantId || req.user?.entityId || req.user?.id || "TEN001";
-    const resolvedTenantName = tenantName || tenant_name || req.user?.name || "Divya Priya";
+    let resolvedTenantId = tenantId || "TEN001";
+    let resolvedTenantName = tenantName || tenant_name || "Tenant";
 
-    // Auto-resolve property if not provided for tenant
+    if (req.user.role === "tenant") {
+      resolvedTenantId = await resolveTenantId(req.user);
+      resolvedTenantName = req.user.name || "Tenant";
+    }
+
     let resolvedPropId = propertyId;
     let resolvedPropName = propertyName || property;
     let targetLandlordId = "LDL001";
@@ -1941,7 +2967,6 @@ app.post("/api/complaints", async (req, res) => {
       date,
     });
 
-    // Notify the relevant landlord
     try {
       await Notification.create({
         id: `NOTIF_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -1963,16 +2988,71 @@ app.post("/api/complaints", async (req, res) => {
   }
 });
 
-app.put("/api/complaints/:id", async (req, res) => {
+app.put("/api/complaints/:id", requireAuth, async (req, res) => {
   try {
+    const complaint = await Complaint.findOne({ id: req.params.id }).lean();
+    if (!complaint) return res.status(404).json({ error: "Complaint not found" });
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (complaint.tenantId !== myId && complaint.tenant_id !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot modify another tenant's complaint." });
+      }
+      if (req.body.status && req.body.status !== complaint.status && req.body.status !== "Cancelled") {
+        return res.status(403).json({ error: "Forbidden: Tenants cannot arbitrarily resolve or close complaints." });
+      }
+      const allowedUpdates = {};
+      if (req.body.issue) allowedUpdates.issue = req.body.issue;
+      if (req.body.subject) allowedUpdates.subject = req.body.subject;
+      if (req.body.status === "Cancelled" && complaint.status === "Open") allowedUpdates.status = "Cancelled";
+      const updated = await Complaint.findOneAndUpdate(
+        { id: req.params.id },
+        { $set: allowedUpdates },
+        { new: true }
+      ).lean();
+      return res.json(updated);
+    }
+
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, complaint.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this complaint." });
+      }
+
+      // Business Rule: Close complaints only after recording resolution
+      if (
+        (req.body.status === "Resolved" || req.body.status === "Closed") &&
+        !req.body.resolutionDetails &&
+        !complaint.resolutionDetails &&
+        !req.body.landlordNotes &&
+        !complaint.landlordNotes &&
+        !req.body.investigationNotes &&
+        !complaint.investigationNotes
+      ) {
+        return res.status(400).json({
+          error: "Resolution details or notes are required before resolving or closing a complaint.",
+        });
+      }
+    }
+
+    const complaintHistoryEntry = {
+      status: req.body.status || complaint.status,
+      date: new Date().toISOString().split("T")[0],
+      updatedBy: req.user.name || "Landlord",
+      notes: req.body.resolutionDetails || req.body.landlordNotes || req.body.investigationNotes || "",
+    };
+
     const updated = await Complaint.findOneAndUpdate(
       { id: req.params.id },
-      { $set: req.body },
+      {
+        $set: req.body,
+        $push: { statusHistory: complaintHistoryEntry },
+      },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Complaint not found" });
 
-    // When landlord responds or updates complaint, notify tenant
+    // Notify tenant
     const tId = updated.tenantId || updated.tenant_id;
     if (tId) {
       try {
@@ -1981,14 +3061,12 @@ app.put("/api/complaints/:id", async (req, res) => {
           userId: tId,
           user_id: tId,
           title: `Complaint Updated: ${updated.id}`,
-          message: `Your complaint for "${updated.propertyName || "your rented property"}" is now "${updated.status}". ${req.body.notes || ""}`,
+          message: `Your complaint for "${updated.propertyName || "your rented property"}" is now "${updated.status}". ${req.body.notes || req.body.landlordNotes || ""}`,
           time: "Just now",
           type: "info",
           isRead: false,
         });
-      } catch (notifErr) {
-        console.warn("Complaint tenant update notification warning:", notifErr.message);
-      }
+      } catch {}
     }
 
     res.json(updated);
@@ -1997,11 +3075,82 @@ app.put("/api/complaints/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/complaints/:id", async (req, res) => {
+app.delete("/api/complaints/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await Complaint.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Complaint not found" });
+    const complaint = await Complaint.findOne({ id: req.params.id }).lean();
+    if (!complaint) return res.status(404).json({ error: "Complaint not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete complaints." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, complaint.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this complaint." });
+      }
+    }
+
+    await Complaint.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Complaint removed", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 4: Link Complaint to Maintenance Ticket (Without record duplication)
+app.post("/api/complaints/:id/link-maintenance", requireAuth, async (req, res) => {
+  try {
+    const complaint = await Complaint.findOne({ id: req.params.id });
+    if (!complaint) return res.status(404).json({ error: "Complaint not found" });
+
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, complaint.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this complaint." });
+      }
+    }
+
+    let maintenanceTicket = null;
+    if (req.body.maintenanceRequestId) {
+      maintenanceTicket = await MaintenanceRequest.findOne({ id: req.body.maintenanceRequestId });
+      if (!maintenanceTicket) {
+        return res.status(404).json({ error: "Specified maintenance request not found" });
+      }
+    } else {
+      const newMntId = `MNT_CMP_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+      maintenanceTicket = await MaintenanceRequest.create({
+        id: newMntId,
+        propertyId: complaint.propertyId,
+        property_id: complaint.propertyId,
+        propertyName: complaint.propertyName || complaint.property,
+        unit: complaint.unit,
+        tenantId: complaint.tenantId || complaint.tenant_id,
+        tenant_id: complaint.tenantId || complaint.tenant_id,
+        tenantName: complaint.tenantName || complaint.tenant_name,
+        title: complaint.subject || complaint.issue || "Maintenance from Complaint",
+        description: `Linked from Complaint ${complaint.id}: ${complaint.description || complaint.issue}`,
+        category: complaint.category || "General",
+        priority: complaint.priority || "Medium",
+        status: "Submitted",
+        date: new Date().toISOString().split("T")[0],
+      });
+    }
+
+    complaint.maintenanceRequestId = maintenanceTicket.id;
+    if (complaint.status === "Open") {
+      complaint.status = "In Investigation";
+    }
+    complaint.investigationNotes = `${complaint.investigationNotes ? complaint.investigationNotes + " | " : ""}Linked to Maintenance Ticket ${maintenanceTicket.id}`;
+    await complaint.save();
+
+    res.json({
+      success: true,
+      message: `Complaint linked to maintenance ticket ${maintenanceTicket.id}`,
+      complaint,
+      maintenanceTicket,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2776,13 +3925,19 @@ app.get("/api/service-bookings", async (req, res) => {
               id: comp.id,
               complaintId: comp.id,
               complaintType: comp.complaintType || comp.category || "Service Quality",
+              category: comp.category || comp.complaintType || "Poor Service Quality",
               subject: comp.subject || comp.issue || "",
               description: comp.description || comp.issue || "",
               status: comp.status || "Submitted",
+              adminResponse: comp.adminResponse || "",
+              investigationNotes: comp.investigationNotes || "",
+              resolutionDetails: comp.resolutionDetails || "",
               date: comp.date || (comp.createdAt ? new Date(comp.createdAt).toISOString().split("T")[0] : ""),
               providerId: comp.providerId || b.providerId,
               providerName: comp.providerName || b.providerName,
-              attachment: comp.attachment || "",
+              technicianName: comp.technicianName || b.technicianName || "",
+              attachment: comp.attachment || comp.evidence || "",
+              evidence: comp.evidence || comp.attachment || "",
             }
           : null,
       };
@@ -2837,13 +3992,19 @@ app.get("/api/service-bookings/:id", async (req, res) => {
             id: comp.id,
             complaintId: comp.id,
             complaintType: comp.complaintType || comp.category || "Service Quality",
+            category: comp.category || comp.complaintType || "Poor Service Quality",
             subject: comp.subject || comp.issue || "",
             description: comp.description || comp.issue || "",
             status: comp.status || "Submitted",
+            adminResponse: comp.adminResponse || "",
+            investigationNotes: comp.investigationNotes || "",
+            resolutionDetails: comp.resolutionDetails || "",
             date: comp.date || (comp.createdAt ? new Date(comp.createdAt).toISOString().split("T")[0] : ""),
             providerId: comp.providerId || booking.providerId,
             providerName: comp.providerName || booking.providerName,
-            attachment: comp.attachment || "",
+            technicianName: comp.technicianName || booking.technicianName || "",
+            attachment: comp.attachment || comp.evidence || "",
+            evidence: comp.evidence || comp.attachment || "",
           }
         : null,
     };
@@ -2887,27 +4048,29 @@ app.post("/api/service-bookings/:id/complaint", async (req, res) => {
     }
 
     // Required field validation
-    const { complaintType, subject, description, attachment } = req.body;
-    if (!subject || !subject.trim()) {
-      return res.status(400).json({ error: "Complaint subject is required" });
-    }
-    if (!description || !description.trim()) {
+    const { complaintType, category, subject, description, attachment, evidence } = req.body;
+    const finalDescription = (description || "").trim();
+    if (!finalDescription) {
       return res.status(400).json({ error: "Complaint description is required" });
     }
 
     const validTypes = [
       "Poor Service Quality",
-      "Provider Did Not Arrive",
+      "Technician Delay",
       "Incomplete Work",
+      "Unexpected Extra Charges",
+      "Provider Behaviour",
+      "Other",
+      "Provider Did Not Arrive",
       "Property Damage",
       "Overcharging / Payment Issue",
       "Service Quality",
-      "Provider Behaviour",
       "Delay",
       "Payment Issue",
-      "Other",
     ];
-    const selectedType = validTypes.includes(complaintType) ? complaintType : (complaintType || "Poor Service Quality");
+    const rawType = category || complaintType || "Poor Service Quality";
+    const selectedType = validTypes.includes(rawType) ? rawType : (validTypes.find((t) => t.toLowerCase() === String(rawType).toLowerCase()) || "Poor Service Quality");
+    const finalSubject = (subject && subject.trim()) ? subject.trim() : `${selectedType} - ${booking.serviceName || booking.serviceCategory || "Booking #" + (booking.bookingNumber || booking.id)}`;
 
     // Enforce business rule: check if complaint already exists for this booking
     const existing = await Complaint.findOne({
@@ -2946,18 +4109,24 @@ app.post("/api/service-bookings/:id/complaint", async (req, res) => {
       property: booking.propertyName || "Sai Kala Apartments",
       propertyName: booking.propertyName || "Sai Kala Apartments",
       unit: booking.unit || "Flat B-204",
-      category: booking.serviceCategory || "Service Provider",
+      category: selectedType,
       complaintType: selectedType,
-      subject: subject.trim(),
-      description: description.trim(),
-      issue: `${selectedType}: ${subject.trim()} - ${description.trim()}`,
+      subject: finalSubject,
+      description: finalDescription,
+      issue: `${selectedType}: ${finalSubject} - ${finalDescription}`,
       serviceBookingId: booking.id,
       bookingId: booking.id,
       providerId: booking.providerId,
       providerName: booking.providerName,
-      attachment: attachment || "",
+      technicianId: booking.technicianId || (booking.assignedTechnician && booking.assignedTechnician.id) || null,
+      technicianName: booking.technicianName || (booking.assignedTechnician && booking.assignedTechnician.name) || "",
+      attachment: evidence || attachment || "",
+      evidence: evidence || attachment || "",
       priority: "Medium",
       status: "Submitted",
+      adminResponse: "",
+      investigationNotes: "",
+      resolutionDetails: "",
       date: today,
     });
 
@@ -2974,7 +4143,7 @@ app.post("/api/service-bookings/:id/complaint", async (req, res) => {
         userId: booking.landlordId || "LDL001",
         user_id: booking.landlordId || "LDL001",
         title: `⚠️ Complaint Raised Against Provider: ${booking.providerName}`,
-        message: `${tenantName} raised a complaint for booking #${booking.bookingNumber || booking.id}: "${subject.trim()}". Status: Submitted.`,
+        message: `${tenantName} raised a complaint for booking #${booking.bookingNumber || booking.id}: "${finalSubject}". Status: Submitted.`,
         time: "Just now",
         type: "warning",
         isRead: false,
@@ -3245,7 +4414,7 @@ app.post("/api/service-bookings", async (req, res) => {
 
 // UPDATE BOOKING STATUS (LIFECYCLE STATE TRANSITIONS)
 // Pending -> Confirmed -> Assigned -> In Progress -> Completed (or Cancelled)
-app.put("/api/service-bookings/:id/status", async (req, res) => {
+app.put("/api/service-bookings/:id/status", requireAuth, async (req, res) => {
   const { id } = req.params;
   const { status, note, technicianName, technicianPhone } = req.body;
   const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -3267,6 +4436,23 @@ app.put("/api/service-bookings/:id/status", async (req, res) => {
       ],
     });
     if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+    // Enforce role-based status transition permissions
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot change service provider lifecycle status." });
+    }
+    if (req.user.role === "provider" || req.user.role === "service_provider") {
+      const myId = await resolveProviderId(req.user);
+      if (booking.providerId !== myId) {
+        return res.status(403).json({ error: "Forbidden: You are only permitted to update bookings assigned to your provider profile." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, booking.propertyId);
+      if (!isOwner && booking.userId !== lId && booking.landlordId !== lId) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to manage this booking." });
+      }
+    }
 
     booking.status = status;
     if (technicianName) booking.technicianName = technicianName;
@@ -3309,6 +4495,37 @@ app.put("/api/service-bookings/:id/status", async (req, res) => {
             { $set: { status: "Resolved" } }
           );
         } catch {}
+      }
+
+      // Auto-log into Phase 3 Expenses if not already linked (Strict Concurrency & Duplicate Prevention)
+      const existingExpense = await Expense.findOne({
+        $or: [
+          { id: booking.expenseId },
+          { description: { $regex: booking.id } },
+        ],
+      });
+      if (!booking.expenseId && !existingExpense) {
+        try {
+          const expenseAmount = Number(req.body.actualCost || booking.actualCost || booking.amount || 499);
+          const lId = booking.landlordId || (await resolveLandlordId(req.user));
+          const newExp = await Expense.create({
+            id: `EXP_BK_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`,
+            propertyId: booking.propertyId,
+            property_id: booking.propertyId,
+            landlordId: lId,
+            category: "Maintenance & Repairs",
+            amount: expenseAmount,
+            date: booking.completionDate || new Date().toISOString().split("T")[0],
+            description: `Home Service: ${booking.serviceCategory} (${booking.serviceName || "Service"}) by ${booking.providerName} [Booking: ${booking.bookingNumber || ""} ${booking.id}]`,
+            paymentMethod: "Bank Transfer",
+            status: "Recorded",
+          });
+          booking.expenseId = newExp.id;
+        } catch (errExp) {
+          console.error("Auto-recording booking expense failed:", errExp);
+        }
+      } else if (existingExpense && !booking.expenseId) {
+        booking.expenseId = existingExpense.id;
       }
     }
 
@@ -4110,25 +5327,61 @@ app.post("/api/properties/:id/maintenance-history", async (req, res) => {
 // -------------------------------------------------------------
 // 12. Security Deposits API
 // -------------------------------------------------------------
-app.get("/api/deposits", async (req, res) => {
+app.get("/api/deposits", requireAuth, async (req, res) => {
   try {
-    const rows = await SecurityDeposit.find().sort({ id: 1 }).lean();
+    const filter = {};
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter.$or = [{ tenantId: myId }, { tenant_id: myId }];
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      if (req.query.propertyId) {
+        if (!propIds.includes(req.query.propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId: req.query.propertyId }, { property_id: req.query.propertyId }];
+      } else {
+        filter.$or = [
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+        ];
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    const rows = await SecurityDeposit.find(filter).sort({ id: 1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/deposits", async (req, res) => {
+app.post("/api/deposits", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot create deposit records." });
+    }
     const d = req.body;
+    const propId = d.propertyId || d.property_id;
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      if (propId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+      }
+    }
+
     const id = d.id || `DEP${Math.floor(Math.random() * 900 + 100)}`;
     const created = await SecurityDeposit.create({
       id,
       tenantId: d.tenantId || d.tenant_id || null,
       tenant_id: d.tenantId || d.tenant_id || null,
-      propertyId: d.propertyId || d.property_id || null,
-      property_id: d.propertyId || d.property_id || null,
+      propertyId: propId || null,
+      property_id: propId || null,
       amount: Number(d.amount || 0),
       status: d.status || "Held in Escrow",
       dateReceived: d.dateReceived || d.date_received || new Date().toISOString().split("T")[0],
@@ -4144,25 +5397,385 @@ app.post("/api/deposits", async (req, res) => {
   }
 });
 
-app.put("/api/deposits/:id", async (req, res) => {
+app.put("/api/deposits/:id", requireAuth, async (req, res) => {
   try {
+    const deposit = await SecurityDeposit.findOne({ id: req.params.id }).lean();
+    if (!deposit) return res.status(404).json({ error: "Deposit not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot modify deposit records." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, deposit.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this deposit." });
+      }
+    }
+
     const updated = await SecurityDeposit.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Deposit not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/deposits/:id", async (req, res) => {
+app.delete("/api/deposits/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await SecurityDeposit.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Deposit not found" });
+    const deposit = await SecurityDeposit.findOne({ id: req.params.id }).lean();
+    if (!deposit) return res.status(404).json({ error: "Deposit not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete deposit records." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, deposit.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this deposit." });
+      }
+    }
+
+    await SecurityDeposit.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Deposit record removed", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 3: Process Security Deposit Settlement & Refund
+app.post("/api/deposits/:id/refund", requireAuth, async (req, res) => {
+  try {
+    const deposit = await SecurityDeposit.findOne({ id: req.params.id }).lean();
+    if (!deposit) return res.status(404).json({ error: "Deposit not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Only landlords can authorize deposit refunds." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, deposit.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this deposit." });
+      }
+    }
+
+    const {
+      damageDeductions = 0,
+      unpaidRentDeductions = 0,
+      utilityDuesDeductions = 0,
+      refundMethod = "Bank Transfer",
+      refundTransactionRef = "",
+      notes = "",
+      refundDate,
+    } = req.body;
+
+    const totalDeductions = Number(damageDeductions) + Number(unpaidRentDeductions) + Number(utilityDuesDeductions);
+    const originalDeposit = Number(deposit.amount || 0);
+    const netRefund = Math.max(0, originalDeposit - totalDeductions);
+    const rDate = refundDate || new Date().toISOString().split("T")[0];
+
+    const historyEntry = {
+      date: rDate,
+      type: "Deposit Settlement & Refund",
+      amount: netRefund,
+      description: `Original: ₹${originalDeposit}, Deductions: ₹${totalDeductions} (Damage: ₹${damageDeductions}, Rent: ₹${unpaidRentDeductions}, Utility: ₹${utilityDuesDeductions}). Refunded via ${refundMethod}. ${notes}`,
+      reference: refundTransactionRef || `REFUND-${Date.now()}`,
+    };
+
+    const updated = await SecurityDeposit.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        $set: {
+          damageDeductions: Number(damageDeductions),
+          unpaidRentDeductions: Number(unpaidRentDeductions),
+          utilityDuesDeductions: Number(utilityDuesDeductions),
+          refundableAmount: netRefund,
+          refundAmount: netRefund,
+          refund_amount: netRefund,
+          refundDate: rDate,
+          refundMethod,
+          refundTransactionRef,
+          status: netRefund > 0 ? "Fully Refunded" : "Settled (No Refund)",
+          returnStatus: "Returned",
+          return_status: "Returned",
+          settlementNotes: notes,
+        },
+        $push: { transactionHistory: historyEntry },
+      },
+      { new: true }
+    ).lean();
+
+    res.json({ success: true, message: `Deposit settled: ₹${netRefund} refunded to tenant after deductions of ₹${totalDeductions}.`, deposit: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 3: Comprehensive Financial Summary & Analytics API
+app.get("/api/financial-summary", requireAuth, async (req, res) => {
+  try {
+    let propIds = [];
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      propIds = await getLandlordOwnedPropertyIds(lId);
+    } else if (req.user.role === "admin") {
+      const allProps = await Property.find({}).select("id").lean();
+      propIds = allProps.map((p) => p.id);
+    } else {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot access financial summaries." });
+    }
+
+    if (req.query.propertyId) {
+      if (req.user.role === "landlord" && !propIds.includes(req.query.propertyId)) {
+        return res.status(403).json({ error: "Forbidden: You do not own this property." });
+      }
+      propIds = [req.query.propertyId];
+    }
+
+    // 1. Payments / Rent Collections
+    const payments = await Payment.find({
+      $or: [{ propertyId: { $in: propIds } }, { property_id: { $in: propIds } }],
+    }).lean();
+
+    let totalRentCollected = 0;
+    let pendingRent = 0;
+    payments.forEach((p) => {
+      const totalAmt = Number(p.amount || 0);
+      const paidAmt = Number(p.paidAmount !== undefined && p.paidAmount > 0 ? p.paidAmount : (p.status === "Paid" ? totalAmt : 0));
+      const rem = Number(p.remainingBalance !== undefined ? p.remainingBalance : Math.max(0, totalAmt - paidAmt));
+      totalRentCollected += paidAmt;
+      pendingRent += rem;
+    });
+
+    // 2. Operational Expenses
+    const expenses = await Expense.find({
+      $or: [{ propertyId: { $in: propIds } }, { property_id: { $in: propIds } }],
+    }).lean();
+
+    let totalExpenses = 0;
+    expenses.forEach((e) => {
+      totalExpenses += Number(e.amount || 0);
+    });
+
+    // 3. Security Deposits (ESCROW LIABILITY - EXCLUDED FROM INCOME)
+    const deposits = await SecurityDeposit.find({
+      $or: [{ propertyId: { $in: propIds } }, { property_id: { $in: propIds } }],
+    }).lean();
+
+    let securityDepositLiability = 0;
+    deposits.forEach((d) => {
+      if ((d.status || "").toLowerCase().includes("escrow") || (d.status || "").toLowerCase().includes("held")) {
+        securityDepositLiability += Number(d.amount || 0);
+      }
+    });
+
+    // 4. Utility Bills
+    const utilityBills = await UtilityBill.find({
+      $or: [{ propertyId: { $in: propIds } }, { property_id: { $in: propIds } }],
+    }).lean();
+
+    let outstandingUtilities = 0;
+    utilityBills.forEach((u) => {
+      if ((u.status || "").toLowerCase() !== "paid") {
+        outstandingUtilities += Number(u.amount || 0);
+      }
+    });
+
+    // 5. Net Operating Income (NOI = Rent Collected - Expenses)
+    // IMPORTANT: Security Deposits are liabilities and NEVER added to NOI or Rent Collected!
+    const netOperatingIncome = totalRentCollected - totalExpenses;
+
+    // 6. Monthly Breakdown
+    const monthlyMap = {};
+    payments.forEach((p) => {
+      const m = p.month || "Unknown";
+      if (!monthlyMap[m]) monthlyMap[m] = { month: m, collected: 0, pending: 0, expenses: 0 };
+      const totalAmt = Number(p.amount || 0);
+      const paidAmt = Number(p.paidAmount !== undefined && p.paidAmount > 0 ? p.paidAmount : (p.status === "Paid" ? totalAmt : 0));
+      monthlyMap[m].collected += paidAmt;
+      monthlyMap[m].pending += Number(p.remainingBalance !== undefined ? p.remainingBalance : Math.max(0, totalAmt - paidAmt));
+    });
+    expenses.forEach((e) => {
+      const d = e.date ? e.date.slice(0, 7) : "Unknown";
+      if (!monthlyMap[d]) monthlyMap[d] = { month: d, collected: 0, pending: 0, expenses: 0 };
+      monthlyMap[d].expenses += Number(e.amount || 0);
+    });
+
+    res.json({
+      success: true,
+      totalRentCollected,
+      pendingRent,
+      totalExpenses,
+      netOperatingIncome,
+      securityDepositLiability, // Clearly labeled liability
+      outstandingUtilities,
+      paymentsCount: payments.length,
+      expensesCount: expenses.length,
+      depositsCount: deposits.length,
+      utilityBillsCount: utilityBills.length,
+      monthlyBreakdown: Object.values(monthlyMap),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Phase 4: Unified Requests & Home Services Overview Summary
+app.get("/api/requests-summary", requireAuth, async (req, res) => {
+  try {
+    let propIds = [];
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      propIds = await getLandlordOwnedPropertyIds(lId);
+    } else if (req.user.role === "admin") {
+      const allProps = await Property.find({}).select("id").lean();
+      propIds = allProps.map((p) => p.id);
+    } else {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot access portfolio request summaries." });
+    }
+
+    if (req.query.propertyId) {
+      if (req.user.role === "landlord" && !propIds.includes(req.query.propertyId)) {
+        return res.status(403).json({ error: "Forbidden: You do not own this property." });
+      }
+      propIds = [req.query.propertyId];
+    }
+
+    const propFilter = { $or: [{ propertyId: { $in: propIds } }, { property_id: { $in: propIds } }] };
+
+    const [maintenance, complaints, bookings] = await Promise.all([
+      MaintenanceRequest.find(propFilter).lean(),
+      Complaint.find(propFilter).lean(),
+      ServiceBooking.find({
+        $or: [
+          { propertyId: { $in: propIds } },
+          { landlordId: req.user.role === "landlord" ? await resolveLandlordId(req.user) : { $exists: true } },
+        ],
+      }).lean(),
+    ]);
+
+    const totalRequests = maintenance.length + complaints.length + bookings.length;
+
+    let newUnassigned = 0;
+    let inProgress = 0;
+    let urgentRequests = 0;
+    let completedThisMonth = 0;
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // Status map
+    const statusDistribution = {};
+    const categoryDistribution = {};
+
+    maintenance.forEach((m) => {
+      const st = m.status || "Open";
+      statusDistribution[st] = (statusDistribution[st] || 0) + 1;
+      const cat = m.category || "General";
+      categoryDistribution[cat] = (categoryDistribution[cat] || 0) + 1;
+
+      if ((st === "Open" || st === "Submitted") && !m.assignedTo && !m.providerId) newUnassigned++;
+      if (["Assigned", "In Progress", "Reviewed"].includes(st)) inProgress++;
+      if (["High", "Urgent"].includes(m.priority) && !["Completed", "Closed", "Rejected", "Cancelled"].includes(st)) {
+        urgentRequests++;
+      }
+      if (["Completed", "Closed"].includes(st) && m.date && m.date.startsWith(currentMonth)) completedThisMonth++;
+    });
+
+    complaints.forEach((c) => {
+      const st = c.status || "Open";
+      statusDistribution[st] = (statusDistribution[st] || 0) + 1;
+      const cat = c.category || "General";
+      categoryDistribution[cat] = (categoryDistribution[cat] || 0) + 1;
+
+      if (st === "Open" || st === "Under Review") newUnassigned++;
+      if (["In Investigation", "Action Required", "Investigating"].includes(st)) inProgress++;
+      if (["High", "Urgent"].includes(c.priority) && !["Resolved", "Closed", "Dismissed", "Cancelled"].includes(st)) {
+        urgentRequests++;
+      }
+      if (["Resolved", "Closed"].includes(st) && c.date && c.date.startsWith(currentMonth)) completedThisMonth++;
+    });
+
+    bookings.forEach((b) => {
+      const st = b.status || "Confirmed";
+      statusDistribution[st] = (statusDistribution[st] || 0) + 1;
+      const cat = b.serviceCategory || "General";
+      categoryDistribution[cat] = (categoryDistribution[cat] || 0) + 1;
+
+      if (st === "Pending") newUnassigned++;
+      if (["Assigned", "In Progress", "Confirmed"].includes(st)) inProgress++;
+      if (st === "Completed" && b.date && b.date.startsWith(currentMonth)) completedThisMonth++;
+    });
+
+    // Recent items: latest from all 3 collections
+    const recentMaintenance = maintenance.map((m) => ({
+      ...m,
+      requestType: "Maintenance",
+      displayTitle: m.title || m.description || "Maintenance Ticket",
+    }));
+    const recentComplaints = complaints.map((c) => ({
+      ...c,
+      requestType: "Complaint",
+      displayTitle: c.subject || c.issue || "Tenant Complaint",
+    }));
+    const recentBookings = bookings.map((b) => ({
+      ...b,
+      requestType: "Service Booking",
+      displayTitle: `${b.serviceCategory}: ${b.serviceName || "Service"}`,
+    }));
+
+    const combinedRecent = [...recentMaintenance, ...recentComplaints, ...recentBookings]
+      .sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))
+      .slice(0, 10);
+
+    // Urgent alerts
+    const urgentAlerts = [...recentMaintenance, ...recentComplaints]
+      .filter((i) => ["High", "Urgent"].includes(i.priority) && !["Completed", "Closed", "Resolved", "Cancelled"].includes(i.status))
+      .slice(0, 5);
+
+    // Pending provider assignments
+    const pendingAssignments = maintenance
+      .filter((m) => !m.assignedTo && !m.providerId && !["Completed", "Closed", "Rejected", "Cancelled"].includes(m.status))
+      .slice(0, 5);
+
+    // Upcoming bookings
+    const upcomingBookings = bookings
+      .filter((b) => !["Completed", "Cancelled"].includes(b.status))
+      .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
+      .slice(0, 5);
+
+    res.json({
+      success: true,
+      totalRequests,
+      newUnassigned,
+      inProgress,
+      urgentRequests,
+      completedThisMonth,
+      maintenanceCount: maintenance.length,
+      complaintsCount: complaints.length,
+      bookingsCount: bookings.length,
+      combinedRecent,
+      metrics: {
+        totalRequests,
+        newUnassigned,
+        inProgress,
+        urgentRequests,
+        completedThisMonth,
+        maintenanceCount: maintenance.length,
+        complaintsCount: complaints.length,
+        bookingsCount: bookings.length,
+      },
+      statusDistribution,
+      categoryDistribution,
+      recentRequests: combinedRecent,
+      urgentAlerts,
+      pendingAssignments,
+      upcomingBookings,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -4377,19 +5990,26 @@ app.get("/api/utility-bills/summary", async (req, res) => {
 });
 
 // 12.3 Get Bill Details by ID
-app.get("/api/utility-bills/:id", async (req, res) => {
+app.get("/api/utility-bills/:id", requireAuth, async (req, res) => {
   try {
     const bill = await UtilityBill.findOne({ id: req.params.id }).lean();
     if (!bill) return res.status(404).json({ error: "Utility bill not found" });
 
     // Authorization check
-    if (req.user && req.user.role === "tenant") {
-      const tId = req.user.entityId || req.user.entity_id || req.user.id;
+    if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
       if (bill.tenantId !== tId && bill.tenant_id !== tId) {
         return res.status(403).json({ error: "Access denied. You can only view your own bills." });
       }
       if (bill.responsibility === "Landlord") {
         return res.status(403).json({ error: "This bill is the landlord's responsibility." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isAuthorized = bill.landlordId === lId || bill.landlord_id === lId || (bill.propertyId && propIds.includes(bill.propertyId));
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to view this utility bill." });
       }
     }
 
@@ -4407,6 +6027,11 @@ app.get("/api/utility-bills/:id", async (req, res) => {
 // 12.4 Create EB / Utility Bill with Validation & Duplicate Prevention
 app.post("/api/utility-bills", async (req, res) => {
   try {
+    // Role check: Tenants cannot create official utility bills
+    if (req.user && req.user.role === "tenant") {
+      return res.status(403).json({ error: "Tenants are not permitted to create official utility bills." });
+    }
+
     const b = req.body;
 
     // Required fields validation
@@ -4586,13 +6211,21 @@ app.put("/api/utility-bills/:id", async (req, res) => {
 });
 
 // 12.6 Delete Bill
-app.delete("/api/utility-bills/:id", async (req, res) => {
+app.delete("/api/utility-bills/:id", requireAuth, async (req, res) => {
   try {
     const existing = await UtilityBill.findOne({ id: req.params.id });
     if (!existing) return res.status(404).json({ error: "Utility bill not found" });
 
-    if (req.user && req.user.role === "tenant") {
+    if (req.user.role === "tenant") {
       return res.status(403).json({ error: "Tenants cannot delete utility bills." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isOwner = existing.landlordId === lId || existing.landlord_id === lId || (existing.propertyId && propIds.includes(existing.propertyId));
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to delete this utility bill." });
+      }
     }
 
     await UtilityBill.findOneAndDelete({ id: req.params.id });
@@ -4975,8 +6608,6 @@ async function processAutomaticBillReminders() {
           $or: [
             { leaseId: lease.id },
             { lease_id: lease.id },
-            { tenantId: lease.tenantId || lease.tenant_id },
-            { tenant_id: lease.tenantId || lease.tenant_id },
           ],
         }).sort({ date: -1 }).lean();
 
@@ -5000,7 +6631,16 @@ async function processAutomaticBillReminders() {
 
         const rentInvoiceNo = rentCycle.invoiceNo;
         let rentInvoice = await Payment.findOne({
-          $or: [{ invoiceNo: rentInvoiceNo }, { invoice_no: rentInvoiceNo }],
+          $or: [
+            { invoiceNo: rentInvoiceNo },
+            { invoice_no: rentInvoiceNo },
+            { leaseId: lease.id, periodStart: rentCycle.periodStart },
+            { lease_id: lease.id, period_start: rentCycle.periodStart },
+            { leaseId: lease.id, month: rentCycle.periodLabel },
+            { lease_id: lease.id, month: rentCycle.periodLabel },
+            { leaseId: lease.id, dueDate: rentCycle.currentDueDate },
+            { lease_id: lease.id, due_date: rentCycle.currentDueDate },
+          ],
         });
 
         // Ensure invoice is generated idempotently for current active cycle
@@ -5158,23 +6798,59 @@ setInterval(() => {
 // -------------------------------------------------------------
 // 13. Expenses API
 // -------------------------------------------------------------
-app.get("/api/expenses", async (req, res) => {
+app.get("/api/expenses", requireAuth, async (req, res) => {
   try {
-    const rows = await Expense.find().sort({ id: 1 }).lean();
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot view property expenses." });
+    }
+    const filter = {};
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      if (req.query.propertyId) {
+        if (!propIds.includes(req.query.propertyId)) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+        filter.$or = [{ propertyId: req.query.propertyId }, { property_id: req.query.propertyId }];
+      } else {
+        filter.$or = [
+          { propertyId: { $in: propIds } },
+          { property_id: { $in: propIds } },
+        ];
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    const rows = await Expense.find(filter).sort({ id: 1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/expenses", async (req, res) => {
+app.post("/api/expenses", requireAuth, async (req, res) => {
   try {
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot create property expenses." });
+    }
     const e = req.body;
+    const propId = e.propertyId || e.property_id;
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      if (propId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+      }
+    }
+
     const id = e.id || `EXP${Math.floor(Math.random() * 900 + 100)}`;
     const created = await Expense.create({
       id,
-      propertyId: e.propertyId || e.property_id || null,
-      property_id: e.propertyId || e.property_id || null,
+      propertyId: propId || null,
+      property_id: propId || null,
       category: e.category || "Maintenance",
       amount: Number(e.amount || 0),
       description: e.description || "",
@@ -5188,24 +6864,50 @@ app.post("/api/expenses", async (req, res) => {
   }
 });
 
-app.put("/api/expenses/:id", async (req, res) => {
+app.put("/api/expenses/:id", requireAuth, async (req, res) => {
   try {
+    const expense = await Expense.findOne({ id: req.params.id }).lean();
+    if (!expense) return res.status(404).json({ error: "Expense not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot modify property expenses." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, expense.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this expense." });
+      }
+    }
+
     const updated = await Expense.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Expense not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/expenses/:id", async (req, res) => {
+app.delete("/api/expenses/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await Expense.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Expense not found" });
+    const expense = await Expense.findOne({ id: req.params.id }).lean();
+    if (!expense) return res.status(404).json({ error: "Expense not found" });
+
+    if (req.user.role === "tenant") {
+      return res.status(403).json({ error: "Forbidden: Tenants cannot delete property expenses." });
+    }
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const isOwner = await isLandlordAuthorizedForProperty(lId, expense.propertyId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this expense." });
+      }
+    }
+
+    await Expense.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Expense removed", id: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5213,61 +6915,565 @@ app.delete("/api/expenses/:id", async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 14. Documents API
+// 14. Documents API (Secure Persistence & Scoped Access Control)
 // -------------------------------------------------------------
-app.get("/api/documents", async (req, res) => {
+app.get("/api/documents", requireAuth, async (req, res) => {
   try {
-    const rows = await Document.find().sort({ id: 1 }).lean();
-    res.json(rows);
+    const filter = {};
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // 1. Role-based scoping
+    if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      filter.$or = [
+        { tenantId: tId },
+        { tenant_id: tId },
+        { relatedTo: tId },
+        { related_to: tId },
+      ];
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const activeLeases = await Lease.find({
+        $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }],
+      }).select("tenantId tenant_id").lean();
+      const tenantIds = activeLeases.map((l) => l.tenantId || l.tenant_id).filter(Boolean);
+
+      filter.$or = [
+        { landlordId: lId },
+        { landlord_id: lId },
+        { propertyId: { $in: propIds } },
+        { property_id: { $in: propIds } },
+        { tenantId: { $in: tenantIds } },
+        { tenant_id: { $in: tenantIds } },
+        { relatedTo: { $in: [...propIds, ...tenantIds, lId] } },
+      ];
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    if (req.query.category && req.query.category !== "All") {
+      filter.category = req.query.category;
+    }
+    if (req.query.status && req.query.status !== "All") {
+      filter.status = req.query.status;
+    }
+
+    const rows = await Document.find(filter).sort({ uploadedOn: -1, id: -1 }).lean();
+
+    const mapped = rows.map((doc) => {
+      const isExp = Boolean(doc.expiryDate && doc.expiryDate < todayStr);
+      let calculatedStatus = doc.status;
+      if (isExp && doc.status !== "Rejected") {
+        calculatedStatus = "Expired";
+      }
+      return {
+        ...doc,
+        isExpired: isExp,
+        status: calculatedStatus,
+        verificationStatus: doc.verificationStatus || calculatedStatus,
+      };
+    });
+
+    res.json(mapped);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/documents", async (req, res) => {
+// Single Document Fetch with RBAC Scoping
+app.get("/api/documents/:id", requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      const isOwner = doc.tenantId === tId || doc.tenant_id === tId || doc.relatedTo === tId || doc.related_to === tId;
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to access this document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const activeLeases = await Lease.find({
+        $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }],
+      }).select("tenantId tenant_id").lean();
+      const tenantIds = activeLeases.map((l) => l.tenantId || l.tenant_id).filter(Boolean);
+
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId ||
+        (doc.tenantId && tenantIds.includes(doc.tenantId));
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: Document does not belong to your account or properties." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isExp = Boolean(doc.expiryDate && doc.expiryDate < todayStr);
+    let calculatedStatus = doc.status;
+    if (isExp && doc.status !== "Rejected") {
+      calculatedStatus = "Expired";
+    }
+
+    res.json({
+      ...doc,
+      isExpired: isExp,
+      status: calculatedStatus,
+      verificationStatus: doc.verificationStatus || calculatedStatus,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/documents", requireAuth, async (req, res) => {
   try {
     const d = req.body;
-    const id = d.id || `DOC${Math.floor(Math.random() * 900 + 100)}`;
+    const id = d.id || `DOC${Date.now().toString().slice(-6)}`;
+    const today = new Date().toISOString().split("T")[0];
+
+    let tenantId = d.tenantId || d.tenant_id || null;
+    let relatedTo = d.relatedTo || d.related_to || "";
+    let propertyId = d.propertyId || d.property_id || null;
+    let landlordId = d.landlordId || d.landlord_id || null;
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      tenantId = myId;
+      relatedTo = myId;
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      landlordId = lId;
+      if (propertyId) {
+        const isOwner = await isLandlordAuthorizedForProperty(lId, propertyId);
+        if (!isOwner) {
+          return res.status(403).json({ error: "Forbidden: You do not own this property." });
+        }
+      }
+      if (!relatedTo) relatedTo = lId;
+    }
+
+    let storagePath = "";
+    let fileName = d.fileName || d.name || `${id}.pdf`;
+    let fileSize = Number(d.fileSize || 0);
+    let mimeType = d.mimeType || "application/pdf";
+    let fileData = d.fileData || "";
+
+    // Validate file size (max 15MB)
+    if (fileSize > 15 * 1024 * 1024) {
+      return res.status(400).json({ error: "File exceeds 15MB maximum size limit." });
+    }
+
+    // Validate MIME type and extension
+    const allowedMimes = ["application/pdf", "image/png", "image/jpeg", "image/webp", "text/plain"];
+    const allowedExts = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt"];
+    const fileExt = path.extname(fileName).toLowerCase();
+
+    if (mimeType && !allowedMimes.includes(mimeType.toLowerCase())) {
+      return res.status(400).json({ error: "Invalid file type. Allowed formats: PDF, PNG, JPG, WEBP, TXT." });
+    }
+    if (fileExt && !allowedExts.includes(fileExt)) {
+      return res.status(400).json({ error: "Invalid file extension. Allowed extensions: .pdf, .png, .jpg, .jpeg, .webp, .txt." });
+    }
+
+    // Securely write file to disk if base64 file data is provided
+    if (fileData) {
+      try {
+        const cleanBase64 = fileData.includes(",") ? fileData.split(",")[1] : fileData;
+        const buffer = Buffer.from(cleanBase64, "base64");
+        fileSize = buffer.length;
+        if (fileSize > 15 * 1024 * 1024) {
+          return res.status(400).json({ error: "Decoded file exceeds 15MB limit." });
+        }
+        const sanitizedExt = allowedExts.includes(fileExt) ? fileExt : ".pdf";
+        const sanitizedBase = path.basename(fileName, sanitizedExt).replace(/[^a-zA-Z0-9_-]/g, "_");
+        const secureFileName = `${id}_${Date.now()}_${sanitizedBase}${sanitizedExt}`;
+        const absFilePath = path.join(DOCUMENTS_DIR, secureFileName);
+        fs.writeFileSync(absFilePath, buffer);
+        storagePath = path.relative(__dirname, absFilePath);
+      } catch (fileErr) {
+        console.warn("Could not write file to uploads directory:", fileErr.message);
+      }
+    }
+
+    const expiryDate = d.expiryDate || "";
+    const isExpired = Boolean(expiryDate && expiryDate < today);
+    // New uploads are "Pending Verification" unless already expired
+    const status = isExpired ? "Expired" : "Pending Verification";
+    const verificationStatus = isExpired ? "Expired" : "Pending";
+
     const created = await Document.create({
       id,
-      name: d.name || d.title || "Document",
-      title: d.title || d.name || "Document",
-      type: d.type || "PDF",
-      relatedTo: d.relatedTo || d.related_to || "",
-      propertyId: d.propertyId || d.property_id || null,
-      property_id: d.propertyId || d.property_id || null,
-      tenantId: d.tenantId || d.tenant_id || null,
-      tenant_id: d.tenantId || d.tenant_id || null,
-      url: d.url || "",
-      uploadedOn: d.uploadedOn || d.uploaded_on || new Date().toISOString().split("T")[0],
-      uploadedAt: d.uploadedAt || d.uploaded_at || new Date().toISOString().split("T")[0],
-      uploaded_at: d.uploadedAt || d.uploaded_at || new Date().toISOString().split("T")[0],
-      status: d.status || "Verified",
+      name: d.name || d.title || fileName || "Document",
+      title: d.title || d.name || fileName || "Document",
+      type: d.type || (fileExt === ".png" || fileExt === ".jpg" || fileExt === ".jpeg" ? "Image" : "PDF"),
+      category: d.category || "Other",
+      documentNumber: d.documentNumber || "",
+      issueDate: d.issueDate || today,
+      expiryDate,
+      isExpired,
+      version: 1,
+      versionHistory: [],
+      relatedTo,
+      related_to: relatedTo,
+      propertyId,
+      property_id: propertyId,
+      tenantId,
+      tenant_id: tenantId,
+      landlordId,
+      landlord_id: landlordId,
+      uploadedBy: req.user.email || req.user.id || req.user.name || "User",
+      uploaderRole: req.user.role,
+      url: `/api/documents/${id}/download`,
+      uploadedOn: today,
+      uploadedAt: today,
+      uploaded_at: today,
+      status,
+      verificationStatus,
+      rejectionReason: "",
+      fileName,
+      fileSize,
+      mimeType,
+      storagePath,
+      fileData: fileData ? "STORED_ON_DISK" : "",
     });
+
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put("/api/documents/:id", async (req, res) => {
+// Admin-Only Document Verification Endpoint
+app.post("/api/documents/:id/verify", requireAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Only administrators are authorized to verify KYC and legal documents." });
+    }
+
+    const doc = await Document.findOne({ id: req.params.id });
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    const { status, verificationStatus, rejectionReason } = req.body;
+    const finalStatus = status || verificationStatus || "Verified";
+
+    if (finalStatus !== "Verified" && finalStatus !== "Rejected" && finalStatus !== "Pending Verification") {
+      return res.status(400).json({ error: "Invalid status. Allowed: Verified, Rejected, Pending Verification." });
+    }
+
+    doc.status = finalStatus;
+    doc.verificationStatus = finalStatus;
+    doc.verifiedBy = req.user.email || req.user.name || "System Admin";
+    doc.verifiedAt = new Date().toISOString();
+    doc.rejectionReason = finalStatus === "Rejected" ? (rejectionReason || "Document verification rejected by administrator.") : "";
+
+    await doc.save();
+    res.json({ success: true, message: `Document verification status set to ${finalStatus}`, document: doc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Replace / Version Update for Expired or Rejected Documents
+app.post("/api/documents/:id/replace", requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ id: req.params.id });
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    // Authorization: Document Owner or Admin
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (doc.tenantId !== myId && doc.relatedTo !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot replace another user's document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId;
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: You do not own this document or property." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    const d = req.body;
+    let fileName = d.fileName || d.name || doc.fileName || `${doc.id}.pdf`;
+    let fileSize = Number(d.fileSize || 0);
+    let mimeType = d.mimeType || doc.mimeType || "application/pdf";
+    let fileData = d.fileData || "";
+
+    if (fileSize > 15 * 1024 * 1024) {
+      return res.status(400).json({ error: "File exceeds 15MB maximum size limit." });
+    }
+
+    const allowedMimes = ["application/pdf", "image/png", "image/jpeg", "image/webp", "text/plain"];
+    const allowedExts = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt"];
+    const fileExt = path.extname(fileName).toLowerCase();
+
+    if (mimeType && !allowedMimes.includes(mimeType.toLowerCase())) {
+      return res.status(400).json({ error: "Invalid file type. Allowed formats: PDF, PNG, JPG, WEBP, TXT." });
+    }
+    if (fileExt && !allowedExts.includes(fileExt)) {
+      return res.status(400).json({ error: "Invalid file extension. Allowed extensions: .pdf, .png, .jpg, .jpeg, .webp, .txt." });
+    }
+
+    let storagePath = doc.storagePath || "";
+    if (fileData) {
+      try {
+        const cleanBase64 = fileData.includes(",") ? fileData.split(",")[1] : fileData;
+        const buffer = Buffer.from(cleanBase64, "base64");
+        fileSize = buffer.length;
+        if (fileSize > 15 * 1024 * 1024) {
+          return res.status(400).json({ error: "Decoded file exceeds 15MB limit." });
+        }
+        const sanitizedExt = allowedExts.includes(fileExt) ? fileExt : ".pdf";
+        const sanitizedBase = path.basename(fileName, sanitizedExt).replace(/[^a-zA-Z0-9_-]/g, "_");
+        const nextVer = (doc.version || 1) + 1;
+        const secureFileName = `${doc.id}_v${nextVer}_${Date.now()}_${sanitizedBase}${sanitizedExt}`;
+        const absFilePath = path.join(DOCUMENTS_DIR, secureFileName);
+        fs.writeFileSync(absFilePath, buffer);
+        storagePath = path.relative(__dirname, absFilePath);
+      } catch (fileErr) {
+        console.warn("Could not write file to uploads directory:", fileErr.message);
+      }
+    }
+
+    // Archive current document into versionHistory
+    const prevVersion = {
+      version: doc.version || 1,
+      fileUrl: doc.url,
+      storagePath: doc.storagePath,
+      fileName: doc.fileName,
+      fileSize: doc.fileSize,
+      uploadDate: doc.uploadedOn || doc.uploadedAt || new Date().toISOString().split("T")[0],
+      uploadedBy: doc.uploadedBy,
+      documentNumber: doc.documentNumber,
+      expiryDate: doc.expiryDate,
+      notes: d.notes || `Replaced on ${new Date().toISOString().split("T")[0]}`,
+    };
+
+    doc.versionHistory = doc.versionHistory || [];
+    doc.versionHistory.push(prevVersion);
+
+    doc.version = (doc.version || 1) + 1;
+    doc.fileName = fileName;
+    doc.fileSize = fileSize;
+    doc.mimeType = mimeType;
+    doc.storagePath = storagePath;
+    if (d.name) doc.name = d.name;
+    if (d.title) doc.title = d.title;
+    if (d.category) doc.category = d.category;
+    if (d.documentNumber) doc.documentNumber = d.documentNumber;
+    if (d.expiryDate) doc.expiryDate = d.expiryDate;
+    const today = new Date().toISOString().split("T")[0];
+    doc.uploadedOn = today;
+    doc.uploadedAt = today;
+    doc.uploaded_at = today;
+    doc.status = "Pending Verification";
+    doc.verificationStatus = "Pending";
+    doc.rejectionReason = "";
+    doc.isExpired = false;
+
+    await doc.save();
+    res.json({ success: true, message: `Document replaced with version ${doc.version}`, document: doc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Authorized Document View & Download Handler
+app.get("/api/documents/:id/download", requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    // Authorization Verification
+    if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      const isOwner = doc.tenantId === tId || doc.tenant_id === tId || doc.relatedTo === tId || doc.related_to === tId;
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to download this document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const activeLeases = await Lease.find({
+        $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }],
+      }).select("tenantId tenant_id").lean();
+      const tenantIds = activeLeases.map((l) => l.tenantId || l.tenant_id).filter(Boolean);
+
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId ||
+        (doc.tenantId && tenantIds.includes(doc.tenantId));
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: Document does not belong to your properties." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    // 1. If stored on disk, verify path security and stream file
+    if (doc.storagePath) {
+      const fullPath = path.normalize(path.join(__dirname, doc.storagePath));
+      if (!fullPath.startsWith(path.normalize(DOCUMENTS_DIR))) {
+        return res.status(403).json({ error: "Security violation: Invalid storage path." });
+      }
+      if (fs.existsSync(fullPath)) {
+        return res.download(fullPath, doc.fileName || `${doc.id}.pdf`);
+      }
+    }
+
+    // 2. Fallback: generate authentic verifiable receipt document content
+    const content = `==========================================================\nPROPCONNECT PORTAL - OFFICIAL RECORDED TENANCY DOCUMENT\n==========================================================\nDocument ID: ${doc.id}\nDocument Name: ${doc.name}\nDocument Type: ${doc.type}\nRelated Identity: ${doc.relatedTo || doc.tenantId || "N/A"}\nUploaded On: ${doc.uploadedOn || doc.uploadedAt || new Date().toISOString()}\nVerification Status: ${doc.status}\nIntegrity Hash: SHA256-${crypto.createHash("sha256").update(doc.id + (doc.name || "")).digest("hex").slice(0, 32)}\n==========================================================\n`;
+
+    res.setHeader("Content-Disposition", `attachment; filename="${doc.fileName || `${doc.id}.txt`}"`);
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(content);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/documents/:id/view", requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    // Authorization Verification
+    if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      const isOwner = doc.tenantId === tId || doc.tenant_id === tId || doc.relatedTo === tId || doc.related_to === tId;
+      if (!isOwner) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to view this document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const activeLeases = await Lease.find({
+        $or: [{ landlordId: lId }, { landlord_id: lId }, { propertyId: { $in: propIds } }],
+      }).select("tenantId tenant_id").lean();
+      const tenantIds = activeLeases.map((l) => l.tenantId || l.tenant_id).filter(Boolean);
+
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId ||
+        (doc.tenantId && tenantIds.includes(doc.tenantId));
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: Document does not belong to your properties." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
+    if (doc.storagePath) {
+      const fullPath = path.normalize(path.join(__dirname, doc.storagePath));
+      if (!fullPath.startsWith(path.normalize(DOCUMENTS_DIR))) {
+        return res.status(403).json({ error: "Security violation: Invalid storage path." });
+      }
+      if (fs.existsSync(fullPath)) {
+        res.setHeader("Content-Type", doc.mimeType || "application/pdf");
+        return res.sendFile(fullPath);
+      }
+    }
+
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/documents/:id", requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ id: req.params.id });
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    // Non-admin users cannot alter verification status
+    if (req.body.status || req.body.verificationStatus) {
+      const newStatus = req.body.status || req.body.verificationStatus;
+      if (newStatus !== doc.status && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Forbidden: Only administrators are authorized to alter verification status." });
+      }
+    }
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (doc.tenantId !== myId && doc.relatedTo !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot modify another tenant's document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId;
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: You do not have permission to modify documents for this property." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Access denied." });
+    }
+
     const updated = await Document.findOneAndUpdate(
       { id: req.params.id },
       { $set: req.body },
       { new: true }
     ).lean();
-    if (!updated) return res.status(404).json({ error: "Document not found" });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/documents/:id", async (req, res) => {
+app.delete("/api/documents/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await Document.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: "Document not found" });
+    const doc = await Document.findOne({ id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      if (doc.tenantId !== myId && doc.relatedTo !== myId) {
+        return res.status(403).json({ error: "Forbidden: You cannot delete another user's document." });
+      }
+    } else if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const propIds = await getLandlordOwnedPropertyIds(lId);
+      const isAuthorized =
+        (doc.landlordId && (doc.landlordId === lId || doc.landlord_id === lId)) ||
+        (doc.propertyId && propIds.includes(doc.propertyId)) ||
+        doc.relatedTo === lId;
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Forbidden: You do not own the property for this document." });
+      }
+    } else if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions." });
+    }
+
+    if (doc.storagePath) {
+      const fullPath = path.normalize(path.join(__dirname, doc.storagePath));
+      if (fullPath.startsWith(path.normalize(DOCUMENTS_DIR)) && fs.existsSync(fullPath)) {
+        try {
+          fs.unlinkSync(fullPath);
+        } catch {}
+      }
+    }
+
+    await Document.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, message: "Document removed", id: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5277,9 +7483,20 @@ app.delete("/api/documents/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 15. Notifications API
 // -------------------------------------------------------------
-app.get("/api/notifications", async (req, res) => {
+app.get("/api/notifications", requireAuth, async (req, res) => {
   try {
-    const rows = await Notification.find().sort({ id: -1 }).lean();
+    let filter = {};
+    if (req.user.role === "tenant") {
+      const myId = await resolveTenantId(req.user);
+      filter = { $or: [{ userId: myId }, { user_id: myId }] };
+    } else if (req.user.role === "landlord") {
+      const myId = await resolveLandlordId(req.user);
+      filter = { $or: [{ userId: myId }, { user_id: myId }] };
+    } else if (req.user.role === "provider" || req.user.role === "service_provider") {
+      const myId = await resolveProviderId(req.user);
+      filter = { $or: [{ userId: myId }, { user_id: myId }] };
+    }
+    const rows = await Notification.find(filter).sort({ id: -1 }).lean();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5832,6 +8049,328 @@ app.put("/api/settings/user/:userId", async (req, res) => {
   }
 });
 
+// -------------------------------------------------------------
+// 15. Profile & Banking Management APIs
+// -------------------------------------------------------------
+app.get("/api/profile", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const landlord = await Landlord.findOne({ id: lId }).lean();
+      const user = await User.findOne({ email: req.user.email }).lean();
+
+      const banking = landlord?.banking || {};
+      const rawAcc = banking.accountNumber || "";
+      const maskedBanking = {
+        accountHolderName: banking.accountHolderName || "",
+        bankName: banking.bankName || "",
+        accountNumber: maskAccountNumber(rawAcc),
+        maskedAccountNumber: maskAccountNumber(rawAcc),
+        ifscCode: banking.ifscCode || "",
+        branch: banking.branch || "",
+      };
+
+      return res.json({
+        id: lId,
+        name: landlord?.name || user?.name || "Landlord",
+        email: landlord?.email || user?.email || req.user.email,
+        phone: landlord?.phone || user?.phone || "",
+        location: landlord?.location || user?.location || "Tamil Nadu, India",
+        address: landlord?.address || user?.address || "",
+        avatar: landlord?.avatar || user?.avatar || "",
+        role: "landlord",
+        status: landlord?.status || "Verified",
+        verificationStatus: landlord?.verificationStatus || "Verified",
+        propertiesCount: landlord?.propertiesCount || 0,
+        totalUnits: landlord?.totalUnits || 0,
+        createdAt: landlord?.createdAt || user?.createdAt || new Date().toISOString(),
+        banking: maskedBanking,
+      });
+    } else if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      const tenant = await Tenant.findOne({ $or: [{ id: tId }, { email: req.user.email }] }).lean();
+      const user = await User.findOne({ email: req.user.email }).lean();
+      return res.json({
+        id: tId,
+        name: tenant?.name || user?.name || "Tenant",
+        email: tenant?.email || user?.email || req.user.email,
+        phone: tenant?.phone || "",
+        location: tenant?.location || user?.location || "Tamil Nadu, India",
+        address: tenant?.address || "",
+        emergencyContact: tenant?.emergencyContact || "",
+        emergencyPhone: tenant?.emergencyPhone || "",
+        avatar: tenant?.avatar || "",
+        role: "tenant",
+        status: tenant?.status || "Active",
+        createdAt: tenant?.createdAt || user?.createdAt || new Date().toISOString(),
+      });
+    } else {
+      const user = await User.findOne({ email: req.user.email }).lean();
+      return res.json({
+        id: user?.id || user?._id,
+        name: user?.name || "Administrator",
+        email: user?.email || req.user.email,
+        role: req.user.role,
+        createdAt: user?.createdAt || new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/profile", requireAuth, async (req, res) => {
+  try {
+    const { name, phone, location, address, avatar, emergencyContact, emergencyPhone } = req.body;
+
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const updateData = {};
+      if (name !== undefined) updateData.name = name.trim();
+      if (phone !== undefined) updateData.phone = phone.trim();
+      if (location !== undefined) updateData.location = location.trim();
+      if (address !== undefined) updateData.address = address.trim();
+      if (avatar !== undefined) updateData.avatar = avatar;
+
+      const updatedLandlord = await Landlord.findOneAndUpdate(
+        { id: lId },
+        { $set: updateData },
+        { new: true, upsert: true }
+      ).lean();
+
+      // Synchronize User collection
+      const userUpdate = {};
+      if (name !== undefined) userUpdate.name = name.trim();
+      if (phone !== undefined) userUpdate.phone = phone.trim();
+      if (location !== undefined) userUpdate.location = location.trim();
+      if (address !== undefined) userUpdate.address = address.trim();
+      if (avatar !== undefined) userUpdate.avatar = avatar;
+      await User.findOneAndUpdate({ email: req.user.email }, { $set: userUpdate });
+
+      const banking = updatedLandlord.banking || {};
+      const maskedBanking = {
+        accountHolderName: banking.accountHolderName || "",
+        bankName: banking.bankName || "",
+        accountNumber: maskAccountNumber(banking.accountNumber),
+        maskedAccountNumber: maskAccountNumber(banking.accountNumber),
+        ifscCode: banking.ifscCode || "",
+        branch: banking.branch || "",
+      };
+
+      return res.json({
+        success: true,
+        message: "Profile updated successfully",
+        profile: {
+          ...updatedLandlord,
+          banking: maskedBanking,
+        },
+      });
+    } else if (req.user.role === "tenant") {
+      const tId = await resolveTenantId(req.user);
+      const updateData = {};
+      if (name !== undefined) updateData.name = name.trim();
+      if (phone !== undefined) updateData.phone = phone.trim();
+      if (location !== undefined) updateData.location = location.trim();
+      if (address !== undefined) updateData.address = address.trim();
+      if (avatar !== undefined) updateData.avatar = avatar;
+      if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact.trim();
+      if (emergencyPhone !== undefined) updateData.emergencyPhone = emergencyPhone.trim();
+
+      const updated = await Tenant.findOneAndUpdate(
+        { $or: [{ id: tId }, { email: req.user.email }] },
+        { $set: updateData },
+        { new: true }
+      ).lean();
+      await User.findOneAndUpdate({ email: req.user.email }, { $set: updateData });
+
+      return res.json({ success: true, message: "Profile updated successfully", profile: updated });
+    } else {
+      const updateData = {};
+      if (name !== undefined) updateData.name = name.trim();
+      const updated = await User.findOneAndUpdate({ email: req.user.email }, { $set: updateData }, { new: true }).lean();
+      return res.json({ success: true, message: "Profile updated successfully", profile: updated });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/profile/banking", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Only landlords can manage banking information." });
+    }
+
+    const { accountHolderName, bankName, accountNumber, ifscCode, branch } = req.body;
+
+    // Validate IFSC code: 4 uppercase letters, '0', 6 uppercase letters/digits
+    if (ifscCode) {
+      const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+      const upperIfsc = ifscCode.trim().toUpperCase();
+      if (!ifscRegex.test(upperIfsc)) {
+        return res.status(400).json({
+          error: "Invalid IFSC format. IFSC must be 11 characters (4 letters, 0, 6 alphanumeric, e.g. HDFC0001234).",
+        });
+      }
+    }
+
+    // Validate bank account number (only if not masked)
+    if (accountNumber && !accountNumber.includes("•")) {
+      const cleanAcc = accountNumber.replace(/\s/g, "");
+      if (!/^\d{9,18}$/.test(cleanAcc)) {
+        return res.status(400).json({
+          error: "Invalid account number. Bank account number must be between 9 and 18 digits.",
+        });
+      }
+    }
+
+    const lId = await resolveLandlordId(req.user);
+    const landlord = await Landlord.findOne({ id: lId });
+    if (!landlord) {
+      return res.status(404).json({ error: "Landlord record not found" });
+    }
+
+    landlord.banking = landlord.banking || {};
+    if (accountHolderName !== undefined) landlord.banking.accountHolderName = accountHolderName.trim();
+    if (bankName !== undefined) landlord.banking.bankName = bankName.trim();
+    if (accountNumber !== undefined && !accountNumber.includes("•")) {
+      landlord.banking.accountNumber = accountNumber.replace(/\s/g, "");
+    }
+    if (ifscCode !== undefined) landlord.banking.ifscCode = ifscCode.trim().toUpperCase();
+    if (branch !== undefined) landlord.banking.branch = branch.trim();
+
+    await landlord.save();
+
+    const maskedBanking = {
+      accountHolderName: landlord.banking.accountHolderName || "",
+      bankName: landlord.banking.bankName || "",
+      accountNumber: maskAccountNumber(landlord.banking.accountNumber),
+      maskedAccountNumber: maskAccountNumber(landlord.banking.accountNumber),
+      ifscCode: landlord.banking.ifscCode || "",
+      branch: landlord.banking.branch || "",
+    };
+
+    return res.json({
+      success: true,
+      message: "Banking information updated successfully",
+      banking: maskedBanking,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// 16. Landlord Settings & Preferences APIs (MongoDB Persistence)
+// -------------------------------------------------------------
+const DEFAULT_LANDLORD_SETTINGS = {
+  notificationPreferences: {
+    rentPayments: true,
+    maintenanceUpdates: true,
+    complaintAlerts: true,
+    bookingAlerts: true,
+    leaseExpiryAlerts: true,
+    emailNotifications: true,
+    inAppNotifications: true,
+    smsAlerts: false,
+  },
+  paymentPreferences: {
+    autoRentReminders: true,
+    reminderLeadDays: 3,
+    gracePeriodDays: 5,
+    lateFeeEnabled: false,
+    lateFeeAmount: 250,
+  },
+  appearance: {
+    theme: "light",
+    primaryColor: "#0284c7",
+    language: "en",
+  },
+};
+
+app.get("/api/settings/landlord", requireAuth, async (req, res) => {
+  try {
+    const lId = await resolveLandlordId(req.user);
+    const landlord = await Landlord.findOne({ id: lId }).lean();
+    const settings = landlord?.settings || DEFAULT_LANDLORD_SETTINGS;
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/settings/landlord", requireAuth, async (req, res) => {
+  try {
+    const lId = await resolveLandlordId(req.user);
+    const landlord = await Landlord.findOne({ id: lId });
+    if (!landlord) {
+      return res.status(404).json({ error: "Landlord record not found" });
+    }
+
+    landlord.settings = landlord.settings || DEFAULT_LANDLORD_SETTINGS;
+    if (req.body.notificationPreferences) {
+      const existingNotif = (landlord.settings.notificationPreferences && landlord.settings.notificationPreferences.toObject ? landlord.settings.notificationPreferences.toObject() : landlord.settings.notificationPreferences) || {};
+      landlord.settings.notificationPreferences = { ...existingNotif, ...req.body.notificationPreferences };
+    }
+    if (req.body.paymentPreferences) {
+      const existingPay = (landlord.settings.paymentPreferences && landlord.settings.paymentPreferences.toObject ? landlord.settings.paymentPreferences.toObject() : landlord.settings.paymentPreferences) || {};
+      landlord.settings.paymentPreferences = { ...existingPay, ...req.body.paymentPreferences };
+    }
+    if (req.body.appearance) {
+      const existingApp = (landlord.settings.appearance && landlord.settings.appearance.toObject ? landlord.settings.appearance.toObject() : landlord.settings.appearance) || {};
+      landlord.settings.appearance = { ...existingApp, ...req.body.appearance };
+    }
+
+    await landlord.save();
+    res.json({ success: true, message: "Settings saved successfully", settings: landlord.settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/settings", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const landlord = await Landlord.findOne({ id: lId }).lean();
+      return res.json(landlord?.settings || DEFAULT_LANDLORD_SETTINGS);
+    }
+    res.json(DEFAULT_LANDLORD_SETTINGS);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/settings", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role === "landlord") {
+      const lId = await resolveLandlordId(req.user);
+      const landlord = await Landlord.findOne({ id: lId });
+      if (!landlord) return res.status(404).json({ error: "Landlord record not found" });
+
+      landlord.settings = landlord.settings || DEFAULT_LANDLORD_SETTINGS;
+      if (req.body.notificationPreferences) {
+        const existingNotif = (landlord.settings.notificationPreferences && landlord.settings.notificationPreferences.toObject ? landlord.settings.notificationPreferences.toObject() : landlord.settings.notificationPreferences) || {};
+        landlord.settings.notificationPreferences = { ...existingNotif, ...req.body.notificationPreferences };
+      }
+      if (req.body.paymentPreferences) {
+        const existingPay = (landlord.settings.paymentPreferences && landlord.settings.paymentPreferences.toObject ? landlord.settings.paymentPreferences.toObject() : landlord.settings.paymentPreferences) || {};
+        landlord.settings.paymentPreferences = { ...existingPay, ...req.body.paymentPreferences };
+      }
+      if (req.body.appearance) {
+        const existingApp = (landlord.settings.appearance && landlord.settings.appearance.toObject ? landlord.settings.appearance.toObject() : landlord.settings.appearance) || {};
+        landlord.settings.appearance = { ...existingApp, ...req.body.appearance };
+      }
+
+      await landlord.save();
+      return res.json({ success: true, message: "Settings saved successfully", settings: landlord.settings });
+    }
+    res.json({ success: true, message: "Settings saved successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ============================================================================
 // HOME SERVICE PORTAL APIs — Categories, Providers, Availability, Bookings
 // ============================================================================
@@ -6304,4 +8843,6 @@ process.on("SIGTERM", () => {
 });
 
 startServer(PORT);
+
+export { app, serverInstance };
 

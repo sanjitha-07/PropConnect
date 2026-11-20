@@ -243,6 +243,54 @@ export async function deleteLease(id) {
   }
 }
 
+export async function renewLease(id, renewalData) {
+  try {
+    return await request(`/leases/${id}/renew`, {
+      method: "POST",
+      body: renewalData,
+    });
+  } catch (err) {
+    console.warn("renewLease offline fallback:", err.message);
+    return { success: true, lease: { id, ...renewalData, status: "Active", renewalStatus: "Renewed" } };
+  }
+}
+
+export async function sendRenewalReminder(id, notes = "") {
+  try {
+    return await request(`/leases/${id}/remind-renewal`, {
+      method: "POST",
+      body: { notes },
+    });
+  } catch (err) {
+    console.warn("sendRenewalReminder offline fallback:", err.message);
+    return { success: true, message: "Reminder sent (offline)" };
+  }
+}
+
+export async function terminateLease(id, reason = "Mutual Termination", terminationDate = "") {
+  try {
+    return await request(`/leases/${id}/terminate`, {
+      method: "POST",
+      body: { reason, terminationDate: terminationDate || new Date().toISOString().split("T")[0] },
+    });
+  } catch (err) {
+    console.warn("terminateLease offline fallback:", err.message);
+    return { success: true, id, status: "Terminated" };
+  }
+}
+
+export async function saveLeaseInspection(id, type, inspectionData) {
+  try {
+    return await request(`/leases/${id}/inspection`, {
+      method: "POST",
+      body: { type, inspectionData },
+    });
+  } catch (err) {
+    console.warn("saveLeaseInspection offline fallback:", err.message);
+    return { success: true, type, inspectionData };
+  }
+}
+
 // -------------------------------------------------------------
 // Move-In Date Rent Cycle API
 // -------------------------------------------------------------
@@ -333,6 +381,41 @@ export async function deletePayment(id) {
   } catch (err) {
     console.warn("deletePayment offline fallback:", err.message);
     return { success: true, id };
+  }
+}
+
+export async function recordInvoicePayment(id, paymentData) {
+  try {
+    return await request(`/payments/${id}/record-payment`, {
+      method: "POST",
+      body: paymentData,
+    });
+  } catch (err) {
+    console.warn("recordInvoicePayment fallback:", err.message);
+    return { success: true, message: "Payment recorded (offline)" };
+  }
+}
+
+export async function refundSecurityDeposit(id, refundData) {
+  try {
+    return await request(`/deposits/${id}/refund`, {
+      method: "POST",
+      body: refundData,
+    });
+  } catch (err) {
+    console.warn("refundSecurityDeposit fallback:", err.message);
+    return { success: true, message: "Deposit refunded (offline)" };
+  }
+}
+
+export async function fetchFinancialSummary(params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const query = qs ? `?${qs}` : "";
+    return await request(`/financial-summary${query}`);
+  } catch (err) {
+    console.warn("fetchFinancialSummary fallback:", err.message);
+    return null;
   }
 }
 
@@ -639,6 +722,58 @@ export async function deleteDocument(id) {
   }
 }
 
+export async function downloadDocument(id, fileName) {
+  const token = localStorage.getItem("pc-token");
+  let user = null;
+  try {
+    const raw = localStorage.getItem("pc-user");
+    if (raw) user = JSON.parse(raw);
+  } catch {}
+
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(user?.role ? { "x-user-role": user.role } : {}),
+    ...(user?.entityId || user?.entity_id || user?.id
+      ? { "x-user-id": user.entityId || user.entity_id || user.id }
+      : {}),
+    ...(user?.email ? { "x-user-email": user.email } : {}),
+  };
+
+  const res = await fetch(`/api/documents/${id}/download`, { headers });
+  if (!res.ok) {
+    let err = "Failed to download document";
+    try {
+      const j = await res.json();
+      if (j.error || j.message) err = j.error || j.message;
+    } catch {}
+    throw new Error(err);
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName || `${id}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+export async function verifyDocument(id, status, rejectionReason = "") {
+  return await request(`/documents/${id}/verify`, {
+    method: "POST",
+    body: { status, rejectionReason },
+  });
+}
+
+export async function replaceDocument(id, replaceData) {
+  return await request(`/documents/${id}/replace`, {
+    method: "POST",
+    body: replaceData,
+  });
+}
+
 // -------------------------------------------------------------
 // Notifications
 // -------------------------------------------------------------
@@ -783,6 +918,20 @@ export async function registerTenant(tenantData) {
   }
 }
 
+export async function changePassword(passwordData) {
+  try {
+    return await request("/auth/change-password", {
+      method: "POST",
+      body: passwordData,
+    });
+  } catch (err) {
+    return {
+      success: false,
+      message: err.message || "Failed to update password",
+    };
+  }
+}
+
 // -------------------------------------------------------------
 // Property Media & Gallery API
 // -------------------------------------------------------------
@@ -892,6 +1041,51 @@ export async function saveUserSettings(userId, settingsData) {
     console.warn("saveUserSettings offline fallback:", err.message);
     return { success: false, error: err.message };
   }
+}
+
+// -------------------------------------------------------------
+// Profile & Banking APIs
+// -------------------------------------------------------------
+export async function fetchProfile() {
+  try {
+    return await request("/profile");
+  } catch (err) {
+    console.warn("fetchProfile offline fallback:", err.message);
+    return null;
+  }
+}
+
+export async function updateProfile(profileData) {
+  return await request("/profile", {
+    method: "PUT",
+    body: profileData,
+  });
+}
+
+export async function updateBankingInfo(bankingData) {
+  return await request("/profile/banking", {
+    method: "PUT",
+    body: bankingData,
+  });
+}
+
+// -------------------------------------------------------------
+// Landlord Settings APIs (MongoDB Persistence)
+// -------------------------------------------------------------
+export async function fetchLandlordSettings() {
+  try {
+    return await request("/settings/landlord");
+  } catch (err) {
+    console.warn("fetchLandlordSettings offline fallback:", err.message);
+    return null;
+  }
+}
+
+export async function saveLandlordSettings(settingsData) {
+  return await request("/settings/landlord", {
+    method: "PUT",
+    body: settingsData,
+  });
 }
 
 // -------------------------------------------------------------
@@ -1423,6 +1617,22 @@ export async function deleteComplaintCategory(id) {
     method: "DELETE",
   });
 }
+
+// -------------------------------------------------------------
+// Phase 4: Unified Requests & Home Services Endpoints
+// -------------------------------------------------------------
+export async function fetchRequestsSummary(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return await request(`/requests-summary${query ? `?${query}` : ""}`);
+}
+
+export async function linkComplaintToMaintenance(complaintId, data = {}) {
+  return await request(`/complaints/${encodeURIComponent(complaintId)}/link-maintenance`, {
+    method: "POST",
+    body: data,
+  });
+}
+
 
 
 
